@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.10 2003/06/16 00:06:38 mani Exp $
+// $Id: pike_client.pike,v 1.11 2003/06/17 14:32:19 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -54,11 +54,13 @@ void exit(int code, void|string why, mixed ... extra) {
   predef::exit(code);
 }
 
+#ifdef PID_FILE
 //! Remove the pid file.
 void clean_exit() {
   if(!system->node) return;
   rm("xenofarm-"+system->node+".pid");
 }
+#endif /* PID_FILE */
 
 ADT.Stack dirs = ADT.Stack();
 
@@ -167,6 +169,19 @@ void tar_dir(Stdio.File out) {
   }
 }
 
+//! Uncompresses the gz file @[path_a] into the file @[path_b].
+void gunzip(string path_a, string path_b) {
+  Gz.File a = Gz.File(path_a);
+  Stdio.File b = Stdio.File(path_b, "cwt");
+  string buf;
+  do {
+    WERR(".");
+    buf = a->read(1<<17);
+    b->write(buf);
+  } while( sizeof(buf)==1<<17 );
+  WERR("\n");
+}
+
 
 // --- Classes
 
@@ -194,6 +209,7 @@ class Config {
       // Skip comments.
       if(!sizeof(line) || line[0]=='#') continue;
 
+      // Parse key and value pair.
       string key,value;
       if(sscanf(line, "%s:%*[ \t]%s", key, value)!=3)
         exit(15, "Error in configure file (%s), line %d.\n",
@@ -203,6 +219,7 @@ class Config {
 	exit(15, "Empty value in key %O, line %d, %s.\n",
 	     key, line_no, filename);
 
+      // First line must be a configformat key with value 2.
       if(line_no==0) {
 	if(key!="configformat")
 	  exit(15, "Unknown config format in %s.\n", filename);
@@ -211,6 +228,7 @@ class Config {
 	continue;
       }
 
+      // Set things according to keys.
       switch(key) {
 
       case "project":
@@ -235,7 +253,8 @@ class Config {
 	break;
 
       case "environment":
-	exit(16, "environment: nor supported in config format v2.\n");
+	// This key was valid in v1, but is deprecated in v2.
+	exit(16, "environment: not supported in config format v2.\n");
 
       default:
 	string node;
@@ -267,6 +286,8 @@ class Config {
   static int last_serverchange;
   static int last_download;
 
+  // Creates a project directory, enters it, calls low_prepare and
+  // leaves the directory.
   int(0..1) prepare() {
     if(file_stat("dont_run"))
       exit(5, "FATAL: dont_run file found. Doing that.\n");
@@ -279,6 +300,8 @@ class Config {
     return ret;
   }
 
+  // Compares last downloaded package with what resides on the server.
+  // If the server has a newer version, it is downloaded.
   int(0..1) low_prepare() {
     // This is an improvement over client.sh.
     if(file_stat("dont_run"))
@@ -315,21 +338,14 @@ class Config {
     return 1;
   }
 
+  // Decompresses the gz package, iterates over all tests and
+  // calls tun_test for each of them.
   void run_tests() {
     WERR("Running tests in %s.\n", project);
     pushd(projectdir);
     if(!file_stat("snapshot.tar")) {
       WERR("  Uncompressing archive.");
-
-      Gz.File a = Gz.File("snapshot.tar.gz");
-      Stdio.File b = Stdio.File("snapshot.tar", "cwt");
-      string buf;
-      do {
-	WERR(".");
-	buf = a->read(1<<17);
-	b->write(buf);
-      } while( sizeof(buf)==1<<17 );
-      WERR("\n");
+      gunzip("snapshot.tar.gz", "snapshot.tar");
     }
 
     foreach(tests; string name; string cmd) {
@@ -412,20 +428,28 @@ class Config {
 	exit(25, "Could not move xenofarm result file to result directory.\n");
       popd();
       pushd(result_dir);
-      make_machineid(name, cmd);
       Stdio.recursive_rm("repack");
       mkdir("repack");
+      gunzip("xenofarm_result.tar.gz", "xenofarm_result.tar");
+      object fs = Filesystem.Tar("xenofarm_result.tar");
       cd("repack");
-
+      untar_dir(fs, "");
     }
     else {
       popd();
       pushd(result_dir);
-      make_machineid(name, cmd);
-      Stdio.File f = Stdio.File("xenofarm_result.tar", "cwt");
-      tar_dir(f);
-      f->close();
     }
+
+    make_machineid(name, cmd);
+
+    Stdio.File f = Stdio.File("xenofarm_result.tar", "cwt");
+    tar_dir(f);
+    f->close();
+
+    // FIXME: We could reduce memory consumption with a iterative feeding.
+    Gz.File c = Gz.File("xenofarm_result.tar.gz", "wb");
+    c->write(Stdio.read_file("xenofarm_result.tar"));
+    c->close();
 
     Protocols.HTTP.put_url(resulturl, Stdio.read_file("xenofarm_result.tar"));
     popd();
@@ -501,11 +525,12 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.10 2003/06/16 00:06:38 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.11 2003/06/17 14:32:19 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
 
+#ifdef PID_FILE
 void setup_pidfile() {
   string pidf = "xenofarm-"+system->node+".pid";
 
@@ -517,6 +542,7 @@ void setup_pidfile() {
   Stdio.write_file(pidf, (string)getpid());
   atexit(clean_exit);
 }
+#endif /* PID_FILE */
 
 int main(int num, array(string) args) {
   WERR("%O started.\n", args[0]);
@@ -557,7 +583,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.10 2003/06/16 00:06:38 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.11 2003/06/17 14:32:19 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
@@ -575,7 +601,9 @@ int main(int num, array(string) args) {
   // We don't set up unlimits as client.sh do, since it won't work on Windows.
 
   setup_system_info();
+#ifdef PID_FILE
   setup_pidfile();
+#endif /* PID_FILE */
 
   system->email = get_email();
   WERR("Email: %s\n", system->email);
