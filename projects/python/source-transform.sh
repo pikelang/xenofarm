@@ -25,7 +25,7 @@ cat <<'EOF' > dist/Makefile
 xenofarm:
 	rm -f xenofarm_result.tar xenofarm_result.tar.gz
 	mkdir r
-	CONFIGOPTS="$(CONFIGOPTS)" MAKEOPTS="$(MAKEOPTS)" ./create-response.sh > r/shlog.txt 2>&1
+	./create-response.sh > r/shlog.txt 2>&1
 	(cd r && tar cf - *) > xenofarm_result.tar
 	gzip -9 xenofarm_result.tar
 EOF
