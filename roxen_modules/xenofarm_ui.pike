@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.36 2002/12/12 18:18:12 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.37 2003/01/11 18:08:44 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -169,13 +169,15 @@ static class Build
 
   int(0..1) update_results(Sql.Sql xfdb)
   {
-    foreach(values(project->tasks), string task)
-      if(!status_summary[task]) status_summary[task]=0;
+    foreach(values(project->tasks), Task task) {
+      string path = task->path;
+      if(!status_summary[path]) status_summary[path]=0;
+    }
 
     array res = xfdb->query("SELECT system,task,status,warnings,time_spent "
 			    "FROM task_result WHERE build = "+id);
     int changed;
-    int build_task = search(project->tasks, "build");
+    int build_task = project->build_task;
     array(int) new_systems = ({});
     foreach(res, mapping x)
     {
@@ -188,7 +190,7 @@ static class Build
 	({ x->status, (int)x->time_spent, (int)x->warnings });
       new_systems += ({ system });
 
-      if(x->status!="FAIL") status_summary[ project->tasks[task] ]++;
+      if(x->status!="FAIL") status_summary[ project->tasks[task]->name ]++;
     }
 
     foreach(new_systems, int system) {
@@ -264,6 +266,7 @@ static class Build
   }
 }
 
+//!
 static class ClientConfig
 {
   //! the various info related to a particular client configuration
@@ -285,15 +288,50 @@ static class ClientConfig
   mapping entities()
   {
     string platform = sysname + " " + release + " " + machine;
-    return ([ "name":name, "sysname":sysname, "release":release, "id":id,
-	      "version" : version, "machine" : machine, "test" : test,
-	      "platform" : platform + (test=="" ? "" : " " + test) ]);
+    return ([ "name":name,
+	      "sysname":sysname,
+	      "release":release,
+	      "id":id,
+	      "version" : version,
+	      "machine" : machine,
+	      "test" : test,
+	      "platform" : platform + (test=="" ? "" : " " + test),
+    ]);
   }
 
   string _sprintf(int type)
   {
-    if(type=='t') return "ClientConfig";
-    return sprintf("ClientConfig(/* %s */)", name);
+    switch(type) {
+    case 't': return "ClientConfig";
+    case 'O': sprintf("ClientConfig(/* %s */)", name);
+    }
+  }
+}
+
+class Task (string name, int sort_order) {
+  int(0..1) is_leaf = 1;
+  string path;
+  array children = ({});
+
+  void add_child(Task child) {
+    children += ({ child });
+    is_leaf = 0;
+  }
+
+  void init(void|string ppath) {
+    if(ppath)
+      path = ppath+"-"+name;
+    else
+      path = name;
+    children->init(path);
+  }
+
+  int order(int i) {
+    sort_order = i++;
+    sort(children->sort_order, children);
+    foreach(children, Task t)
+      i = t->order(i);
+    return i;
   }
 }
 
@@ -308,8 +346,9 @@ static class Project
   //! client:client configuration info
   mapping(int(0..):ClientConfig) clients = ([]);
 
-  //! task no:task name
-  mapping(int:string) tasks = ([]);
+  //! task no:Task
+  mapping(int:Task) tasks = ([]);
+  int build_task;
 
   int new_build; // the last time we found a new build in the database
   int last_changed; // ditto when we noticed a change in the matrix
@@ -336,20 +375,37 @@ static class Project
     else
       return next_update - now;
 
-    // Add new builds
     int latest_build;
     if(sizeof(builds))
       latest_build = builds[0]->build_datetime;
 
-    array new = xfdb->query("SELECT id,name,parent FROM task ORDER BY parent");
-
-    if(sizeof(tasks)!=sizeof(new))
+    // Get all tasks
+    array new = xfdb->query("SELECT id,name,parent,sort_order FROM task "
+			    "ORDER BY parent");
+    if(sizeof(tasks)!=sizeof(new)) {
+      array top = ({});
       foreach(new, mapping res) {
-	if((int)res->parent)
-	  res->name = tasks[ (int)res->parent ] + "-" + res->name;
-	tasks[ (int)res->id ] = res->name;
+	string path = res->name;
+	Task t = Task(res->name, (int)res->sort_order);
+	int parent = (int)res->parent;
+	if(!parent)
+	  top += ({ t });
+	else
+	  tasks[ parent ]->add_child( t );
+	tasks[ (int)res->id ] = t;
+	if(path=="build") build_task = (int)res->id;
       }
+      // Initialize paths
+      top->init();
 
+      // Set sort order
+      sort(top->sort_order, top);
+      int i = 1;
+      foreach(top, Task t)
+	i = t->order(i);
+    }
+
+    // Add new builds
     new = xfdb->query("SELECT id,time,export FROM build WHERE time > %d"
 		      " ORDER BY time DESC LIMIT %d", latest_build,
 		      query("results"));
@@ -363,6 +419,7 @@ static class Project
       build_indices = builds->id;
     }
 
+    // Trim the number of builds
     if(sizeof(builds)>query("results")) {
       builds = builds[..query("results")-1];
       build_indices = builds->id;
@@ -578,6 +635,32 @@ class TagXF_Details {
       if(!b) RXML.run_error("Selected build no longer available.\n");
       vars = b->get_details(client);
     }
+  }
+}
+
+class TagEmitXF_Tasks {
+  inherit RXML.Tag;
+  constant name = "emit";
+  constant plugin_name = "xf-tasks";
+
+  array(mapping) get_dataset(mapping m, RequestID id)
+  {
+    NOCACHE();
+    Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
+    array res = ({});
+    foreach(indices(p->tasks), int id) {
+      Task task = p->tasks[id];
+      res += ({ ([ "id" : id,
+		   "name" : task->name,
+		   "path" : task->path,
+		   "order" : task->sort_order,
+		   "leaf" : task->is_leaf ? "yes" : "no"
+      ]) });
+    }
+    if(!m->sort) {
+      sort(res->order, res);
+    }
+    return res;
   }
 }
 
