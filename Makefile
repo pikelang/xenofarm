@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2002/12/05 00:28:02 mani Exp $
+# $Id: Makefile,v 1.6 2003/01/06 17:51:57 ceder Exp $
 #
 
 USER=mani
@@ -37,7 +37,7 @@ build/web/download.xml: build/web pages/web/download.xml.in \
 	      "@info@", x));'
 
 build/client.tar.gz: build
-	@if [ -f client/Makefile ] ; then cd client; $(MAKE) spotless; \
+	@if [ -f client/Makefile ] ; then cd client && $(MAKE) spotless; \
 	  else : ; fi
 	-rm -r build/client
 	-rm build/client.tar
@@ -59,8 +59,8 @@ build/client.tar.gz: build
 	find build/client -name Root | xargs pike -e \
 	  'Stdio.write_file(argv[1..][*], \
 	  ":pserver:anonymous@cvs.lysator.liu.se:/cvsroot/xenofarm");'
-	cd build ; tar c client > client.tar
-	cd build ; gzip -9 client.tar
+	cd build && tar c client > client.tar
+	cd build && gzip -9 client.tar
 
 build:
 	-mkdir build
