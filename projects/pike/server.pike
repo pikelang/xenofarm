@@ -1,7 +1,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.9 2002/05/20 15:14:33 mani Exp $
+// $Id: server.pike,v 1.10 2002/05/30 14:49:38 mani Exp $
 
 // The Xenofarm server program is not really intended to be run verbatim, since almost
 // all projects have their own little funny things to take care of. This is an
@@ -15,7 +15,7 @@ Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
 string project = "pike7.3";
 string web_dir = "/home/nilsson/xenofarm/out/";
 string work_dir = "/home/nilsson/xenofarm/temp/";
-string repository = ""; // Ignore this.
+string repository = "(ignored)"; // Ignore this.
 
 string pike_version = "7.3";
 
@@ -58,7 +58,7 @@ string make_build_low() {
   if(Process.system("cvs -Q -d :ext:nilsson@pelix.ida.liu.se:/pike/data/cvsroot co Pike/"+pike_version))
     return 0;
   cd("Pike/"+pike_version);
-  if(Process.system("make autobuild_export"))
+  if(Process.system("make xenofarm_export"))
      return 0;
 
   array potential_build_names = glob("Pike*", get_dir("."));

@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.1 2002/05/25 00:18:05 mani Exp $
+// $Id: result_parser.pike,v 1.2 2002/05/30 14:49:38 mani Exp $
 
 inherit "result_parser.pike";
 
@@ -10,10 +10,10 @@ string result_dir = "/home/nilsson/xenofarm/in/";
 string work_dir = "/tmp/xtmp/";
 string web_dir = "/home/nilsson/html/angel/";
 
-string build_id_file = "build/autobuild/exportstamp.txt";
-string machine_id_file = "build/autobuild/machineid.txt";
-string main_log_file = "build/autobuild/autobuildlog.txt";
-string compilation_log_file = "build/autobuild/makelog.txt";
+string build_id_file = "exportstamp.txt";
+string machine_id_file = "machineid.txt";
+string main_log_file = "xenofarmlog.txt";
+string compilation_log_file = "makelog.txt";
 
 multiset(string) ignored_warnings = (<
   "configure: warning: found bash as /*.",

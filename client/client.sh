@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.6 2002/05/18 11:05:26 zino Exp $
+# $Id: client.sh,v 1.7 2002/05/30 14:36:20 mani Exp $
 # License: GPL
 #
 # Requirements:
@@ -107,11 +107,11 @@ parse_args $@
 
 #Check and handle the pidfile for this node
 node=`uname -n`
-pidfile="`pwd`/autobuild-$node.pid"
+pidfile="`pwd`/xenofarm-$node.pid"
 if [ -r $pidfile ]; then
     pid=`cat $pidfile`
     if `kill -0 $pid`; then
-        echo "FATAL: Autobuild client already running. pid: $pid"
+        echo "FATAL: Xenofarm client already running. pid: $pid"
         exit 2
     else
         echo "NOTE: Removing stale pid-file."
@@ -191,17 +191,17 @@ grep -v \# projects.conf | ( while
             cp export.stamp "$resultdir/" &&
             echo "Building $target" &&
             make $target >"$resultdir/RESULT" 2>&1;
-            if [ -f autobuild_result.tar.gz ] ; then
-                mv autobuild_result.tar.gz "$resultdir/"
+            if [ -f xenofarm_result.tar.gz ] ; then
+                mv xenofarm_result.tar.gz "$resultdir/"
             else
                 (cd "$resultdir" && 
-                tar cvf autobuild_result.tar RESULT export.stamp |
-                gzip autobuild_result.tar)
+                tar cvf xenofarm_result.tar RESULT export.stamp |
+                gzip xenofarm_result.tar)
             fi
             get_time
             echo $hour:$minute > "../../last_$target";
 	    echo "Sending results for $project: $target."
-            $basedir/bin/put-$node "$puturl" < "$resultdir/autobuild_result.tar.gz" &
+            $basedir/bin/put-$node "$puturl" < "$resultdir/xenofarm_result.tar.gz" &
             cd ..
         else
             echo "NOTE: Build delay for $project not passed. Skipping."
