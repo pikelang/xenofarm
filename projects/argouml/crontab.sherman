@@ -1,0 +1,2 @@
+# Crontab at sherman
+21 * * * * cd /web/projects/xenofarm/argouml/work/progs/xenofarm/projects/argouml && ./start-server.sh

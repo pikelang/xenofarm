@@ -82,7 +82,7 @@ do
 	if egrep " TEST .* FAILED" $logfile > /dev/null
 	then
 	    echo FAIL >> $LOG
-	elif grep -i warning $logfile > /dev/null
+	elif grep warning $logfile > /dev/null
 	then
 	    echo WARN `grep -i warning $logfile | wc -l` >> $LOG
 	else
@@ -124,14 +124,11 @@ E1OF
 
 chmod +x $working/doit.sh
 
-cat <<\EOF > $working/EXCLUDED
-*/CVS/*
-*/CVS/
-*/CVS
-EOF
-tar cfX $name.tar $working/EXCLUDED $working/build $working/lib $working/modules $working/src_new $working/tests $working/tools $working/buildid.txt $working/doit.sh || exit 1
+find $working/build $working/lib $working/modules $working/src_new $working/tests $working/tools $working/src $working/buildid.txt $working/doit.sh -print |
+grep -v /CVS |
+cpio -o --format=ustar > $name.tar || exit 1
 gzip $name.tar || exit 1
-rm $working/buildid.txt $working/doit.sh $working/EXCLUDED
+rm $working/buildid.txt $working/doit.sh
 
 cd $working
 find . -type d -name CVS -print |
@@ -147,4 +144,4 @@ do
 done |
 mysql --batch \
     -D argouml_xenofarm \
-    -u linus -p`cat /home/linus/.argouml_xenofarm_mysql_password`
+    -u linus -p`cat /web/projects/xenofarm/argouml/work/progs/.argouml_xenofarm_mysql_password`

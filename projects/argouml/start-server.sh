@@ -2,10 +2,14 @@
 
 # Program som startar alla serversaker (Lenin)
 # Detta program körs regelbundet från crontab
-PATH=/bin:/usr/bin:/sw/local/bin
+PATH=/bin:/usr/local/bin:/usr/bin
 export PATH
 
-ROOT=/lysator/www/projects/xenofarm/argouml
+ROOT=/web/projects/xenofarm/argouml
+CVS_PASSFILE=$ROOT/work/progs/.cvspass
+export CVS_PASSFILE
+
+DBURL=`cat ../../../.argouml_xenofarm_mysqlurl`
 
 LOCKDIR=$ROOT/LOCKS
 lockfile="$LOCKDIR/start-server.sh.$$"
@@ -28,9 +32,6 @@ fi
 
 ln $lockfile $lock
 trap "rm -f $lockfile $lock ; exit 0" 0 1 2 15
-
-
-DBURL=`cat /home/linus/.argouml_xenofarm_mysqlurl`
 
 # Nu kör vi!
     # Bygg dist

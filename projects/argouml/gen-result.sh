@@ -2,12 +2,12 @@
 
 # Shell script to generate a simple result page.
 
-output=/lysator/www/projects/xenofarm/argouml/result.html
+output=/web/projects/xenofarm/argouml/result.html
 url=http://www.lysator.liu.se/xenofarm/argouml/files/
 
 cat <<EOF |
 select id,name from task order by id;
-select build.id, build.time, # $1, $2
+select build.id, from_unixtime(build.time), # $1, $2
 system.id, # $3
 system.name, system.sysname, system.release, "sysver", "sysmach",
 # $4 - $8
@@ -23,13 +23,13 @@ order by build.id desc, system.id, task.id;
 EOF
 mysql --batch \
     -D argouml_xenofarm \
-    -u linus -p`cat /home/linus/.argouml_xenofarm_mysql_password` |
+    -u linus -p`cat ../../../.argouml_xenofarm_mysql_password` |
 sed -e '1d' |
-/sw/local/bin/awk -F'	' '
+awk -F'	' '
 BEGIN {
     print "<TITLE>Xenofarm results for ArgoUML</TITLE>";
     print "<H1>Build results for ArgoUML</H1>";
-    print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
+#    print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
     print "<TABLE BORDER=3>";
     tasknr = 0;
     seenlong = 0;
@@ -75,7 +75,7 @@ NF > 3 {
 	    linesintable = 0;
 	}
 	printf "<TR><TH COLSPAN=%d>Build <A HREF=\"diffs.html#%s\">%s</A> from ", 2+tasknr, $1, $1;
-	print strftime("%a %b %d %H:%M:%S %Y", $2), "</TH></TR>";
+	print $2, "</TH></TR>";
 	id = $1;
     }
     sys = $3;

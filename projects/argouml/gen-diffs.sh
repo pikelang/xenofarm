@@ -2,7 +2,7 @@
 
 # Shell script to generate a page of differences.
 
-output=/lysator/www/projects/xenofarm/argouml/diffs.html
+output=/web/projects/xenofarm/argouml/diffs.html
 viewcvsurl=http://argouml.tigris.org/source/browse/argouml
 
 cat <<EOF |
@@ -14,15 +14,13 @@ and b1.revision != b2.revision;
 EOF
 mysql --batch \
     -D argouml_xenofarm \
-    -u linus -p`cat /home/linus/.argouml_xenofarm_mysql_password` |
+    -u linus -p`cat ../../../.argouml_xenofarm_mysql_password` |
 sed -e '1d' |
 sort -k 1,1nr -k 2 |
-/sw/local/bin/awk -F'	' '
+awk -F'	' '
 BEGIN {
-    then = systime();
     print "<TITLE>Xenofarm diffs between builds</TITLE>";
     print "<H1>Xenofarm diffs between builds</H1>";
-    print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
     print "<TABLE BORDER=3>";
     print "<TR><TH>Build</TH><TH>Diffs</TH></TR>";
 }
@@ -45,7 +43,6 @@ END {
     print "</PRE>";
     print "</TD></TR>";
     print "</TABLE>";
-    print "Statistics:", NR, "lines took", systime() - then, "seconds.";
 }' url=$viewcvsurl |
 cat > $output.new
 mv $output.new $output

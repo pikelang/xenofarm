@@ -1,2 +1,0 @@
-# Crontab at lenin
-39 * * * * cd /lysator/slaskdisk/tmp/linus/xenofarm/projects/argouml && ./start-server.sh
