@@ -9,7 +9,7 @@ cat <<EOF |
 select id,name from task order by id;
 select build.id, build.time, # $1, $2
 system.id, # $3
-system.name, system.sysname, system.release, system.version, system.machine,
+system.name, system.sysname, system.release, "sysver", "sysmach",
 # $4 - $8
 task.name, # $9
 task_result.status, task_result.warnings, task_result.time_spent, # $10-$12
