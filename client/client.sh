@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.50 2002/09/17 16:41:28 zino Exp $
+# $Id: client.sh,v 1.51 2002/09/20 11:53:31 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -62,9 +62,10 @@ If you encounter problems see the .BREADMEB. for requirements and help.
 EOF
     	tput 'rmso' 2>/dev/null
 	exit 0
+  #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.50 2002/09/17 16:41:28 zino Exp $
+	echo \$Id: client.sh,v 1.51 2002/09/20 11:53:31 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -171,7 +172,9 @@ get_email() {
 check_multimachinecompilation() {
     if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
         if [ X"`uname -m 2>/dev/null`" = X ] ; then
-            echo "FATAL: Unable to contact remote system using $REMOTE_METHOD." >&2
+            #Don't send errors to stderr. The remote machines are
+            #currently often down for good reasons.
+            echo "FATAL: Unable to contact remote system using $REMOTE_METHOD."
             exit 7
         else if [ X"`uname -s`" = X ] ; then
             echo "FATAL: Possible permission problem or unmounted volume on remote system." >&2
@@ -180,8 +183,22 @@ check_multimachinecompilation() {
     fi
 }
 
+sizeof() {
+    echo $1 | wc -c
+}
+
+longest_nodename() {
+    t_node=`uname -n`
+    t_hostname=`hostname`
+    if [ `sizeof $t_node` -gt `sizeof $t_hostname` ]; then
+        echo $t_node
+    else
+        echo $t_hostname
+    fi
+}
+
 setup_pidfile() {
-    node=`uname -n`
+    node=`longest_nodename`
     unames=`uname -s`
     unamer=`uname -r`
     unamem=`uname -m`
