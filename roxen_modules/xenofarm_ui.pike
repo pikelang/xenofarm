@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.39 2003/01/11 19:21:13 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.40 2003/01/12 00:38:40 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -39,6 +39,7 @@ void create()
 }
 
 static string default_db;
+int latency;
 
 void start()
 {
@@ -248,6 +249,9 @@ static class Build
       ret += ({ ([ "status" : results[client_no]||"NONE",
 		   "system" : client_no,
 		   "build" : id,
+		   "warnings" : warnings[client_no],
+		   "time" : str_build_datetime,
+		   "timespan" : fmt_timespan(time_spent[client_no]),
       ]) });
     return ret;
   }
@@ -384,7 +388,8 @@ static class Project
   int update_builds(Sql.Sql xfdb)
   {
     // Only update internal state once a minute
-    int now = time(1), latency = query("latency");
+    int now = time(1);
+    latency = query("latency");
     if(next_update < now)
       next_update = time() + latency;
     else
@@ -402,15 +407,15 @@ static class Project
     if(sizeof(tasks)!=sizeof(new)) {
       array top = ({});
       foreach(new, mapping res) {
-	string path = res->name;
-	Task t = Task(res->name, (int)res->id, (int)res->sort_order);
+	string name = res->name;
+	Task t = Task(name, (int)res->id, (int)res->sort_order);
 	int parent = (int)res->parent;
 	if(!parent)
 	  top += ({ t });
 	else
 	  tasks[ parent ]->add_child( t );
 	tasks[ t->id ] = t;
-	if(path=="build") build_task = (int)res->id;
+	if(name=="build") build_task = (int)res->id;
       }
       // Initialize paths
       top->init();
@@ -513,7 +518,7 @@ class TagXF_Update {
 		       (error ? ": " + error[0] : "") + "\n");
       if(!xflock++)
 	CACHE(p->update_builds(xfdb));
-      vars->updated = fmt_time(p->next_update);
+      vars->updated = fmt_time(p->next_update-latency);
     }
 
     array do_return(RequestID id) {
@@ -836,7 +841,7 @@ constant tagdoc = ([
 
 </desc>", ([
   "&_.updated;":#"<desc type='entity'><p>
- Returns the time when the table was updated.
+ Returns the time when the cahed table was updated.
 </p>
 <ex type='box'>2002-08-30 11:26:01</ex>
 </desc>"
@@ -859,6 +864,12 @@ constant tagdoc = ([
   If set, any machine with no returned result within the given number of builds
   will be removed from the emit result.
 </p></attr>
+
+<attr name='id' value='int'><p>
+  If set, the emit will only return information about the machine with
+  this id. Any recency attribute will be ignored.
+</p></attr>
+
 </desc>", ([
 
   "&_.id;":#"<desc type='entity'><p>
@@ -866,11 +877,33 @@ constant tagdoc = ([
 </p></desc>",
 
   "&_.name;":#"<desc type='entity'><p>
-  The node name of the client.
+  The node name of the client. Typically what uname -n would return.
+</p></desc>",
+
+  "&_.sysname;":#"<desc type='entity'><p>
+  The system name of the client. Typically what uname -s would return.
+</p></desc>",
+
+  "&_.release;":#"<desc type='entity'><p>
+  The release of the client OS. Typically what uname -r would return.
+</p></desc>",
+
+  "&_.version;":#"<desc type='entity'><p>
+  The version of the client OS. Typically what uname -v would return.
+</p></desc>",
+
+  "&_.machine;":#"<desc type='entity'><p>
+  The machine name of the client. Typically what uname -m would return.
+</p></desc>",
+
+  "&_.test;":#"<desc type='entity'><p>
+  The name of the test performed by the client.
 </p></desc>",
 
   "&_.platform;":#"<desc type='entity'><p>
-  The system of the client.
+  The client system string. Essentially what uname -a would return. If
+  the test is other than the default test, its name is appended to this
+  string.
 </p></desc>",
 ]) }),
 
@@ -879,7 +912,10 @@ constant tagdoc = ([
   "emit#xf-build":({ #"<desc type='plugin'>
 <p>
   Lists all the builds that is in the result table, which size is limited by
-  the \"Number of results\" setting in the administration interface.
+  the \"Number of results\" setting in the administration interface. A sum
+  of the number of non-failing results for each task is available in an
+  entity with the task name. E.g. the number of returned, non-failing results
+  for build/compile is available in &_.build-compile;.
 </p>
 
 <attr name='db' value='database URL'><p>
@@ -900,32 +936,16 @@ constant tagdoc = ([
   "&_.summary;":#"<desc type='entity'><p>
   The overall assessment of how well the build went, ie. a min() function
   of all the plupps in this build. If one plupp is red the summary is red.
-  Can assume one of the values \"white\", \"red\", \"yellow\" and \"green\".
+  Can assume one of the values \"NONE\", \"FAIL\", \"WARN\" and \"PASS\".
 </p></desc>",
 
   "&_.source;":#"<desc type='entity'><p>
   The result from the source package creation. Can assume one of the values
-  \"red\", \"yellow\" and \"green\".
+  \"FAIL\", \"WARN\" and \"PASS\".
 </p></desc>",
 
-  // Project dependent
-
-  "&_.export;":#"<desc type='entity'><p>
-  The number of build results that passed the stage exported. Less than or equal
-  to \"verify\".
-</p></desc>",
- 
-  "&_.verify;":#"<desc type='entity'><p>
-  The number of build results that passed the stage verify. Less than or equal
-  to \"build\".
-</p></desc>",
-
-  "&_.build;":#"<desc type='entity'><p>
-  The number of build results that passed the stage build.
-</p></desc>",
-
-  "&_.results;":#"<desc type='entity'><p>
-  The number of build results that received.
+  "&_.last-time;":#"<desc type='entity'><p>
+  The timestamp of the previous build.
 </p></desc>",
 
 ]) }),
@@ -963,7 +983,7 @@ constant tagdoc = ([
 
   "&_.status;":#"<desc type='entity'><p>
   The result status of the build on the current system. Can be any of
-  \"white\", \"red\", \"yellow\" and \"green\".
+  \"NONE\", \"FAIL\", \"WARN\" and \"PASS\".
 </p></desc>",
 
   // Only specified when machine is specified
@@ -1030,6 +1050,14 @@ constant tagdoc = ([
 
   "&_.time" : #"<desc attr='entity'><p>
   The time spent during build.
+</p></desc>",
+
+  "&_.build_id" : #"<desc attr='entity'><p>
+  The numerical build id.
+</p></desc>",
+
+  "&_.machine_id" : #"<desc attr='entity'><p>
+  The numerical machine id.
 </p></desc>",
 ]) }),
 
