@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.17 2002/08/15 08:16:21 ceder Exp $
+// $Id: result_parser.pike,v 1.18 2002/08/30 00:00:26 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -37,6 +37,9 @@ void debug(string msg, mixed ... args) {
     write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
 }
 
+//! Reads the contents of the build id file @[fn] and adds the number
+//! on the first line of the file to the @[res] mapping under the key
+//! "build". The value will be casted to an int.
 void parse_build_id(string fn, mapping res) {
   string file = Stdio.read_file(fn);
   if(!file || !sizeof(file)) return;
@@ -45,13 +48,28 @@ void parse_build_id(string fn, mapping res) {
   res->build = (int)file;
 }
 
+//! Reads the contents of the machine id file @[fn] and adds the key-
+//! value pairs in it to the @[res] mapping. If several pairs with the same
+//! key is defined in the file, the last one is added. Previous values
+//! in the @[res] mapping (eg. build) will be overwritten if their keys are
+//! present in the machine id file.
+//!
+//! If the @[res] mapping contains the keys sysname, release, machine and
+//! not the key platform, after importing all keys from the machine id file,
+//! a key platform will be added containing the expected output from
+//! "uname -s -r -m".
 void parse_machine_id(string fn, mapping res) {
   string file = Stdio.read_file(fn);
   if(!file || !sizeof(file)) return;
-  array parts = file/"\n";
-  if(sizeof(parts)<2);
-  res->platform = String.trim_all_whites(parts[0]);
-  res->host = String.trim_all_whites(parts[1]);
+
+  foreach(file/"\n", string pair) {
+    sscanf(pair, "%s: %s", string key, string value);
+    if(key && value)
+      res[key] = value;
+  }
+
+  if(res->sysname && res->release && res->machine && !res->platform)
+    res->platform = res->sysname + " " + res->release + " " + res->machine;
 }
 
 void parse_log(string fn, mapping res) {
@@ -335,7 +353,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.17 2002/08/15 08:16:21 ceder Exp $\n";
+"$Id: result_parser.pike,v 1.18 2002/08/30 00:00:26 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
