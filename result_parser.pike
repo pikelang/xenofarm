@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.7 2002/07/16 12:46:39 mani Exp $
+// $Id: result_parser.pike,v 1.8 2002/07/19 15:24:11 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -25,8 +25,15 @@ string machine_id_file = "machineid";
 string main_log_file = "mainlog";
 string compilation_log_file = "compilelog";
 
+int(0..1) verbose;
+
 multiset(string) processed_results = (<>);
 multiset(string) ignored_warnings = (<>);
+
+void debug(string msg, mixed ... args) {
+  if(verbose)
+    write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
+}
 
 void parse_build_id(string fn, mapping res) {
   string file = Stdio.read_file(fn);
@@ -123,8 +130,11 @@ mapping low_process_package() {
     return result;
   }
 
-  parse_log(main_log_file, result);
-  count_warnings(compilation_log_file, result);
+  if(!result->status) {
+    parse_log(main_log_file, result);
+    count_warnings(compilation_log_file, result);
+  }
+
   store_result(result);
   return result;
 }
@@ -151,26 +161,121 @@ void process_package(string fn) {
   if(result->build && result->system) {
     string dest = web_dir + result->build+"_"+result->system;
     mkdir(dest);
+    int fail;
     foreach(get_dir(work_dir), string f)
-      mv(work_dir+f, dest+"/"+f);
+      if( Process.system(sprintf("mv %s %s", work_dir+f, dest+"/"+f)) )
+	fail = 1;
+    if(fail || !rm(fn) )
+      write("Unable to remove %O\n", fn);
+    else
+      processed_results[fn]=1;
   }
-
-  if(!rm(fn))
-    write("Unable to remove %O\n", fn);
   else
     processed_results[fn]=1;
 }
 
-int main(int num, array(string) args) {
-
-  if(web_dir[-1]!='/') web_dir += "/";
-  if(work_dir[-1]!='/') work_dir += "/";
-  if(result_dir[-1]!='/') result_dir += "/";
-
-  if(!cd(work_dir)) {
-    write("Could not cd to working dir %O\n", work_dir);
-    return 1;
+void check_settings() {
+  if(!xfdb) {
+    write("No database found.\n");
+    exit(1);
   }
+
+  if(!work_dir) {
+    write("No work dir found.\n");
+    exit(1);
+  }
+  if(work_dir[-1]!='/')
+    work_dir += "/";
+  if(!file_stat(work_dir) || !file_stat(work_dir)->isdir) {
+    write("Working directory %s does not exist.\n", work_dir);
+    exit(1);
+  }
+  cd(work_dir);
+  // FIXME: Check write privileges.
+
+  if(!web_dir) {
+    write("No web dir found.\n");
+    exit(1);
+  }
+  if(web_dir[-1]!='/')
+    web_dir += "/";
+  if(!file_stat(web_dir)) {
+    write("%s does not exist.\n", web_dir);
+    exit(1);
+  }
+  if(!file_stat(web_dir)->isdir) {
+    write("%s is no directory.\n", web_dir);
+    exit(1);
+  }
+  // FIXME: Check web dir write privileges.
+
+  if(!result_dir) {
+    write("No result dir found.\n");
+    exit(1);
+  }
+  if(result_dir[-1]!='/')
+    result_dir += "/";
+  if(!file_stat(result_dir) || !file_stat(result_dir)->isdir) {
+    write("Result directory %s does not exist.\n", result_dir);
+    exit(1);
+  }
+
+  if(verbose) {
+    write("Database   : %s\n", xfdb->host_info());
+    write("Work dir   : %s\n", work_dir);
+    write("Web dir    : %s\n", web_dir);
+    write("Result dir : %s\n", result_dir);
+    write("\n");
+  }
+}
+
+int main(int num, array(string) args) {
+  write(prog_id);
+
+  foreach(Getopt.find_all_options(args, ({
+    ({ "db",        Getopt.HAS_ARG, "--db"           }),
+    ({ "help",      Getopt.NO_ARG,  "--help"         }),
+    ({ "poll",      Getopt.HAS_ARG, "--poll"         }),
+    ({ "resultdir", Getopt.HAS_ARG, "--result-dir"   }),
+    ({ "webdir",    Getopt.HAS_ARG, "--web-dir"      }),
+    ({ "workdir",   Getopt.HAS_ARG, "--work-dir"     }),
+    ({ "verbose",   Getopt.NO_ARG,  "--verbose"      }),
+  }) ),array opt)
+    {
+      switch(opt[0])
+      {
+      case "help":
+	write(prog_doc);
+	return 0;
+
+      case "db":
+	xfdb = Sql.Sql( opt[1] );
+	break;
+
+      case "poll":
+	result_poll = (int)opt[1];
+	break;
+
+      case "resultdir":
+	result_dir = opt[1];
+	break;
+
+      case "webdir":
+	web_dir = opt[1];
+	break;
+
+      case "workdir":
+	work_dir = opt[1];
+	break;
+
+      case "verbose":
+	verbose = 1;
+	break;
+      }
+    }
+
+  check_settings();
+
   if(sizeof(get_dir("."))) {
     write("Working dir %O is not empty.\n", work_dir);
     return 1;
@@ -180,10 +285,14 @@ int main(int num, array(string) args) {
     foreach(get_dir(result_dir), string fn) {
       fn = result_dir + fn;
       if(processed_results[fn]) continue;
-      write("Found new result %O\n", fn);
+      debug("Found new result %O\n", fn);
       process_package(fn);
     }
     sleep(result_poll);
   }
 
 }
+
+constant prog_id = "Xenofarm generic result parser\n"
+"$Id: result_parser.pike,v 1.8 2002/07/19 15:24:11 mani Exp $\n";
+constant prog_doc = "Blah blah\n";
