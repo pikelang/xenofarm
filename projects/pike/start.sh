@@ -4,11 +4,12 @@
 # pike xenofarm server starter
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: start.sh,v 1.1 2002/09/05 15:55:44 zino Exp $
+# $Id: start.sh,v 1.2 2002/09/05 16:07:49 zino Exp $
 # Licence: <Nilsson will insert Copyright of his choise here>
 ##############################################
 # Error codes:
 #  0: Exited without errors
+#  1: One or more of the servers was already running
 
 check_pidfile() {
     node=`uname -n`
@@ -17,6 +18,7 @@ check_pidfile() {
         pid=`cat $pidfile`
         if `kill -0 $pid > /dev/null 2>&1`; then
             echo "NOTE: Xenofarm $1 already running. pid: $pid"
+            exit 1
         else
             echo "NOTE: Removing stale pid-file for $1."
             rm -f $pidfile
@@ -29,16 +31,21 @@ setup_pidfile() {
     echo $last_job > $pidfile
 }
 
-check_pidfile gc
-pike gc.pike &
-setup_pidfile 
+(check_pidfile gc
+ pike gc.pike &
+ setup_pidfile)
+error=$?
 
-check_pidfile server
-pike server.pike --verbose > log_server &
-setup_pidfile
+(check_pidfile server
+ pike server.pike --verbose > log_server &
+ setup_pidfile)
+last=$?
+if [ $error = 0 ] ; then error=$last ; fi
 
-check_pidfile result_parser
-pike result_parser.pike --verbose > log_result &
-setup_pidfile
+(check_pidfile result_parser
+ pike result_parser.pike --verbose > log_result &
+ setup_pidfile)
+last=$?
+if [ $error = 0 ] ; then error=$last ; fi
 
-clean_exit $?
+exit $last
