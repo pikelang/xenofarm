@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.14 2003/06/24 12:38:12 mani Exp $
+// $Id: pike_client.pike,v 1.15 2003/06/24 13:19:49 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -207,6 +207,7 @@ class Config {
   string snapshoturl;
   string resulturl;
   int mindelay;
+  mapping environment = ([]);
   array(string) test_order = ({});
   mapping(string:string) tests = ([]);
 
@@ -217,6 +218,7 @@ class Config {
     filename = filename||"unknown file";
     WERR("Creating config object for %s.\n", filename);
 
+    int format;
     string running_default_tests;
 
     foreach(file/"\n"; int line_no; string line) {
@@ -238,8 +240,9 @@ class Config {
       if(line_no==0) {
 	if(key!="configformat")
 	  exit(15, "Unknown config format in %s.\n", filename);
-	if(value!="2")
+	if( !(< "2", "3" >)[value] )
 	  exit(15, "Unknown config format %s in %s.\n", value, filename);
+	format = (int)value;
 	continue;
       }
 
@@ -268,8 +271,17 @@ class Config {
 	break;
 
       case "environment":
-	// This key was valid in v1, but is deprecated in v2.
-	exit(16, "environment: not supported in config format v2.\n");
+	// This key is new in v3.
+	if(format<3)
+	  exit(16, "environment: not supported in config format v%d.\n",
+	       format);
+	if(sizeof(tests))
+	  exit(16, "environment statement after test statement.\n");
+	sscanf(value, "%s=%s", string ekey, string evalue);
+	if(!ekey || !evalue || !sizeof(ekey))
+	  exit(16, "error in environment: %O.\n", value);
+	environment[ekey] = evalue;
+	break;
 
       default:
 	string node;
@@ -420,7 +432,7 @@ class Config {
 
     // We don't honor build specific environment variables here, as
     // is done in client.sh.
-    data->env = getenv();
+    data->env = getenv() | environment;
 
     Stdio.File log = Stdio.File(result_dir + "xenofarmclient.txt", "cwt");
     data->stdout = log;
@@ -540,7 +552,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.14 2003/06/24 12:38:12 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.15 2003/06/24 13:19:49 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -598,7 +610,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.14 2003/06/24 12:38:12 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.15 2003/06/24 13:19:49 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
