@@ -14,7 +14,7 @@
 <style type="text/css">
 td {font: 14px Helvetica}
 a  {font-weight: bold}
-tt {font-size: 10px; font-weight: none}
+tt {font-size: 12px; font-weight: none}
 </style>
 </head>
 <body bgcolor="#cccccc" text="black" link="red" alink="white" vlink="red">
