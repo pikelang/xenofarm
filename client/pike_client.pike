@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.9 2003/06/15 22:57:03 mani Exp $
+// $Id: pike_client.pike,v 1.10 2003/06/16 00:06:38 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -427,8 +427,8 @@ class Config {
       f->close();
     }
 
+    Protocols.HTTP.put_url(resulturl, Stdio.read_file("xenofarm_result.tar"));
     popd();
-    exit(0, "End of the world reached.\n");
   }
 
   void debug() {
@@ -501,7 +501,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.9 2003/06/15 22:57:03 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.10 2003/06/16 00:06:38 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -557,7 +557,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.9 2003/06/15 22:57:03 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.10 2003/06/16 00:06:38 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
