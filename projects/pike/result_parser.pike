@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.20 2002/12/02 20:05:46 mani Exp $
+// $Id: result_parser.pike,v 1.21 2002/12/05 10:22:43 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -57,6 +57,7 @@ constant removed_warnings = ({
   "cc: 1501-245 warning: hard ulimit has been reduced to less than "
     "rlim_infinity.  there may not be enough space to complete the "
     "compilation.",
+  "cc1: warning: -fpic ignored (all code is position independent)",
 });
 
 void parse_build_id(string fn, mapping res) {
