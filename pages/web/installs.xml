@@ -2,7 +2,7 @@
 <header>
 <h2>Current installations</h2>
 
-<p>Xenofarm is currently deployed in three different projects.</p>
+<p>Xenofarm is currently deployed in four different projects.</p>
 
 <ul>
 <li><a href="http://pike.ida.liu.se/">Pike</a><br />
@@ -12,7 +12,7 @@
   <a href="http://pike.ida.liu.se/development/pikefarm/">here</a>.
   <br /><br /></li>
 <li><a href="/lyskom/lyskom-server/">LysKOM Server</a><br />
-  LysKOM is a communication system that combins the best aspects of ICQ
+  LysKOM is a communication system that combines the best aspects of ICQ
   and news into a system that more or less predates them both. Result
   pages for LysKOM can be found <a href="/lyskom/lyskom-server/xenofarm.html">here</a>.
   <br /><br /></li>
@@ -21,6 +21,11 @@
   uses Xenofarm to find portability problems. There are result pages
   both for <a href="python/">development python</a> and for the
   <a href="python-stable/">stable python</a>.<br /><br /></li>
+<li><a href="http://argouml.tigris.org/">ArgoUML</a><br />
+  ArgoUML is a Java based Universal Modeling Language tool. It is able
+  to create and save most of the nine standard UML diagrams. ArgoUML
+  also has the ability to reverse engineer compiling Java code and
+  generate UML diagrams for it.<br /><br /></li>
 </ul>
 </header>
 <footer/>
