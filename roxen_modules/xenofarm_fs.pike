@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.24 2002/12/03 14:05:48 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.25 2002/12/03 14:06:49 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -41,7 +41,7 @@ string info()
     "<tr><th>Remote address</th><th>Downloads</th><th>Uploads</th></tr>\n";
   foreach(sort(indices(downloaded) + indices(uploaded)), string ip)
     table += sprintf("<tr><td>%s</td><td>%d</td><td>%d</td></tr>\n",
-		     downloaded[ip], uploaded[ip]);
+		     ip, downloaded[ip], uploaded[ip]);
   return table + "</table>\n";
 }
 
