@@ -1,7 +1,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.8 2002/05/15 09:40:18 mani Exp $
+// $Id: server.pike,v 1.9 2002/05/20 15:14:33 mani Exp $
 
 // The Xenofarm server program is not really intended to be run verbatim, since almost
 // all projects have their own little funny things to take care of. This is an
@@ -39,7 +39,16 @@ int time_from_filename(string fn) {
 
 int get_latest_checkin()
 {
-  string timestamp = Protocols.HTTP.get_url_data(latest_pike73_checkin);
+  string timestamp;
+  array err = catch {
+    timestamp = Protocols.HTTP.get_url_data(latest_pike73_checkin);
+  };
+
+  if(err) {
+    write(describe_backtrace(err));
+    return 0;
+  }
+
   return Calendar.set_timezone("UTC")->dwim_time(timestamp)->unix_time();
 }
 
