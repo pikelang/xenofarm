@@ -40,6 +40,10 @@ gzip	GNU gzip.
 Both can be downloaded from your nearest GNU mirror. See
 http://www.gnu.org/prep/ftp.html for a list of mirrors.
 
+NOTE: There is a known bug in wget 1.6 and prior of wget that will
+cause occasional missed builds. Versions 1.8.2 and newer are known to
+work.  Version between 1.6 and 1.8.2 are untested.
+
 If your system is strange (ie not Posix compliant) the commands the
 system must supply are listed in the topmost comment in
 client.sh. Check that they are available in your clients PATH.
