@@ -29,6 +29,13 @@ xenofarm:
 	./create-response.sh > r/shlog.txt 2>&1
 	(cd r && tar cf - *) > xenofarm_result.tar
 	gzip -9 xenofarm_result.tar
+
+xenofarm-cc:
+	rm -f xenofarm_result.tar xenofarm_result.tar.gz
+	mkdir r
+	./create-response.sh cc > r/shlog.txt 2>&1
+	(cd r && tar cf - *) > xenofarm_result.tar
+	gzip -9 xenofarm_result.tar
 EOF
 
 cp workdir/scripts/xenofarm.sh dist/create-response.sh
