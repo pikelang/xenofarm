@@ -35,7 +35,7 @@ xenofarm:
 	mkdir r
 	./create-response.sh --compat > r/shlog.txt 2>&1
 	touch r/unzip.warn
-	echo old-style config > r/unziplog.txt
+	echo old-style config >> r/unziplog.txt
 	(cd r && tar cf - *) > xenofarm_result.tar
 	gzip -9 xenofarm_result.tar
 
@@ -45,7 +45,7 @@ xenofarm-cc:
 	mkdir r
 	./create-response.sh --compat cc > r/shlog.txt 2>&1
 	touch r/unzip.warn
-	echo old-style config > r/unziplog.txt
+	echo old-style config >> r/unziplog.txt
 	(cd r && tar cf - *) > xenofarm_result.tar
 	gzip -9 xenofarm_result.tar
 EOF
