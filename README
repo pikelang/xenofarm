@@ -502,7 +502,7 @@ mainlog.txt
 
 compilelog.txt
   A log of the compilation. The warning count is the number of lines
-  in this file that case insensitivly matches the string "warning".
+  in this file that case insensitively matches the string "warning".
 
 In addition to the above files, you may include any number of extra
 files. They will all be accessible via the web result interface, but
@@ -518,7 +518,7 @@ parser, type:
 
   ./result_parser.pike <arguments> [<result files>]
 
-If a list of files are given, only these files will be parser.
+If a list of files are given, only these files will be parsed.
 Otherwise the result parser will start to act as a daemon, reading new
 files from the result directory at given intervals. Every successfully
 parsed file will be removed from the result directory.
