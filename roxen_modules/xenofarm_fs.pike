@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.4 2002/05/12 01:31:09 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.5 2002/05/12 02:02:24 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -64,20 +64,7 @@ static int dist_mtime(string f) {
   int Y,M,D,h,m,s;
   if( sscanf(f, "%*s-%4d%2d%2d-%2d%2d%2d", Y,M,D,h,m,s)!=7 )
     return 0;
-  mapping m = ([
-    "year" : Y-1900,
-    "mon" : M-1,
-    "mday" : D,
-    "hour" : h,
-    "min" : m,
-    "sec" : s,
-  ]);
-  mapping tzm = localtime(time());
-  int tz = tzm->timezone;
-#if (__MAJOR__ <= 7) && (__MINOR__ <=2)
-  tz -= 3600*tzm->isdst;
-#endif
-  return mktime(m) - tz;
+  return mktime(s, m, h, D, M-1, Y-1900, 0, 0);
 }
 
 // API methods
