@@ -3,13 +3,14 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.42 2002/12/08 15:16:53 linus Exp $
+// $Id: server.pike,v 1.43 2002/12/08 18:56:35 grubba Exp $
 
 Sql.Sql xfdb;
 
 constant checkin_state_file = "state/checkin.timestamp";
 
 int min_build_distance = 60*60*2;
+int fail_build_divisor = 2*6;
 int checkin_poll = 60;
 int checkin_latency = 60*5;
 
@@ -23,6 +24,7 @@ array(string) update_opts = ({});
 
 int(0..1) verbose;
 int latest_build;
+string latest_state="FAIL";
 
 
 //
@@ -79,9 +81,20 @@ string fmt_time(int t) {
 // this project.
 int get_latest_build()
 {
-  array res = persistent_query("SELECT MAX(time) AS latest_build FROM build");
+  array res = persistent_query("SELECT MAX(time) AS latest_build, export "
+			       "FROM build GROUP BY export");
   if(!res || !sizeof(res)) return 0;
-  return (int)res[0]->latest_build;
+  int max = 0;
+  string state="FAIL";
+  foreach(res; mapping(string:string) row) {
+    int val = (int)row->latest_build;
+    if (val > max) {
+      max = val;
+      state = row->export;
+    }
+  }
+  latest_state = state;
+  return max;
 }
 
 // The get_latest_checkin function should return the (UTC) unixtime of
@@ -384,10 +397,13 @@ int main(int num, array(string) args)
   {
     int now = Calendar.now()->unix_time();
     int delta = now - latest_build;
+    int min_distance = min_build_distance;
 
-    if(delta < min_build_distance) // Enforce minimum time between builds
+    if (latest_state == "FAIL") min_distance /= fail_build_divisor;
+
+    if(delta < min_distance) // Enforce minimum time between builds
     {
-      sleep_for = min_build_distance - delta;
+      sleep_for = min_distance - delta;
       debug("Enforcing minimum build distance. Quarantine left: %s.\n",
 	    fmt_time(sleep_for));
       sit_quietly = 0;
@@ -443,7 +459,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.42 2002/12/08 15:16:53 linus Exp $\n";
+"$Id: server.pike,v 1.43 2002/12/08 18:56:35 grubba Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
