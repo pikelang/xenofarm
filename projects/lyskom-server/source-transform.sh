@@ -25,6 +25,7 @@ echo $stamp > dist/exportstamp.txt
 cat <<EOF > dist/Makefile
 xenofarm:
 	rm -f xenofarm_result.tar xenofarm_result.tar.gz
+	rm -rf r
 	mkdir r
 	./create-response.sh > r/shlog.txt 2>&1
 	(cd r && tar cf - *) > xenofarm_result.tar
@@ -32,6 +33,7 @@ xenofarm:
 
 xenofarm-cc:
 	rm -f xenofarm_result.tar xenofarm_result.tar.gz
+	rm -rf r
 	mkdir r
 	./create-response.sh cc > r/shlog.txt 2>&1
 	(cd r && tar cf - *) > xenofarm_result.tar
