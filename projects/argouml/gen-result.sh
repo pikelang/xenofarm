@@ -11,7 +11,8 @@ system.id, # $3
 system.name, system.sysname, system.release, system.version, system.machine,
 # $4 - $8
 task.name, # $9
-task_result.status, task_result.warnings, task_result.time_spent # $10-$12
+task_result.status, task_result.warnings, task_result.time_spent, # $10-$12
+system.testname # $13
 from build, system, task, task_result
 where build.id = task_result.build
 and task_result.system = system.id
@@ -37,7 +38,7 @@ BEGIN { print "<H1>Build results for ArgoUML</H1>";
     }
   print "<TR><TD>";
   printf "<A HREF=\"'$url'%d_%d\">", $1, $3;
-  print $9, "</A></TD>";
+  print $13, $9, "</A></TD>";
   print "<TD ALIGN=CENTER>", $10, "</TD><TD ALIGN=CENTER>", $11, "</TD>";
   print "<TD>", $4, "(", $5, $6, ")", "</TD>";
   print "</TR>";

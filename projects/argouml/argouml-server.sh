@@ -15,6 +15,12 @@ case $1 in
 --java1.3)
     JAVA_HOME=$JAVA_HOME_1_3
     ;;
+--java1.4)
+    JAVA_HOME=$JAVA_HOME_1_4
+    ;;
+--java1.5)
+    JAVA_HOME=$JAVA_HOME_1_5
+    ;;
 *)
     echo Unknown argument.;
     exit 1;
@@ -46,15 +52,15 @@ while read task command
 do
     echo BEGIN $task >> $LOG
     date >> $LOG
-    if sh -c "$command" > $task.log 2>&1
+    logfile=$task.log.txt
+    if sh -c "$command" > $logfile 2>&1
     then
-	if grep "Tests run:" $task.log | 
-	    grep -v "Failures: 0, Errors: 0," > /dev/null
+	if egrep -v " TEST .* FAILED" $logfile > /dev/null
 	then
 	    echo FAIL >> $LOG
-	elif grep -i warning $task.log > /dev/null
+	elif grep -i warning $logfile > /dev/null
 	then
-	    echo WARN `grep -i warning $task.log | wc -l` >> $LOG
+	    echo WARN `grep -i warning $logfile | wc -l` >> $LOG
 	else
 	    echo PASS >> $LOG
 	fi
@@ -64,11 +70,8 @@ do
     date >> $LOG
 done
 
-mv $LOG ../../result_default
-for logfile in *.log
-do
-    mv $logfile ../../result_default/$logfile.txt
-done
+tar cf xenofarm_result.tar $LOG *.log.txt
+gzip --fast xenofarm_result.tar
 
 E1OF
 
