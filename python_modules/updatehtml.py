@@ -4,6 +4,8 @@ import os
 import stat
 import time
 import re
+import sys
+import errno
 
 import MySQLdb
 
@@ -324,6 +326,9 @@ def get_system(systemid):
                    " where system.id = %d" % systemid)
     rows = cursor.fetchall()
     cursor.close()
+    if len(rows) != 1:
+        sys.stderr.write("Cannot fetch systemid %d\n" % systemid)
+        sys.exit(1)
     return system(*rows[0])
 
 def add_file(tl, files_left, dirname, fn, maxlen):
@@ -358,8 +363,13 @@ def mkindex(buildid, systemid, force = 0):
 
     # Find all files.
     files_left = {}
-    for f in os.listdir(dirname):
-        files_left[f] = None
+    try:
+        for f in os.listdir(dirname):
+            files_left[f] = None
+    except OSError, e:
+        if e[0] == errno.ENOENT:
+            return 0
+        raise
     for f in updatehtml_cfg.hidden_files:
         if files_left.has_key(f):
             del files_left[f]
