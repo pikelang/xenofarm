@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.26 2002/11/30 05:28:26 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.27 2002/11/30 06:15:11 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -153,10 +153,13 @@ static class Build {
 
   int(0..1) update_results(Sql.Sql xfdb)
   {
+    foreach(values(project->tasks), string task)
+      if(!status_summary[task]) status_summary[task]=0;
+
     array res = xfdb->query("SELECT system,task,status,warnings,time_spent "
 			    "FROM task_result WHERE build = "+id);
     int changed;
-    int build_task = project->build_task;
+    int build_task = search(project->tasks, "build");
     array(int) new_systems = ({});
     foreach(res, mapping x)
     {
@@ -169,7 +172,7 @@ static class Build {
 	({ x->status, (int)x->time_spent, (int)x->warnings });
       new_systems += ({ system });
 
-      if(x->status!="FAIL") status_summary[task]++;
+      if(x->status!="FAIL") status_summary[ project->tasks[task] ]++;
     }
 
     foreach(new_systems, int system) {
@@ -254,8 +257,7 @@ static class Project {
   int last_changed;
   int next_update;
 
-  int build_task;
-  int tasks;
+  mapping(int:string) tasks = ([]);
 
   //! Updates the module's internal state with recent activity by the
   //! packager daemons and the result parsers, as logged in the
@@ -276,17 +278,14 @@ static class Project {
     if(sizeof(builds))
       latest_build = builds[0]->build_datetime;
 
-    array new = xfdb->query("SELECT id,name FROM task WHERE id > " + tasks);
+    array new = xfdb->query("SELECT id,name FROM task WHERE id > " +
+			    sizeof(tasks));
 
-    if(sizeof(new)) {
-      tasks = sizeof(new);
-      foreach(new, mapping res) {
-	if(res->name=="build") {
-	  build_task = (int)res->id;
-	  break;
-	}
-      }
-    }
+    if(sizeof(tasks)==0)
+      tasks = mkmapping( (array(int))new->id, new->name );
+    else
+      foreach(new, mapping res)
+	tasks[ (int)res->id ] = res->name;
 
     new = xfdb->query("SELECT id,time,export FROM build WHERE time > %d"
 			    " ORDER BY time DESC LIMIT %d", latest_build,
