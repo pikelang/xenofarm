@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.47 2002/09/12 21:25:34 zino Exp $
+# $Id: client.sh,v 1.48 2002/09/13 20:20:34 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -31,23 +31,15 @@
 #  1: Unsupported argument
 #  2: Client already running
 #  3: Failed to compile put
-#  4: Unable to decompress project snapshot
-#  5: Failed to fetch project snapshot
-#  6: Recursive mkdir failed
-#  7: Remote compilation failure
-#  8: Failed to send result  (not propagated)
-#  9: Admin email not configured
 #
+#  7: Remote compilation failure
+#
+#  9: Admin email not configured
 # 10: wget not found
 # 11: gzip not found
+# 12: Configuration directory not found
 #
-# 12: Configuration directory not found.
-#
-# 13-25: Reserved for internal usage.
-
-#FIXME: Sort out what error codes should be exported from the client.
-
-config_dir="config"
+# 14-30: Reserved for internal usage.
 
 parse_args() {
  while [ ! c"$1" = "c" ] ; do
@@ -70,7 +62,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.47 2002/09/12 21:25:34 zino Exp $
+	echo \$Id: client.sh,v 1.48 2002/09/13 20:20:34 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -81,8 +73,8 @@ EOF
 	config_dir="$1"
   ;;
   *)
-	echo "Unsupported argument: $1" 1>&2
-	echo "try --help" 1>&2
+	echo "Unsupported argument: $1" >&2
+	echo "try --help" >&2
 	exit 1
   esac
   shift
@@ -90,29 +82,18 @@ EOF
 }
 
 get_time() {
-    hour=`LC_ALL="C" date | awk -F: '{ print $1 }' | awk '{ i=NF; print $i }'`
-    minute=`LC_ALL="C" date | awk -F: '{ print $2 }' | awk '{ print $1 }'`
+    hour=`date | awk -F: '{ print $1 }' | awk '{ i=NF; print $i }'`
+    minute=`date | awk -F: '{ print $2 }' | awk '{ print $1 }'`
 }
 
+#FIXME: Check if the project configurable build delay has passed
 check_delay() {
     #FIXME: Just build always for now...
-    true
+    :
 }
 
 #Make directories recursively.
 pmkdir() {
-    while [ ! -d $1 ]; do 
-	rest=$1
-	while [ ! -d $rest ]; do
-	    tmp_dir=`basename $rest`
-	    rest=`dirname $rest`
-	done
-	mkdir $rest/$tmp_dir || clean_exit 6
-    done
-}
-
-#FIXME: Code duplication
-nfpmkdir() {
     while [ ! -d $1 ]; do 
 	rest=$1
 	while [ ! -d $rest ]; do
@@ -132,26 +113,26 @@ clean_exit() {
 }
 
 sigint() {
-    echo "SIGINT received. Cleaning up and exiting." 1>&2
+    echo "SIGINT received. Cleaning up and exiting." >&2
     clean_exit 0
 }
 sighup() {
-    echo "SIGHUP received. Cleaning up and exiting for now." 1>&2
+    echo "SIGHUP received. Cleaning up and exiting for now." >&2
     clean_exit 0
 }
 
 missing_req() {
-    echo "FATAL: $1 not found." 1>&2
+    echo "FATAL: $1 not found." >&2
     clean_exit $2
 }
 
 wget_exit() {
-    cat "wget.log" 1>&2
-    clean_exit 5 
+    cat "wget.log" >&2
+    exit 23
 }
 
 mkdir_exit() {
-    echo "Project FATAL: Uunable to create a fresh build directory. Skipping to the next project." 1>&2
+    echo "FATAL: Unable to create a fresh build directory. Skipping to the next project." >&2
     exit 14
 }
 
@@ -164,10 +145,10 @@ get_email() {
         if [ \! -f $config_dir/contact.txt ] ; then
         
             echo "Please type in an email address where the project maintainer can reach you:"
-            if read email
-	    then :
+            if read email ; then
+                :
 	    else
-		echo EOF while reading email address >&2
+		echo "EOF while reading email address" >&2
 		exit 9
 	    fi
             if [ X"$email" != X ] ; then
@@ -183,10 +164,10 @@ get_email() {
 check_multimachinecompilation() {
     if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
         if [ X"`uname -m 2>/dev/null`" = X ] ; then
-            echo "FATAL: Unable to contact remote system using $REMOTE_METHOD."
+            echo "FATAL: Unable to contact remote system using $REMOTE_METHOD." >&2
             exit 7
         else if [ X"`uname -s`" = X ] ; then
-            echo "FATAL: Possible permission problem or unmounted volume on remote system."
+            echo "FATAL: Possible permission problem or unmounted volume on remote system." >&2
             exit 7
         fi ; fi
     fi
@@ -249,7 +230,8 @@ prepare_project() {
      NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
      echo " Downloading $project snapshot..."
      #FIXME: Check for old broken wgets.
-     wget --dot-style=binary -N "$geturl" > "wget.log" 2>&1 &&
+     wget --referer="$node" --dot-style=binary -N "$geturl" \
+        > "wget.log" 2>&1 &&
      if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         echo " NOTE: No newer snapshot for $project available."
      else
@@ -266,18 +248,18 @@ prepare_project() {
 }
 
 uncompress_exit() {
-    echo "Failed to uncompress snapshot. Removing possibly damaged file."
+    echo "Failed to uncompress snapshot. Removing possibly damaged file." >&2
     rm -f $1
     exit 17
 }
 
 put_exit() {
-    echo "Failed to send result. Will try to resend in the next client run."
+    echo "Failed to send result. Resending in the next client run." >&2
     date=`date | sed -e 's/ //g' -e 's/://g'` &&
-    (nfpmkdir "$basedir/$dir/rescue_$test/$date") &&
+    (pmkdir "$basedir/$dir/rescue_$test/$date") &&
     mv "$resultdir/xenofarm_result.tar.gz" \
        "$basedir/$dir/rescue_$test/$date/xenofarm_result.tar.gz"
-    exit 8
+    exit 24
 }
 
 put_resume() {
@@ -293,7 +275,7 @@ put_resume() {
                 rm $x/xenofarm_result.tar.gz
                 rmdir $x
             else
-                echo "Failed to resend. Will try to resend in the next client run."
+                echo "Failed to resend. Resending in the next client run." >&2
             fi
         else
             rmdir $x 
@@ -316,10 +298,21 @@ make_machineid() {
        cat "$basedir/$config_dir/contact.txt" >> machineid.txt
 }
 
+check_test_enviroment() {
+    if [ X"$configformat" = X ] || [ X"$project" = X ] || 
+       [ X"$dir" = X ] || [ X"$geturl" = X ] || 
+       [ X"$puturl" = X ] ; then
+        echo "FATAL: Missing options in $projectconfig." >&2
+        exit 18
+    fi
+}
+
 #Run _one_ test
 run_test() {
+    check_test_enviroment
+
     echo "Building project \"$project\" from $geturl."
-    if [ X"$virgin" = Xtrue ] ; then
+    if [ X"$first_project_run" = Xtrue ] ; then
         prepare_project
     fi
     echo " Running test \"$test\" in $dir."
@@ -334,7 +327,6 @@ run_test() {
            is_newer ../localtime_lastdl "../last_$test" ; then
             get_time
             echo $hour:$minute > "../current_$test";
-            #FIXME: Check if the project configurable build delay has passed
             if `check_delay`; then
                 if [ $uncompressed != "true" ] ; then
                     echo " Uncompressing archive..." &&
@@ -348,7 +340,7 @@ run_test() {
                 fi
                 echo "  Extracting archive..." &&
                 test -f ../snapshot.tar &&
-                tar xf ../snapshot.tar || exit 4
+                tar xf ../snapshot.tar || exit 22
 
                 cd */.
                 echo "  Building and running test \"$test\": \"$command\""
@@ -393,16 +385,32 @@ run_test() {
     )
     last=$?
     if [ X"$last" != X0 ] ; then
-        echo "Project \"$project\" failed with exit code $last" 1>&2
+        echo "Project \"$project\" failed with exit code $last" >&2
+        # 14-30: Reserved for internal usage.
+        # 14: Unable to create biuld directory.
+        # 15: Unknown config format.
+        # 16: Unknown parameter in config file.
+        # 17: Unable to decompress project snapshot.
+        # 18: Missing option in config file.
+        # 19: Unable to create fresh result directory.
+        # 20: Failed to find buildid.txt in snapshot.
+        # 21: Recursive mkdir failed.
+        # 22: Unable to extract project snapshot.
+        # 23: Failed to fetch project snapshot.
+        # 24: Failed to send result.
+        #Be more verbose in some common cases:
         case $last in
-        '4')
-            echo "FATAL: Unable to extract \"$project\" snapshot!" 1>&2
-            ;;
-        '8')
-            echo "FATAL: Failed to send result package to $puturl." 1>&2
-            ;;
         '20')
-            echo "FATAL: Failed to find buildid.txt in snapshot!" 1>&2
+            echo "FATAL: Failed to find buildid.txt in snapshot!" >&2
+            ;;
+        '22')
+            echo "FATAL: Unable to extract \"$project\" snapshot!" >&2
+            ;;
+        '23')
+            echo "FATAL: Failed to download \"$project\" snapshot!" >&2
+            ;;
+        '24')
+            echo "FATAL: Failed to send result package to $puturl!" >&2
             ;;
         esac
     fi
@@ -431,7 +439,7 @@ setup_put() {
         make clean
         make put
         if [ ! -x put ] ; then
-            echo "FATAL: Failed to compile put." 1>&2
+            echo "FATAL: Failed to compile put." >&2
             clean_exit 3
         else
             mkdir bin 2>/dev/null
@@ -458,22 +466,24 @@ LC_ALL=C
 export PATH LC_ALL
 
 #Try to limit the damage if something goes out of hand.
-#NOTE: Limitations are per spawned process. You can still get plenty hurt.
-# data segment   < 100 MiB
-ulimit -d 102400 2>/dev/null ||
+# NOTE: Limitations are per spawned process. You can still get plenty hurt.
+# TODO: Total time watchdog?
+# TODO: Remote compilation limits?
+ulimit -d 102400 2>/dev/null || # data segment   < 100 MiB
     echo "NOTE: Failed to limit data segment. Might already be lower."
-# virtual memory < 200 MiB
-ulimit -v 204800 2>/dev/null || 
+ulimit -v 204800 2>/dev/null || # virtual memory < 200 MiB
     echo "NOTE: Failed to limit virtual mem. Might already be lower."
-# CPU            < 4h
-ulimit -t 14400  2>/dev/null || 
+ulimit -t 14400  2>/dev/null || # CPU            < 4h
     echo "NOTE: Failed to limit CPU time. Might already be lower."
+
+#Default config dir. Can be changed with the --config-dir parameter.
+config_dir="config"
 
 #Get user input
 parse_args $@
 
 if [ -d "$config_dir/." ]; then :; else
-    echo "FATAL: Configuration directory \"$config_dir\" does not exist."
+    echo "FATAL: Configuration directory \"$config_dir\" does not exist." >&2
     exit 12
 fi
 
@@ -487,7 +497,7 @@ setup_pidfile
 
 #If we are running a sprshd build the put command should be on the local node
 if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
-    #FIXME: See if this uname location is reasonable portable
+    #FIXME: See if this uname location is reasonably portable
     putname=bin/put-`/bin/uname -n`
 else
     putname=bin/put-$node
@@ -504,13 +514,13 @@ gzip --help > /dev/null 2>&1 || missing_req wget 11
 basedir="`pwd`"
 for projectconfig in $config_dir/*.cfg; do 
 (
-    #FIXME: Signals needs to be caught in subshells and propagated via 
-    #       exit codes
+    #TODO: Propagate more errors to the user?
     configformat="" ; testnames="" ; testcmds=""
-    virgin="true"
+    first_project_run="true"
     uncompressed="false"
     get_nodeconfig
 
+    #TODO: Remove order dependency on settings.
     sed -e '/^#/d' <$projectconfig | while read line; do
         type=`echo $line | awk -F: '{ print $1 }'`
         arguments=`echo $line | sed -e 's/[^:]*://'`
@@ -518,7 +528,7 @@ for projectconfig in $config_dir/*.cfg; do
         case $type in
         configformat)
             if [ X"$arguments" != X2 ] ; then
-                echo "Unknown configformat $arguments in $projectconfig"
+                echo "Unknown configformat $arguments in $projectconfig" >&2
                 exit 15
             fi
             configformat="$arguments"
@@ -533,25 +543,41 @@ for projectconfig in $config_dir/*.cfg; do
             puturl=$arguments   ;;
         mindelay)
             delay=$arguments    ;;
-        test)
-            if [ X"$configformat" = X ] || [ X"$project" = X ] || 
-               [ X"$dir" = X ] || [ X"$geturl" = X ] || 
-               [ X"$puturl" = X ] ; then
-                echo "FATAL: Missing options in $projectconfig."
+        test-$node)
+            if [ X$running_default_tests = X -o \
+                 X$running_default_tests = Xfalse ] ; then
+                echo "NOTE: Found node specific tests in \"$projectconfig\"." 
+                running_default_tests="false"
+                test=`echo $arguments | awk '{ print $1 }'`
+                command=`echo $arguments | sed -e 's/[^ ]* //'`
+                command=`chomp_ends "$command"`
+                run_test
+                first_project_run="false"                
+            else
+                echo " FATAL: Node specific tests must be before the standard tests." >&2
                 exit 18
             fi
-
-            test=`echo $arguments | awk '{ print $1 }'`
-            command=`echo $arguments | sed -e 's/[^ ]* //'`
-            command=`chomp_ends "$command"`
-            run_test
-            virgin="false"
             ;;
+        test)
+            if [ X$running_default_tests = X -o \
+                 X$running_default_tests = Xtrue ] ; then
+                running_default_tests="true"
+                #NOTE: Code duplication for clearity. Might reconsider.
+                test=`echo $arguments | awk '{ print $1 }'`
+                command=`echo $arguments | sed -e 's/[^ ]* //'`
+                command=`chomp_ends "$command"`
+                run_test
+                first_project_run="false"
+            else
+                echo " NOTE: Skipped standard test overridden by node test."
+            fi
+            ;;
+        test-*) #Configurations for some other node. Ignore.
+            : ;;
         "")
-            :
-            ;;
+            : ;;
         *)
-            echo "Unknown parameter \"$line\" in $projectfile." 1>&2
+            echo "Unknown parameter \"$line\" in $projectfile." >&2
             exit 16
         esac
     done
