@@ -1,5 +1,5 @@
 
-# $Id: Makefile.in,v 1.5 2002/09/17 16:42:05 zino Exp $
+# $Id: Makefile.in,v 1.6 2002/12/02 19:45:45 mani Exp $
 
 # This line is needed on some machines.
 @SET_MAKE@
@@ -19,7 +19,7 @@ put: put.o
 clean:
 	rm -f put put.o
 
-spotless:
+spotless: clean
 	-test -f .cvsignore && rm -rf `cat .cvsignore`
 
 #FIXME: Tagging and bumping should be automatic
