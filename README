@@ -149,13 +149,57 @@ a gzipped tar file with certain properties (see "Source package
 format").
 
 The generic server has built-in support for a very simple
-transforamtion: it simply runs
+transformation: it simply runs
 
 	tar cf $name.tar $working
 	gzip $name.tar
 
 This only works if the working copy fulfills the requirements defined
-in "Source package format".
+in "Source package format".  For projects that are not adapted to
+Xenofarm, this is most often not the case.  (Most GNU programs don't
+have a makefile until after you have run configure, for instance.)
+
+You can specify an external program via the --source-transform
+argument.  That program will receive two arguments: the name of the
+directory that holds the working copy of the source, and the name of
+the resulting source package that it should create.  The ".tar.gz"
+suffix is not included in the name argument.  This small shellscript
+is equivalent to the default built-in transformation:
+
+    #!/bin/sh
+    working=$1
+    name=$2
+    tar cf $name.tar $working || exit 1
+    gzip $name.tar || exit 1
+    exit 0
+
+The transform script can be written in any language; you don't need to
+know Pike to write it.  (If you want to use Pike, you might consider
+inheriting from server.pike and writing your own transform_source()
+function.  Doing so will be slightly more efficient.)
+
+The script should take care not to modify anything within $working.
+If you need to create files in the distribution, do so in a copy.
+Assuming you have GNU cp, you could write a script along these lines:
+
+    #!/bin/sh
+    working=$1
+    name=$2
+    rm -rf copy
+    cp -a $working copy || exit 1
+    (cd copy && autoconf) || exit 1
+    cat << EOF > copy/makefile
+    xenobuild:
+    	./configure
+    	make -f Makefile
+    EOF
+    tar cf $name.tar copy || exit 1
+    gzip $name.tar || exit 1
+    exit 0
+
+See projects/lyskom-server/source-transform.sh for a more complex
+example of a transformation script.
+	
 
 3.3. Source Package Format
 
