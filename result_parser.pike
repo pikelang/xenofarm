@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.33 2002/11/30 19:05:45 mani Exp $
+// $Id: result_parser.pike,v 1.34 2002/12/07 00:18:17 mani Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -93,7 +93,7 @@ void parse_machine_id(string fn, mapping res) {
   foreach(file/"\n", string pair) {
     sscanf(pair, "%s: %s", string key, string value);
     if(key && value)
-      res[key] = value;
+      res[key] = String.trim_all_whites(value);
   }
 
   if(res->sysname=="AIX" && res->version && res->release)
@@ -629,7 +629,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.33 2002/11/30 19:05:45 mani Exp $\n";
+"$Id: result_parser.pike,v 1.34 2002/12/07 00:18:17 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
