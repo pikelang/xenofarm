@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.7 2002/05/30 14:36:20 mani Exp $
+# $Id: client.sh,v 1.8 2002/06/04 13:10:57 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -123,6 +123,8 @@ echo $$ > $pidfile
 
 #Make sure there is a put command available for this node
 if [ ! -x bin/put-$node ] ; then
+    rm -f config.cache
+    ./configure
     make clean
     make put
     if [ ! -x put ] ; then
@@ -195,7 +197,7 @@ grep -v \# projects.conf | ( while
                 mv xenofarm_result.tar.gz "$resultdir/"
             else
                 (cd "$resultdir" && 
-                tar cvf xenofarm_result.tar RESULT export.stamp |
+                tar cvf xenofarm_result.tar RESULT export.stamp &&
                 gzip xenofarm_result.tar)
             fi
             get_time
