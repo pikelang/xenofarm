@@ -1,7 +1,7 @@
 
 Contents
 
- 1. This is Xenofarm.
+ 1. This is Xenofarm
  2. The Grand Design of Everything
  3. The Server Script
    3.1. Obtaining the Source
@@ -16,7 +16,7 @@ Contents
  8. The Result Interface
 
 
-1. This is Xenofarm.
+1. This is Xenofarm
 
 The Xenofarm project is a rather small project, if measured in code.
 This is because the wonders of modern computer engineering lets us
@@ -65,7 +65,7 @@ ways that differs between Tinderbox and Xenofarm in this aspect;
 
  1. Xenofarm synchronizes its build on all platforms. It creates a
     source package that is distributed to all clients and the build
-    result is presented as a group. It is then easy to see if e.g. all
+    result is presented as a group. It is then easy to see if e g all
     Sparc computers failed or all Solaris computers failed, which
     eases the bug hunt.
 
@@ -155,15 +155,15 @@ transformation: it simply runs
 	gzip $name.tar
 
 This only works if the working copy fulfills the requirements defined
-in "Source package format".  For projects that are not adapted to
-Xenofarm, this is most often not the case.  (Most GNU programs don't
+in "Source package format". For projects that are not adapted to
+Xenofarm, this is most often not the case. (Most GNU programs don't
 have a makefile until after you have run configure, for instance.)
 
 You can specify an external program via the --source-transform
-argument.  That program will receive two arguments: the name of the
+argument. That program will receive two arguments: the name of the
 directory that holds the working copy of the source, and the name of
-the resulting source package that it should create.  The ".tar.gz"
-suffix is not included in the name argument.  This small shellscript
+the resulting source package that it should create. The ".tar.gz"
+suffix is not included in the name argument. This small shellscript
 is equivalent to the default built-in transformation:
 
     #!/bin/sh
@@ -174,9 +174,9 @@ is equivalent to the default built-in transformation:
     exit 0
 
 The transform script can be written in any language; you don't need to
-know Pike to write it.  (If you want to use Pike, you might consider
+know Pike to write it. (If you want to use Pike, you might consider
 inheriting from server.pike and writing your own transform_source()
-function.  Doing so will be slightly more efficient.)
+function. Doing so will be slightly more efficient.)
 
 The script should take care not to modify anything within $working.
 If you need to create files in the distribution, do so in a copy.
@@ -205,18 +205,18 @@ example of a transformation script.
 
 The source package must:
 
- - must create a toplevel directory and unpack in it.
- - contain a makefile in the toplevel directory.
- - create a result package when "make xyzzy" is invoked.  See "The
-   Compilation Client" for the details.  What target(s) to invoke
-   instead of "xyzzy" is defined in the compilaton clients
+ - create a toplevel directory and unpack in it.
+ - contain a Makefile in the toplevel directory.
+ - create a result package when "make xyzzy" is invoked. See "The
+   Compilation Client" for the details. What target(s) to invoke
+   instead of "xyzzy" is defined in the compilaton clients'
    configuration file.
 
 3.4. Invoking the Generic Server Script
 
 The generic server program is started with
 
-./server.pike <arguments> <project>
+  ./server.pike <arguments> <project>
 
 where arguments are from the list below and project is the name of the
 xenofarm project. You need one server per project. Many of the
@@ -229,7 +229,7 @@ Arguments:
       The CVS module the server should use.
 
   --db=<database url>
-      The database URL, e.g. mysql://localhost/xenofarm.
+      The database URL, e g mysql://localhost/xenofarm.
 
   --force
       Make a new build and exit, regardless if there has been a new
@@ -256,7 +256,7 @@ Arguments:
   --repository=<path>
       The CVS repository the server should use. This string is given
       as the -d argument to the CVS binary. (This value is not
-      currently used by the generic server.pike script.  Derived
+      currently used by the generic server.pike script. Derived
       versions may find it useful.)
 
   --verbose
@@ -274,9 +274,9 @@ Arguments:
 
 3.5. Example Setup For the Generic Server Script
 
-Let's say that you want to set up a Xenofarm for Python.  The first
+Let's say that you want to set up a Xenofarm for Python. The first
 step is to create a work directory for the generic server script, and
-perform an initial checkout of the Python sources.  Like this:
+perform an initial checkout of the Python sources. Like this:
 
   $ mkdir -p /some/path/pythonworkdir
   $ cd /some/path/pythonworkdir
@@ -320,10 +320,10 @@ path entered in "Dist search path" at the module mount point.
 
 The module expects all source distributions to be named as
 XXXX-YYYYMMDD-hhmmss.tar.gz, where XXXX is the name of the project,
-e.g. Pike7.3-20020509-203344.tar.gz. These files are directly
-accessible from the mountpoint, e.g.
+e g Pike7.3-20020509-203344.tar.gz. These files are directly
+accessible from the mountpoint, e g
 /xenofarm/Pike7.3-20020509-203344.tar.gz in this case. The latest
-version is exported through the stable URL mountpoint/latest, e.g.
+version is exported through the stable URL mountpoint/latest, e g
 /xenofarm/latest in this case. This in turn returns a redirect to a
 snapshot.tar.gz in a subdirectory named after the latest source
 distribution. In this case /xenofarm/latest would redirect to
@@ -334,7 +334,7 @@ files between systems.
 
 The reason to put more than one file in the outgoing directory is to
 enable more redirects than just the "latest" one. It might be
-interesting to export the most successfull one, e.g. the one with the
+interesting to export the most successfull one, e g the one with the
 highest number of successfull builds, as a service for people not
 interested in the build project, but in the source code itself. In
 this way Xenofarm might act as an automatic QA for people who wants an
@@ -440,9 +440,9 @@ a new script is found does the following:
 
  1. Unzips and untars the package into a working directory.
  2. Retrieves the build id.
- 3. Retrieves the machine id, e.g. the host name and uname of the
+ 3. Retrieves the machine id, e g the host name and uname of the
     client machine.
- 4. Finds out how many of the possible steps where completed, e.g.
+ 4. Finds out how many of the possible steps where completed, e g
     compilation and verification but not packaging.
  5. Counts the number of compilation warnings.
  6. Stores the results of the parsing in a database.
