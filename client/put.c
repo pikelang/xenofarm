@@ -114,7 +114,7 @@ void put_file( char *url, int len )
   fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   memset( &addr, 0, sizeof(addr) );
   addr.sin_family = AF_INET;
-  memcpy(&addr.sin_addr.s_addr, hent->h_addr_list[0], 4);
+  memcpy((char*)&addr.sin_addr, hent->h_addr_list[0], 4);
   addr.sin_port = htons( port );
 
   printf("Connecting...");
@@ -214,7 +214,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.4 2002/08/02 12:43:21 zino Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.5 2002/08/02 14:31:39 zino Exp $" );
       exit(0);
     }
     if( (st.st_mode & S_IFMT) != S_IFREG )
