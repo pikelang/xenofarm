@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>Diff of &form.module;/&form.file; (&form.from; ? &form.to;)</title>
+  <title>Diff of &form.module;/&form.file; (&form.from; » &form.to;)</title>
   <base target="_top"/>
 <style type="text/css">
 td {font: 14px Helvetica}
@@ -15,7 +15,7 @@ diff {padding: 3px}
       &nbsp;
       &form.module;/&form.file;
       &nbsp;
-      <font color="#686868">(&form.from; ? &form.to;)</font>
+      <font color="#686868">(&form.from; » &form.to;)</font>
     </td></tr></table></td></tr>
     <tr><td class="diff">
       <emit source="pike-diff" module="&form.module;" file="&form.file;"
