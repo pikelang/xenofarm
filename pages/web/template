@@ -10,7 +10,7 @@
 <define container="header" scope="pagetag">
 <html>
 <head time="&roxen.time;">
-<title>Xenofarm - Mainpage</title>
+<title>Xenofarm</title>
 <style type="text/css">
 td {font: 14px Helvetica}
 a  {font-weight: bold}
