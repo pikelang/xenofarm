@@ -78,15 +78,9 @@ status=good
 dotask 1 "unzip" "gzip -d $BASE.tar.gz"
 dotask 1 "unpack" "tar xf $BASE.tar"
 
-if [ -r ../../../../hosts/config.$host ]
-then
-    . ../../../../hosts/config.$host
-    log Found local config
-fi
-
-dotask 1 "configure"  "cd $BASE/dist/src  && ./configure $configure"
-dotask 1 "make"       "cd $BASE/dist/src  && make $make_all"
-dotask 1 "test"       "cd $BASE/dist/src  && make test $make_test"
+dotask 1 "configure"  "cd $BASE/dist/src  && ./configure"
+dotask 1 "make"       "cd $BASE/dist/src  && make"
+dotask 1 "test"       "cd $BASE/dist/src  && make test TESTOPTS='-x test_pwd test_nis'"
 
 log Begin response assembly
 timeecho Collecting results
