@@ -1,7 +1,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.5 2002/05/12 21:15:07 mani Exp $
+// $Id: server.pike,v 1.6 2002/05/12 22:59:33 mani Exp $
 
 // The Xenofarm server program is not really intended to be run verbatim, since almost
 // all projects have their own little funny things to take care of. This is an
@@ -37,7 +37,7 @@ int get_latest_checkin()
 string make_build_low() {
   cd(work_dir);
   Stdio.recursive_rm("Pike");
-  if(Process.system("cvs -q -d :ext:nilsson@pelix.ida.liu.se:/pike/data/cvsroot co Pike/"+pike_version))
+  if(Process.system("cvs -Q -d :ext:nilsson@pelix.ida.liu.se:/pike/data/cvsroot co Pike/"+pike_version))
     return 0;
   cd("Pike/"+pike_version);
   if(Process.system("make autobuild_export"))
