@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.4 2003/05/20 12:58:09 mani Exp $
+// $Id: pike_client.pike,v 1.5 2003/05/23 13:48:28 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -16,7 +16,7 @@
 
 string config_dir = "config/";
 
-mapping system;
+mapping(string:string) system;
 array(Config) configs = ({});
 
 
@@ -49,7 +49,7 @@ void exit(int code, void|string why, mixed ... extra) {
     write(why, @extra);
   else
     werror(why, @extra);
-  clean_exit(code);
+  clean_exit();
   predef::exit(code);
 }
 
@@ -110,6 +110,7 @@ int web_head(string url) {
   return 0;
 }
 
+
 // --- Classes
 
 //! Object representing the content and state of a .cfg file.
@@ -118,6 +119,8 @@ class Config {
   string projectdir;
   string snapshoturl;
   string resulturl;
+  int mindelay;
+  array(string) test_order = ({});
   mapping(string:string) tests = ([]);
 
   //! @[file] is the contents of the @tt{.cfg@} file the object
@@ -126,6 +129,8 @@ class Config {
   void create(string file, void|string filename) {
     filename = filename||"unknown file";
     WERR("Creating config object for %s.\n", filename);
+
+    string running_default_tests;
 
     foreach(file/"\n"; int line_no; string line) {
 
@@ -141,17 +146,54 @@ class Config {
 	exit(15, "Empty value in key %O, line %d, %s.\n",
 	     key, line_no, filename);
 
-      if( (< "project", "projectdir",
-	     "snapshoturl", "resulturl" >)[key] )
+      if(line==0) {
+	if(key!="configformat")
+	  exit(15, "Unknown config format in %s.\n", filename);
+	if(value!="2")
+	  exit(15, "Unknown config format %s in %s.\n", value, filename);
+      }
+
+      switch(key) {
+
+      case "project":
+      case "projectdir":
+      case "snapshoturl":
+      case "resulturl":
 	this_object()[key]=value;
-      else if( key=="test" ) {
+	break;
+
+      case "mindelay":
+	this_object()[key]=(int)value;
+	break;
+
+      case "test":
+	if(running_default_tests=="false") continue;
+	running_default_tests="true";
 	if(sscanf(value, "%s%*[ \t]%s", key, value)!=3)
 	  exit(15, "Error in configure file (%s), line %d.\n",
 	       filename, line_no);
+	test_order += ({ key });
 	tests[key] = value;
-      }
-      else
+	break;
+
+      case "environment":
+	exit(16, "environment: nor supported in config format v2.\n");
+
+      default:
+	string node;
+	if(sscanf(key, "test-%s", node)==1) {
+	  if(running_default_tests=="true") continue;
+	  if(node!=system->node) continue;
+	  running_default_tests="false";
+	  if(sscanf(value, "%s%*[ \t]%s", key, value)!=3)
+	    exit(15, "Error in configure file (%s), line %d.\n",
+		 filename, line_no);
+	  test_order += ({ key });
+	  tests[key] = value;
+	  break;
+	}
 	exit(16, "%O is not a supported key.\n", key);
+      }
     }
 
     // Make sure we have all information needed to complete a build
@@ -255,7 +297,8 @@ void read_configs() {
     if(!has_suffix(f, ".cfg")) continue;
 
     // FIXME: Is this correct interpretation of get_nodeconfig()?
-    string nodeconfig = config_dir + "/" + f[..sizeof(f)-5] + "." + system->node;
+    string nodeconfig = config_dir + "/" + f[..sizeof(f)-5] + "." +
+      system->node;
     if(stat_file(nodeconfig))
       configs += ({ Config(Stdio.read_file(nodeconfig)) });
     else
@@ -327,7 +370,7 @@ int main(int num, array(string) args) {
 #endif
 
   // Get user input.
-  foreach(Getop.find_all_options(args, ({
+  foreach(Getopt.find_all_options(args, ({
     ({ "config",  Getopt.HAS_ARG, "-c,--config-dir,--configdir"/"," }),
     ({ "help",    Getopt.NO_ARG,  "-h,--help"/","                   }),
     ({ "version", Getopt.NO_ARG,  "-v,--version"/","                }),
@@ -350,7 +393,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.4 2003/05/20 12:58:09 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.5 2003/05/23 13:48:28 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
