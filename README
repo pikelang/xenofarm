@@ -191,7 +191,7 @@ know Pike to write it. If you want to use Pike, you might consider
 inheriting from server.pike and writing your own transform_source()
 function. Doing so will be slightly more efficient and enables you to
 directly access all variables in the server program. See
-projects/pike/server.pike for an example of how a program that
+projects/pike/server.pike for an example of what a program that
 inherits the server might look like.
 
 The transform script should take care not to modify anything within
@@ -444,7 +444,7 @@ machineid.txt
   result parser.
 
 buildid.txt
-  This file is a copy of the buildid.txt file in the package.
+  This file is a copy of the buildid.txt file in the build package.
 
 For more information about the compilation client, see the README in
 the client directory.
