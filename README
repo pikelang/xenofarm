@@ -12,7 +12,9 @@ Contents
  4. The Web Export
  5. The Compilation Client
  6. The Web Import
- 7. The Result Processor
+ 7. The Result Parser
+   7.1. Format of a Result Package
+   7.2. Invoking the Generic Result Parser
  8. The Result Interface
 
 
@@ -125,6 +127,7 @@ within a subdirectory called "state", and temporary files within
 use other file names in the work directory, so you are free to use
 other files yourself.
 
+
 3.1. Obtaining the Source
 
 The generic server polls the CVS repository by running "cvs -q update"
@@ -139,6 +142,7 @@ working copy.
 
 The name of the checked out module must match the --cvs-module
 argument you give to server.pike.
+
 
 3.2. Creating a Source Package
 
@@ -219,6 +223,7 @@ The source package must:
    instead of "xyzzy" is defined in the compilaton clients'
    configuration file.
 
+
 3.4. Invoking the Generic Server Script
 
 The generic server program is started with
@@ -233,14 +238,16 @@ web-dir and work-dir.
 
 Arguments:
   --cvs-module=<name>
-      The CVS module the server should use.
+      The CVS module the server should use. This argument is
+      mandatory.
 
   --update-opts=<options>
-      CVS options to append to "cvs -q update". Default: "-d".
-      "--update-opts=-Pd" also makes sense.
+      CVS options to append to "cvs -q update". Defaults to "-d" but
+      using "--update-opts=-Pd" would also make sense.
 
   --db=<database url>
-      The database URL, eg mysql://localhost/xenofarm.
+      The database URL, eg mysql://localhost/xenofarm. This argument
+      is mandatory.
 
   --force
       Make a new build and exit, regardless if there has been a new
@@ -276,11 +283,12 @@ Arguments:
       ./server.pike <args> --verbose <project> > server.log &
 
   --web-dir=<path>
-      Where the outgoing source packages should be put.
+      Where the outgoing source packages should be put. This argument
+      is mandatory.
 
   --work-dir=<path>
       Where state files and temporary files for the server script
-      should be put.
+      should be put. This argument is mandatory.
 
 
 3.5. Example Setup For the Generic Server Script
@@ -442,7 +450,7 @@ is to let the clients name the result packages differently, or letting
 all clients have their own upload URL.
 
 
-7. The Result Processor
+7. The Result Parser
 
 Once the result packages are uploaded to the result server, which need
 not be the same machine as the export server, they are processed by
@@ -462,6 +470,7 @@ a new script is found does the following:
     web server.
  8. Deletes the uploaded package.
 
+
 7.1. Format of a Result Package
 
 This section documents how a result package should look like when the
@@ -480,24 +489,73 @@ machineid.txt
   column in the result table.
 
 mainlog.txt
-  A log of the build process, in a special format.  Each entry in the
-  log is made up of two lines.  The first line can have two formats:
+  A log of the build process, in a special format. Each entry in the
+  log is made up of two lines. The first line can have two formats:
 
     "Begin <task>", where <task> is something like "build", "check" or
       "response assembly".
 
-    "Xenofarm OK".  If this line is present, the build will be
+    "Xenofarm OK". If this line is present, the build will be
       considered successful.
 
   The second line should contain the output of "date".
 
 compilelog.txt
-  A log of the compilation.  The warning count is the number of lines
-  in this file that matches the string "warning".
+  A log of the compilation. The warning count is the number of lines
+  in this file that case insensitivly matches the string "warning".
 
 In addition to the above files, you may include any number of extra
 files. They will all be accessible via the web result interface, but
 the generic Xenofarm result parser will ignore them.
+
+
+7.2. Invoking the Generic Result Parser
+
+The generic result parser can be used in two different modes, either
+to parse specific result files or as a daemon that checks for new
+result files in a directory for incoming files. To start the result
+parser, type:
+
+  ./result_parser.pike <arguments> [<result files>]
+
+If a list of files are given, only these files will be parser.
+Otherwise the result parser will start to act as a daemon, reading new
+files from the result directory at given intervals. Every successfully
+parsed file will be removed from the result directory.
+
+Arguments:
+  --db=<database url>
+      The database URL, e.g. mysql://localhost/xenofarm. This argument
+      is mandatory, unless --dry-run has been issued.
+
+  --dry-run
+      If used, the result parser will not store any results in the
+      database, move any files to the web server directory or remove
+      any files from the result directory.
+
+  --help
+      Displays a summary of the available arguments and their use.
+
+  --poll=<seconds>
+      How often the result directory is checked for new result files.
+      Defaults to 60 seconds.
+
+  --result-dir=<path>
+      Where incoming result files are read from. This argument is
+      mandatory, unless any result files are given directly at the
+      command line.
+
+  --verbose
+      Send messages about everything that happens to stdout.
+
+  --web-dir=<path>
+      Where the contents of the result files chould be copied to. This
+      argument is mandatory, unless --dry-run has been issued.
+
+  --work-dir=<path>
+      Where temporary files should be put. This directory needs to be
+      emptied before the script is started. This argument is
+      mandatory.
 
 
 8. The Result Interface
