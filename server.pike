@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.9 2002/05/20 15:13:43 mani Exp $
+// $Id: server.pike,v 1.10 2002/05/24 22:25:15 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -34,14 +34,20 @@ int get_latest_checkin() {
 }
 
 string make_build_low() {
-  if(!Process.system("cvs co "+repository))
+  if(!Process.system("cvs co "+repository)) {
+    write("Failed to check out from CVS repository %O to %O.\n", repository, getcwd());
     return 0;
+  }
 
-  if(!Process.system("tar -c "+repository+" > "+project+".tar"))
+  if(!Process.system("tar -c "+repository+" > "+project+".tar")) {
+    write("Failed to create %s.tar\n", project);
     return 0;
+  }
 
-  if(!Process.system("gzip -9 "+project+".tar"))
+  if(!Process.system("gzip -9 "+project+".tar")) {
+    write("Failed to compress %s.tar\n", project);
     return 0;
+  }
 
   return project+".tar.gz";
 }
@@ -200,9 +206,15 @@ int main(int num, array(string) args) {
 
   int real_checkin_poll;
   int next_build;
+  int waitloop_state;
 
   while(1) {
-    if(verbose) write("Sleep %d seconds...\n", real_checkin_poll);
+    if(checkin_poll==real_checkin_poll)
+      waitloop_state = 1;
+    else
+      waitloop_state = 0;
+
+    if(verbose && !waitloop_state) write("Sleep %d seconds...\n", real_checkin_poll);
     sleep(real_checkin_poll);
     real_checkin_poll = checkin_poll;
 
@@ -233,7 +245,7 @@ int main(int num, array(string) args) {
     }
 
     int new_checkin = get_latest_checkin();
-    if(verbose) write("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
+    if(verbose && !waitloop_state) write("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
     if(new_checkin>latest_build) {
       if(new_checkin + checkin_latency < time()) {
 	next_build = time()-1;
@@ -252,6 +264,6 @@ int main(int num, array(string) args) {
   return 1;
 }
 
-constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.9 2002/05/20 15:13:43 mani Exp $\n";
+constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.10 2002/05/24 22:25:15 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
