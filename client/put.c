@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <string.h>
 #include <strings.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -206,7 +207,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.1 2002/05/03 21:50:15 zino Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.2 2002/05/18 11:04:05 zino Exp $" );
       exit(1);
     }
     put_file( argv[i], st.st_size );
