@@ -204,7 +204,8 @@ void put_file( char *url, int len )
 
   {
     char *x, *y;
-    int rpos, errorcode, r;
+    int errorcode, r;
+    int rpos = 0;
 
     while( 1 )
     {
@@ -226,6 +227,16 @@ void put_file( char *url, int len )
         exit(1);
       }
       r = read( fd, buffer+rpos, 4711 );
+      if (r == 0)
+      {
+	printf("End of file while looking for first line\n");
+	exit(1);
+      }
+      if (r < 0)
+      {
+	perror("read");
+	exit(1);
+      }
       rpos += r;
       if( x=strchr( buffer, '\n' ) )
       {
@@ -279,7 +290,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.7 2002/08/25 14:39:52 zino Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.8 2002/08/25 22:09:25 ceder Exp $" );
       exit(0);
     }
     if( (st.st_mode & S_IFMT) != S_IFREG )
