@@ -1,9 +1,9 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.8 2002/07/29 20:45:46 mani Exp $
+// $Id: result_parser.pike,v 1.9 2002/07/31 22:25:20 mani Exp $
 
-inherit "result_parser.pike";
+inherit "../../result_parser.pike";
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
