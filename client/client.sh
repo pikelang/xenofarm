@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.37 2002/08/31 23:46:00 zino Exp $
+# $Id: client.sh,v 1.38 2002/09/01 12:19:59 ceder Exp $
 # License: GPL
 #
 # Requirements:
@@ -36,6 +36,7 @@
 #  6: Recursive mkdir failed
 #  7: Remote compilation failure
 #  8: Failed to send result  (not propagated)
+#  9: Admin email not configured
 #
 # 10: wget not found
 # 11: gzip not found
@@ -64,7 +65,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.37 2002/08/31 23:46:00 zino Exp $
+	echo \$Id: client.sh,v 1.38 2002/09/01 12:19:59 ceder Exp $
 	exit 0
   ;;
   *)
@@ -150,7 +151,12 @@ get_email() {
         if [ \! -f config/contact.txt ] ; then
         
             echo "Please type in an email address where the project maintainer can reach you:"
-            read email
+            if read email
+	    then :
+	    else
+		echo EOF while reading email address >&2
+		exit 9
+	    fi
             if [ X"$email" != X ] ; then
                 echo "contact: $email" > config/contact.txt
                 happy="yes"
