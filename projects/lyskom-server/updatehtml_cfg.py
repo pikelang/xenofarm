@@ -1,12 +1,20 @@
 # Configuration: things you must change.
 
-input = "/lysator/www/projects/xenofarm/lyskom-server/files"
-output = "/lysator/www/user-pages/ceder/xeno/"
+# These variables are documented in the top-level README file.
 
-filesurl = "http://www.lysator.liu.se/xenofarm/lyskom-server/files"
-overviewurl = "http://www.lysator.liu.se/~ceder/xeno/"
-buttonurl = "pcl-"
-fullbuttonurl = overviewurl + buttonurl
+# Formerly: "input".
+unpacked_results_dir = "/lysator/www/projects/xenofarm/lyskom-server/files"
+
+# Formerly: "output"
+result_overview_dir = "/lysator/www/user-pages/ceder/xeno/"
+
+# Formerly: "filesurl"
+unpacked_results_url = "http://www.lysator.liu.se/xenofarm/lyskom-server/files"
+
+# Formerly: "overviewurl"
+result_overview_url = "http://www.lysator.liu.se/~ceder/xeno/"
+# Formerly: "buttonurl" and "fullbuttonurl"
+button_url_prefix = "http://www.lysator.liu.se/~ceder/xeno/pcl-"
 
 dbname = "lyskom_server_xenofarm"
 dbuser = "ceder"

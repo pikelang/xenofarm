@@ -13,10 +13,10 @@ obsolete.
 <h1>Summary</h1>
 <table border=1>
   <tr>
-    <th><img border=0 src="%(buttonurl)sgreen.gif"><br>(OK)</th>
-    <th><img border=0 src="%(buttonurl)syellow.gif"><br>(Warning)</th>
-    <th><img border=0 src="%(buttonurl)sred.gif"><br>(Failure)</th>
-    <th><img border=0 src="%(buttonurl)swhite.gif"><br>(not tested)</th>
+    <th><img border=0 src="%(button_url_prefix)sgreen.gif"><br>(OK)</th>
+    <th><img border=0 src="%(button_url_prefix)syellow.gif"><br>(Warning)</th>
+    <th><img border=0 src="%(button_url_prefix)sred.gif"><br>(Failure)</th>
+    <th><img border=0 src="%(button_url_prefix)swhite.gif"><br>(not tested)</th>
   </tr>
   <tr>
     <td>%(green)s</td>
@@ -45,7 +45,7 @@ RESULT_PAGE = """<html>
 </head>
 <body>
 
-<a href="%(overviewurl)slatest.html">[latest builds]</a>
+<a href="%(result_overview_url)slatest.html">[latest builds]</a>
 <h1>%(project)s: Xenofarm build %(buildid)s %(hostname)s %(testname)s</h1>
 
 <p>
@@ -56,7 +56,7 @@ RESULT_PAGE = """<html>
       <table border=1>
         <tr>
           <td>Host:</td>
-          <td><a href="%(overviewurl)s/sys-%(systemid)s.html">%(hostname)s</a></td>
+          <td><a href="%(result_overview_url)s/sys-%(systemid)s.html">%(hostname)s</a></td>
         </tr>
         <tr>
           <td>OS &amp; hardware:</td>
@@ -64,7 +64,7 @@ RESULT_PAGE = """<html>
         </tr>
         <tr>
           <td>Build ID:</td>
-          <td><a href="%(overviewurl)s/build-%(buildid)s.html">Build %(buildid)d</a></td>
+          <td><a href="%(result_overview_url)s/build-%(buildid)s.html">Build %(buildid)d</a></td>
         </tr>
         <tr>
           <td>Test name:</td>
@@ -75,9 +75,9 @@ RESULT_PAGE = """<html>
     <td>
       <table border=1>
         <tr>
-          <th><img border=0 src="%(buttonurl)sgreen.gif"><br>(OK)</th>
-          <th><img border=0 src="%(buttonurl)syellow.gif"><br>(Warning)</th>
-          <th><img border=0 src="%(buttonurl)sred.gif"><br>(Failure)</th>
+          <th><img border=0 src="%(button_url_prefix)sgreen.gif"><br>(OK)</th>
+          <th><img border=0 src="%(button_url_prefix)syellow.gif"><br>(Warning)</th>
+          <th><img border=0 src="%(button_url_prefix)sred.gif"><br>(Failure)</th>
         </tr>
         <tr>
           <td>%(green)s</td>
@@ -135,9 +135,9 @@ the test %(testname)s.
     <td>
       <table border=1>
         <tr>
-          <th><img border=0 src="%(buttonurl)sgreen.gif"><br>(OK)</th>
-          <th><img border=0 src="%(buttonurl)syellow.gif"><br>(Warning)</th>
-          <th><img border=0 src="%(buttonurl)sred.gif"><br>(Failure)</th>
+          <th><img border=0 src="%(button_url_prefix)sgreen.gif"><br>(OK)</th>
+          <th><img border=0 src="%(button_url_prefix)syellow.gif"><br>(Warning)</th>
+          <th><img border=0 src="%(button_url_prefix)sred.gif"><br>(Failure)</th>
         </tr>
         <tr>
           <td>%(green)s</td>
@@ -187,9 +187,9 @@ This page collects all the results collected for build %(buildid)s.
     <td>
       <table border=1>
         <tr>
-          <th><img border=0 src="%(buttonurl)sgreen.gif"><br>(OK)</th>
-          <th><img border=0 src="%(buttonurl)syellow.gif"><br>(Warning)</th>
-          <th><img border=0 src="%(buttonurl)sred.gif"><br>(Failure)</th>
+          <th><img border=0 src="%(button_url_prefix)sgreen.gif"><br>(OK)</th>
+          <th><img border=0 src="%(button_url_prefix)syellow.gif"><br>(Warning)</th>
+          <th><img border=0 src="%(button_url_prefix)sred.gif"><br>(Failure)</th>
         </tr>
         <tr>
           <td>%(green)s</td>

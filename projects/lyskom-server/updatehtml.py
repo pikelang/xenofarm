@@ -154,15 +154,16 @@ def buildtime_label(bs):
 
 def result_details_anchor(bs, label):
     return '    <td><a href="%s/%s_%s/">%s</a></td>' % (
-        updatehtml_cfg.filesurl, bs.buildid, bs.sysinfo.systemid, label)
+        updatehtml_cfg.unpacked_results_url,
+        bs.buildid, bs.sysinfo.systemid, label)
 
 def system_overview_anchor(bs, label):
     return '    <td><a href="%s/sys-%s.html">%s</a></td>' % (
-        updatehtml_cfg.overviewurl, bs.sysinfo.systemid, label)
+        updatehtml_cfg.result_overview_url, bs.sysinfo.systemid, label)
 
 def build_overview_anchor(bs, label):
     return '    <td><a href="%s/build-%s.html">%s</a></td>' % (
-        updatehtml_cfg.overviewurl, bs.buildid, label)
+        updatehtml_cfg.result_overview_url, bs.buildid, label)
 
 def result_row(bs, tasks, leftanchor, leftlabel,
                rightanchor=None, rightlabel=None):
@@ -207,23 +208,24 @@ def result_row(bs, tasks, leftanchor, leftlabel,
         astart = ""
         aend = ""
         for link in logtypes:
-            if os.path.exists(os.path.join(updatehtml_cfg.input,
+            if os.path.exists(os.path.join(updatehtml_cfg.unpacked_results_dir,
                                            "%s_%s" % (bs.buildid,
                                                       bs.sysinfo.systemid),
                                            taskname + link + ".txt")):
                 astart = '<a href="%s/%s_%s/%s%s.txt">' % (
-                    updatehtml_cfg.filesurl, bs.buildid, bs.sysinfo.systemid,
+                    updatehtml_cfg.unpacked_results_url,
+                    bs.buildid, bs.sysinfo.systemid,
                     taskname, link)
                 aend = '</a>'
                 break
         if astart != "" or color != "white":
             res.append('    <th>%s<img border=0 src="%s%s.gif">%s</th>' % (
-                astart, updatehtml_cfg.buttonurl, color, aend))
+                astart, updatehtml_cfg.button_url_prefix, color, aend))
         else:
             res.append('    <th>&nbsp;</th>')
 
     res.append('    <th><img border=0 src="%s%s.gif"></th>' % (
-        updatehtml_cfg.buttonurl, row_status))
+        updatehtml_cfg.button_url_prefix, row_status))
 
     if rightanchor != None:
         res.append(rightanchor(bs, rightlabel(bs)))
@@ -239,12 +241,13 @@ def update_latest():
 
     m["project"] = updatehtml_cfg.projectname
     m["now"] = format_time()
-    m["buttonurl"] = updatehtml_cfg.buttonurl
+    m["button_url_prefix"] = updatehtml_cfg.button_url_prefix
     m["heading"] = latest_heading_row(tasks)
     m["content"] = tbl
 
     page = updatehtml_templates.LATEST_PAGE % m
-    open(os.path.join(updatehtml_cfg.output, "latest.html"), "w").write(page)
+    fn = os.path.join(updatehtml_cfg.result_overview_dir, "latest.html")
+    open(fn, "w").write(page)
 
 class task_result:
     def __init__(self, name, status, warnings, time_spent):
@@ -313,7 +316,8 @@ def add_file(tl, files_left, dirname, fn, maxlen):
 
 def mkindex(buildid, systemid, force = 0):
 
-    dirname = os.path.join(updatehtml_cfg.input, "%d_%d" % (buildid, systemid))
+    dirname = os.path.join(updatehtml_cfg.unpacked_results_dir,
+                           "%d_%d" % (buildid, systemid))
     indexname = os.path.join(dirname, "index.html")
     if os.path.isfile(indexname) and not force:
         return 0
@@ -321,8 +325,8 @@ def mkindex(buildid, systemid, force = 0):
     m = {}
     m["project"] = updatehtml_cfg.projectname
     m["now"] = format_time()
-    m["buttonurl"] = updatehtml_cfg.fullbuttonurl
-    m["overviewurl"] = updatehtml_cfg.overviewurl
+    m["button_url_prefix"] = updatehtml_cfg.button_url_prefix
+    m["result_overview_url"] = updatehtml_cfg.result_overview_url
 
     m["buildid"] = buildid
     m["systemid"] = systemid
@@ -365,7 +369,7 @@ def mkindex(buildid, systemid, force = 0):
     tl = []
     for t in tasks:
         tl.append('<p><img border=0 src="%s%s.gif"> ' % (
-            updatehtml_cfg.fullbuttonurl, t.color()))
+            updatehtml_cfg.button_url_prefix, t.color()))
         tl.append(t.name)
         tl.append(" %d seconds" % t.time_spent)
         if t.warnings > 0:
@@ -384,7 +388,7 @@ def mkindex(buildid, systemid, force = 0):
         fn = t + "log.txt"
         if files_left.has_key(fn):
             notdone.append('<p><img border=0 src="%swhite.gif"> ' % (
-                updatehtml_cfg.fullbuttonurl))
+                updatehtml_cfg.button_url_prefix))
             notdone.append(t)
             notdone.append(' not done:<pre>')
             notdone.append(open(os.path.join(dirname, fn), "r").read())
@@ -441,8 +445,8 @@ def mk_build_overview(buildid):
     m = {}
     m["project"] = updatehtml_cfg.projectname
     m["now"] = format_time()
-    m["buttonurl"] = updatehtml_cfg.buttonurl
-    m["overviewurl"] = updatehtml_cfg.overviewurl
+    m["button_url_prefix"] = updatehtml_cfg.button_url_prefix
+    m["result_overview_url"] = updatehtml_cfg.result_overview_url
 
     m["buildid"] = buildid
     m["buildtime"] = format_time(buildtime)
@@ -486,7 +490,8 @@ def mk_build_overview(buildid):
         m[c] = ctr[c]
 
     page = updatehtml_templates.BUILD_OVERVIEW_PAGE % m
-    fn = os.path.join(updatehtml_cfg.output, "build-%d.html" % buildid)
+    fn = os.path.join(updatehtml_cfg.result_overview_dir,
+                      "build-%d.html" % buildid)
     open(fn, "w").write(page)
 
 
@@ -507,8 +512,8 @@ def mk_system_overview(systemid):
     m = {}
     m["project"] = updatehtml_cfg.projectname
     m["now"] = format_time()
-    m["buttonurl"] = updatehtml_cfg.buttonurl
-    m["overviewurl"] = updatehtml_cfg.overviewurl
+    m["button_url_prefix"] = updatehtml_cfg.button_url_prefix
+    m["result_overview_url"] = updatehtml_cfg.result_overview_url
 
     m["systemid"] = systemid
     m["hostname"] = sysinfo.hostname
@@ -549,7 +554,8 @@ def mk_system_overview(systemid):
         m[c] = ctr[c]
 
     page = updatehtml_templates.SYS_OVERVIEW_PAGE % m
-    fn = os.path.join(updatehtml_cfg.output, "sys-%d.html" % systemid)
+    fn = os.path.join(updatehtml_cfg.result_overview_dir,
+                      "sys-%d.html" % systemid)
     open(fn, "w").write(page)
 
 def mk_all_index(force):
