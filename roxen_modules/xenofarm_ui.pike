@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.23 2002/11/18 23:25:05 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.24 2002/11/19 00:07:36 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -289,7 +289,7 @@ static class Project {
 
     // Update featured builds
 
-    int changed = `+( @builds->update_results(xfdb) );
+    int changed = `+( 0, @builds->update_results(xfdb) );
     if(!changed)
       return latency;
 
