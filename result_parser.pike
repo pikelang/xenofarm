@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.12 2002/08/14 12:50:22 mani Exp $
+// $Id: result_parser.pike,v 1.13 2002/08/14 16:54:35 ceder Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -173,8 +173,8 @@ void process_package(string fn) {
     string dest = web_dir + result->build+"_"+result->system;
     mkdir(dest);
     int fail;
-    foreach(get_dir(work_dir), string f)
-      if( Process.system(sprintf("mv %s %s", work_dir+f, dest+"/"+f)) )
+    foreach(get_dir("."), string f)
+      if( Process.system(sprintf("mv %s %s", f, dest+"/"+f)) )
 	fail = 1;
     if(fail || !rm(fn) )
       write("Unable to remove %O\n", fn);
@@ -325,7 +325,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.12 2002/08/14 12:50:22 mani Exp $\n";
+"$Id: result_parser.pike,v 1.13 2002/08/14 16:54:35 ceder Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         a
