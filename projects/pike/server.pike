@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.18 2002/08/15 00:10:02 mani Exp $
+// $Id: server.pike,v 1.19 2002/08/30 01:37:42 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -29,7 +29,7 @@ constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT P
                   "export ENUM('yes','no') NOT NULL DEFAULT 'yes', "
                   "documentation ENUM('yes','no') )";
 
-constant latest_pike73_checkin = "http://pelix.ida.liu.se/development/cvs/latest-Pike-commit";
+constant latest_pike73_checkin = "http://pike.ida.liu.se/development/cvs/latest-Pike-commit";
 
 // XXXX-YYYYMMDD-hhmmss.tar.gz
 int time_from_filename(string fn) {
@@ -89,7 +89,7 @@ string make_build_low() {
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.18 2002/08/15 00:10:02 mani Exp $\n";
+"$Id: server.pike,v 1.19 2002/08/30 01:37:42 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Project defaults to pike7.3.
