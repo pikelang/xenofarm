@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.44 2002/09/06 15:04:28 grubba Exp $
+# $Id: client.sh,v 1.45 2002/09/06 15:27:57 grubba Exp $
 # License: GPL
 #
 # Requirements:
@@ -70,7 +70,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.44 2002/09/06 15:04:28 grubba Exp $
+	echo \$Id: client.sh,v 1.45 2002/09/06 15:27:57 grubba Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -470,7 +470,7 @@ chomp_ends() {
 get_nodeconfig() {
     if [ -f "$projectconfig.$node" ] ; then
         projectconfig="$projectconfig.$node";
-        echo "NOTE: Found node config file: $projectconfig.$node"
+        echo "NOTE: Found node config file: $projectconfig"
     fi
 }
 
