@@ -10,7 +10,7 @@ from scheme-like expressions. You don't need any Scheme interpreter to
 build it, though, an ANSI-C compiler is enough.
 
 There's only one xenofarm configuration to test. It takes
-approximately 18 minutes to build and test on a Pentium III.
+approximately 10 minutes to build and test on a Pentium III.
 
 
 Dependencies
