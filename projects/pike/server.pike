@@ -1,7 +1,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.7 2002/05/15 01:11:01 mani Exp $
+// $Id: server.pike,v 1.8 2002/05/15 09:40:18 mani Exp $
 
 // The Xenofarm server program is not really intended to be run verbatim, since almost
 // all projects have their own little funny things to take care of. This is an
@@ -34,7 +34,7 @@ int time_from_filename(string fn) {
   if( sscanf(fn, "%*s-%4d%2d%2d-%2d%2d%2d",
 	     Y,M,D,h,m,s)!=7 )
     return 0;
-  return mktime(s,m,h,D,M,Y,0,0);
+  return mktime(s,m,h,D,M-1,Y-1900,0,0);
 }
 
 int get_latest_checkin()
