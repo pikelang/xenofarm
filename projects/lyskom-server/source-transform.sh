@@ -3,6 +3,8 @@ project=$1
 result=$2
 stamp=$3
 
+exec > source-transform.log 2>&1
+
 rm -rf workdir dist
 cp -a $project workdir
 (cd workdir && ./mkmi)         # Run automake, autoconf et c
