@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.15 2003/06/24 13:19:49 mani Exp $
+// $Id: pike_client.pike,v 1.16 2003/06/24 13:30:55 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -151,8 +151,13 @@ string zero_pad(string in, int size) {
 }
 
 //! Creates a tar file of the current directory and writes to @[out].
-void tar_dir(Stdio.File out) {
+//! If @[avoid] is given, the file with that name will not be added to
+//! the tar package.
+void tar_dir(Stdio.File out, void|string avoid) {
   foreach(get_dir("."), string fn) {
+
+    if(fn==avoid) continue;
+
     string head = "";
     head += zero_pad(fn,100); // Filename
     Stdio.Stat st=file_stat(fn);
@@ -462,6 +467,9 @@ class Config {
       cd("repack");
       untar_dir(fs, "");
     }
+    else if(Stdio.is_dir("xenofarm_result")) {
+      cd("xenofarm_result");
+    }
     else {
       popd();
       pushd(result_dir);
@@ -470,7 +478,7 @@ class Config {
     make_machineid(name, cmd);
 
     Stdio.File f = Stdio.File("xenofarm_result.tar", "cwt");
-    tar_dir(f);
+    tar_dir(f, "xenofarm_result.tar");
     f->close();
 
     // FIXME: We could reduce memory consumption with a iterative feeding.
@@ -552,7 +560,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.15 2003/06/24 13:19:49 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.16 2003/06/24 13:30:55 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -610,7 +618,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.15 2003/06/24 13:19:49 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.16 2003/06/24 13:30:55 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
