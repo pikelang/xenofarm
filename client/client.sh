@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.67 2002/12/10 03:29:44 mani Exp $
+# $Id: client.sh,v 1.68 2002/12/14 13:05:19 zino Exp $
 # Distribution version: 1.1
 # License: GPL
 #
@@ -67,7 +67,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.67 2002/12/10 03:29:44 mani Exp $
+	echo \$Id: client.sh,v 1.68 2002/12/14 13:05:19 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -210,10 +210,11 @@ longest_nodename() {
         fi
         #This won't help for nodes that already have dots in their !domainnames
         if [ X`echo $cur_node|sed 's/\.//'` = X$cur_node ]; then
-            if [ X`domainname` != X -a X`domainname` != "X(none)" ]; then
+            if [ X`domainname 2>/dev/null` != X -a \
+                 X`domainname 2>/dev/null` != "X(none)" ]; then
                 cur_node=$cur_node.`domainname`
-            else if [ X`dnsdomainname` != X -a X`dnsdomainname` != "X(none)"];
-            then
+            else if [ X`dnsdomainname 2>/dev/null` != X -a \
+                      X`dnsdomainname 2>/dev/null` != "X(none)" ]; then
                 cur_node=$cur_node.`dnsdomainname`
             fi; fi
         fi
