@@ -4,14 +4,14 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.73 2003/05/20 12:48:33 mani Exp $
+# $Id: client.sh,v 1.74 2003/09/01 13:17:50 jhs Exp $
 # Distribution version: 1.2
 # License: GPL
 #
 # Requirements:
 #  gzip
 #  wget              Must handle -N and set the timestamp correctly.
-#                    Must handle --referer.
+#                    Must handle --header.
 #                    Versions 1.6 and prior of wget are know to mangle 
 #                    the timestamps and will cause occasional missed 
 #                    builds. Versions 1.8.2 and newer are known to work.
@@ -67,7 +67,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.73 2003/05/20 12:48:33 mani Exp $
+	echo \$Id: client.sh,v 1.74 2003/09/01 13:17:50 jhs Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -282,7 +282,7 @@ prepare_project() {
      NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
      echo " Downloading $project snapshot..."
      #FIXME: Check for old broken wgets.
-     wget --referer="$node" --dot-style=binary -N "$geturl" \
+     wget --header="Referer: $node" --dot-style=binary -N "$geturl" \
         > "wget.log" 2>&1 &&
      if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         echo " NOTE: No newer snapshot for $project available."
