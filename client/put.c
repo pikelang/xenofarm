@@ -148,7 +148,7 @@ void put_file( char *url, int len )
   sprintf( buffer,
 	   "PUT /%s HTTP/1.0\r\n"
 	   "Host: %s:%d\r\n%s"
-	   "User-Agent: simple-put\r\n"
+	   "User-Agent: simple-put/$Version$\r\n"
 	   "Content-Type: application/octet-stream\r\n"
 	   "Content-Length: %d\r\n"
 	   "\r\n",
@@ -291,7 +291,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.10 2002/08/30 11:52:23 zino Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.11 2003/01/08 20:08:02 mani Exp $" );
       exit(0);
     }
     if( (st.st_mode & S_IFMT) != S_IFREG )
