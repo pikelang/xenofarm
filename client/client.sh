@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.62 2002/11/25 09:39:21 zino Exp $
+# $Id: client.sh,v 1.63 2002/11/25 11:33:50 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -66,7 +66,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.62 2002/11/25 09:39:21 zino Exp $
+	echo \$Id: client.sh,v 1.63 2002/11/25 11:33:50 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -422,9 +422,10 @@ run_test() {
                      rm -rf repack &&
                      mkdir repack &&
                      cd repack &&
-                     gzip -cd $resultdir/xenofarm_result.tar.gz | tar xf - &&
-                     cp $resultdir/machineid.txt . &&
-                     tar cf - * | gzip -c > $resultdir/xenofarm_result.tar.gz
+                     gzip -cd "$resultdir/xenofarm_result.tar.gz" | tar xf - &&
+                     cp "$resultdir/machineid.txt" . &&
+                     tar cvf "$resultdir/xenofarm_result.tar" * &&
+                     gzip "$resultdir/xenofarm_result.tar"
                     ) || exit 25
                 else
                     (
