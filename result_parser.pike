@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.8 2002/07/19 15:24:11 mani Exp $
+// $Id: result_parser.pike,v 1.9 2002/07/28 23:17:27 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -129,6 +129,7 @@ mapping low_process_package() {
     write("Failed to parse machine id.\n");
     return result;
   }
+  debug("Build: %O Host: %O Platform: %O\n", result->build, result->host, result->platform);
 
   if(!result->status) {
     parse_log(main_log_file, result);
@@ -153,6 +154,7 @@ void process_package(string fn) {
   Process.system("tar -xzf "+fn);
   if(!sizeof(get_dir("."))) {
     write("Unable to unpack %O to %O\n", fn, getcwd());
+    processed_results[fn]=1;
     return;
   }
 
@@ -294,5 +296,5 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.8 2002/07/19 15:24:11 mani Exp $\n";
+"$Id: result_parser.pike,v 1.9 2002/07/28 23:17:27 mani Exp $\n";
 constant prog_doc = "Blah blah\n";
