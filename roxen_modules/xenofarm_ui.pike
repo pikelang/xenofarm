@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.28 2002/11/30 19:44:16 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.29 2002/12/02 03:28:33 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -205,6 +205,7 @@ static class Build {
 	      "time": str_build_datetime,
 	      "summary": summary,
 	      "source": export,
+	      "results": sizeof(results),
     ]) + status_summary;
   }
 
