@@ -1,7 +1,8 @@
+#! /usr/bin/env pike
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.15 2002/07/31 22:25:20 mani Exp $
+// $Id: server.pike,v 1.16 2002/08/09 16:43:30 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -16,6 +17,7 @@ Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
 string project = "pike7.3";
 string web_dir = "/home/nilsson/xenofarm/out/";
 string work_dir = "/home/nilsson/xenofarm/temp/";
+string cvs_module = "(ignored)"; // Ignore this.
 string repository = "(ignored)"; // Ignore this.
 
 string pike_version = "7.3";
@@ -83,4 +85,26 @@ string make_build_low() {
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.15 2002/07/31 22:25:20 mani Exp $\n";
+"$Id: server.pike,v 1.16 2002/08/09 16:43:30 mani Exp $\n";
+constant prog_doc = #"
+server.pike <arguments> <project>
+Project defaults to pike7.3.
+Possible arguments:
+
+--db           The database URL. Defaults to
+               mysql://localhost/xenofarm.
+--force        Make a new build and exit.
+--help         Displays this text.
+--latency      The enforced latency between the latest checkin and
+               when the next build is run. Defaults to 300 seconds
+               (5 minutes).
+--min-distance The enforced minimum distance between to builds.
+               Defaults to 7200 seconds (two hours).
+--poll         How often the CVS is queried for new checkins.
+               Defaults to 60 seconds.
+--verbose      Send messages about everything that happens to stdout.
+--web-dir      Where the outgoing source packages should be put.
+               Defaults to /home/nilsson/xenofarm/out/.
+--work-dir     Where temporary files should be put. Defaults to
+               /home/nilsson/xenofarm/temp/.
+";
