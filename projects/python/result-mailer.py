@@ -54,6 +54,9 @@ has_failure = 0
 end = 0
 
 print
+print "     For the latest builds, see: "
+print "       http://www.lysator.liu.se/~sfarmer/xeno/latest.html"
+print
 print "Contributing heroes:"
 print
 
