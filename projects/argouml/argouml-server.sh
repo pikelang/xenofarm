@@ -126,7 +126,7 @@ chmod +x $working/doit.sh
 
 find $working/build $working/lib $working/modules $working/src_new $working/tests $working/tools $working/src $working/buildid.txt $working/doit.sh -print |
 grep -v /CVS |
-cpio -o --format=ustar > $name.tar || exit 1
+cpio -o --format=ustar > $name.tar 2> /dev/null || exit 1
 gzip $name.tar || exit 1
 rm $working/buildid.txt $working/doit.sh
 
