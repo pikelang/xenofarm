@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.19 2003/06/27 17:24:00 mani Exp $
+// $Id: pike_client.pike,v 1.20 2003/09/15 11:14:24 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.73.
@@ -128,19 +128,19 @@ int web_head(string url) {
 
 //! Untars the the tar file system @[fs]. @[dir] is the current
 //! working directory inside the tar file system.
-void untar_dir(object fs, string dir) {
+void untar_dir(object fs) {
   WERR(".");
-  foreach(fs->get_dir(dir), string path) {
-    string fn = reverse(path/"/")[0];
+  foreach(fs->get_dir(), string path) {
+    string fn = (path/"/")[-1];
     if(fs->stat(path)->isdir()) {
       if(!mkdir(fn))
 	exit(31, "Unable to create directory %O.\n", fn);
       pushd(fn);
-      untar_dir(fs, path);
+      untar_dir(fs->cd(fn));
       popd();
     }
     else
-      Stdio.write_file(fn, fs->open(path, "r")->read());
+      Stdio.write_file(fn, fs->open(fn, "r")->read());
   }
 }
 
@@ -427,7 +427,7 @@ class Config {
 
     WERR("  Reading tar file.");
     object fs = Filesystem.Tar("../snapshot.tar");
-    untar_dir(fs, "");
+    untar_dir(fs);
     WERR("\n");
 
     // Enter the directory found in the tar.
@@ -484,7 +484,7 @@ class Config {
       gunzip("xenofarm_result.tar.gz", "xenofarm_result.tar");
       object fs = Filesystem.Tar("xenofarm_result.tar");
       cd("repack");
-      untar_dir(fs, "");
+      untar_dir(fs);
     }
     else if(Stdio.is_dir("xenofarm_result")) {
       cd("xenofarm_result");
@@ -580,7 +580,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.19 2003/06/27 17:24:00 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.20 2003/09/15 11:14:24 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -638,7 +638,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.19 2003/06/27 17:24:00 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.20 2003/09/15 11:14:24 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
