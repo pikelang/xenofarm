@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.77 2004/03/09 10:22:23 grubba Exp $
+# $Id: client.sh,v 1.78 2004/03/09 20:25:10 grubba Exp $
 # Distribution version: 1.2
 # License: GPL
 #
@@ -68,7 +68,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.77 2004/03/09 10:22:23 grubba Exp $
+	echo \$Id: client.sh,v 1.78 2004/03/09 20:25:10 grubba Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -387,7 +387,7 @@ run_test() {
 	  if rm -rf buildtmp 2>/dev/null; then :; else
 	    # Possibly locked by .nfs lock files.
 	    test -d nfslocks/. || mkdir nfslocks || mkdir_exit
-	    find buildtmp -type f -name '.nfs*' -exec mv -f "\{\}" nfslocks/ \;
+	    find buildtmp -type f -name '.nfs*' -exec mv -f \{\} nfslocks/ \;
 	    # Truncate and cleanup the lock files.
 	    for f in nfslocks/.nfs*; do
 	      >$f
