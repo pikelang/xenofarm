@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.21 2002/08/17 22:58:42 zino Exp $
+# $Id: client.sh,v 1.22 2002/08/22 21:22:24 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -217,9 +217,16 @@ fi
 wget --help > /dev/null 2>&1 || missing_req wget 10
 gzip --help > /dev/null 2>&1 || missing_req wget 11
 
+#Read only the node specific configuration file if it exists.
+if [ -x "projects.conf.$node" ] ; then
+    configfile="projects.conf.$node";
+else
+    configfile="projects.conf";
+fi
+
 #Build Each project and each target in that project sequentially
 basedir="`pwd`"
-grep -v \# projects.conf | ( while 
+grep -v \# $configfile | ( while 
     read project ; do
     read dir
     read geturl
@@ -229,7 +236,7 @@ grep -v \# projects.conf | ( while
     read endmarker
 
     if [ x$dir = x ] ; then
-        echo "No more projects in projects.conf"
+        echo "No more projects in $configfile"
         # This will drop from the subshell to the backend
         exit 0;
     else
