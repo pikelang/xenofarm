@@ -26,7 +26,8 @@ outside Xenofarm.
 The Xenofarm client needs a program called put that does the job of
 returning the result from the compiled and tested project to the
 project result collector by way of HTTP PUT. The put program is a
-small C-program written specifically for the Xenofarm client is portable C.
+small C-program written specifically for the Xenofarm client in
+portable C.
 
 To compile it manually run the normal ./configure && make.
 
