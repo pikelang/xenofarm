@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.19 2002/08/15 00:11:24 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.20 2002/08/15 00:37:23 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -51,8 +51,8 @@ static string latest;
 static int latest_timestamp;
 
 // Statistics
-mapping(string:int) downloaded = ([]);
-mapping(string:int) uploaded = ([]);
+static mapping(string:int) downloaded = ([]);
+static mapping(string:int) uploaded = ([]);
 
 void start() {
   mountpoint = query("mountpoint");
@@ -136,6 +136,7 @@ static void done_with_put( array(object) id_arr ) {
   object id;
 
   [to, from ,id] = id_arr;
+  string fn = to->query_id();
 
   to->close();
   from->set_blocking();
@@ -146,9 +147,12 @@ static void done_with_put( array(object) id_arr ) {
     id->send_result(http_low_answer(400,
                                     "Bad Request - "
                                     "Expected more data."));
+    rm(fn);
   }
-  else
+  else {
     id->send_result(http_low_answer(200, "Transfer Complete."));
+    mv(fn, replace(fn, "tmp", "res"));
+  }
 }
 
 
@@ -162,7 +166,7 @@ Stat stat_file(string f, RequestID id) {
     return res->stat;
   }
 
-  Stat  s = file_stat( distpath + f );
+  Stat s = file_stat( distpath + f );
   if(!s) return 0;
 
   int mtime = dist_mtime(f);
@@ -222,11 +226,12 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 
   if(path=="result") {
     file_counter = (file_counter+1)%10; // No more than 10 results at the same second...
-    string fn = resultpath + "/res" + time() + "_" + file_counter + ".tar.gz";
+    string fn = resultpath + "/tmp" + time() + "_" + file_counter + ".tar.gz";
     Stdio.File to = Stdio.File( fn, "wct" );
 
     if(!to)
       return http_low_answer(403, "Open new file failed.");
+    to->set_id(fn);
 
     chmod(fn, 0666);
 
