@@ -1,0 +1,16 @@
+<use file="template" />
+<page>
+<h2>Get Xenofarm from CVS</h2>
+
+<p>Get the latest version of all server software, client software and
+documentation from the Lysator CVS. Login with
+<pre>
+cvs -d :pserver:anonymous@cvs.lysator.liu.se:/xenofarm login
+</pre>
+and just press return when prompted for password. Then type
+<pre>
+cvs -d :pserver:anonymous@cvs.lysator.liu.se:/xenofarm co xenofarm
+</pre>
+to get a fresh copy of Xenofarm.</p>
+
+</page>

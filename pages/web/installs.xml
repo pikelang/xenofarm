@@ -1,0 +1,25 @@
+<use file="template"/>
+<page>
+<h2>Current installations</h2>
+
+<p>Xenofarm is currently deployed in three different projects.</p>
+
+<ul>
+<li><a href="http://pike.ida.liu.se/">Pike</a><br />
+  Pike is a general purpose programming language and the longest user
+  of Xenofarm, since Xenofarm was originally written for testing Pike.
+  Result pages for Pikefarm can be found
+  <a href="http://pike.ida.liu.se/development/pikefarm/">here</a>.
+  <br /><br /></li>
+<li>LysKOM Server<br />
+  LysKOM is a communication system that combins the best aspects of ICQ
+  and news into a system that more or less predates them both. Result
+  pages for LysKOM can be found <a href="lyskom-server/">here</a>.
+  <br /><br /></li>
+<li>Python</a><br />
+  Python is another general purpose programming language that also
+  uses Xenofarm to find portability problems. There are result pages
+  both for <a href="python/">development python</a> and for the
+  <a href="python-stable/">stable python</a>.<br /><br /></li>
+</ul>
+</page>

@@ -1,0 +1,51 @@
+<use file="template"/>
+<page>
+<h2>This is Xenofarm</h2>
+
+<p>
+The Xenofarm project is a rather small project, if measured in code.
+This is because the wonders of modern computer engineering lets us
+reuse components to build advanced applications with ease, letting us
+programmers focus on important tasks as design and quality. Did you
+buy that? Well, normally the world isn't as perfect as we like it to
+be, but in this case it is, since Xenofarm is just some glue
+components holding together other components.
+</p>
+
+<p>
+The goal of Xenofarm is to aid programmers who want to build extremely
+platform independent applications. Most programmers would say, "If I
+want to do something platform independent I use
+Pike/Python/Perl/Java/LOGO", but there are still some guys struggling
+to get these programming languages to work on all strange OS on all
+strange platforms. It is for them (us) this tool is built.
+</p>
+
+<p>
+From a historical point of view, Xenofarm is a complete rewrite of the
+automated build and regression test tool that was used by the Pike
+programming language development team between 1999 and 2002. It was
+called AutoBuild and was created by Martin Nilsson and Johan Schön at
+Roxen Internet Software. AutoBuild was in turn derived from (or rather
+inspired by) Tinderbox, a similar system used by the Mozilla
+development team. Xenofarm still sticks to the basic AutoBuild
+concept, but was redesigned to get rid of the few annoying flaws and
+shortcomings of its predecessor. Most notably the system components
+has been more loosly coupled and the system should scale to X
+different clients performing Y different projects for Z different
+servers.
+</p>
+
+<autoformat>SH-client by Peter Bortas
+HTTP PUT  by Per Hedbor
+The rest  by Martin Nilsson
+
+Substantial contributors:
+  Per Cederqvist,
+  Johan Sundström,
+  Anders Qvist
+</autoformat>
+
+<p>Xenofarm is released under GNU GPL.</p>
+
+</page>

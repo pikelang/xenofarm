@@ -1,0 +1,37 @@
+<define container="menuitem">
+<if variable="page.path is */&_.href;">
+  <replace from=" " to="&nbsp;"><contents/></replace><br />
+</if>
+<else>
+  <a href="&_.href;"><replace from=" " to="&nbsp;"><contents/></replace></a><br />
+</else>
+</define>
+
+<define container="page" scope="pagetag">
+<html>
+<head>
+<title>Xenofarm - Mainpage</title>
+<style type="text/css">
+td {font: 14px Helvetica}
+a  {font-weight: bold}
+</style>
+</head>
+<body bgcolor="#cccccc" text="black" link="red" alink="white" vlink="red">
+
+<a href="/projects/xenofarm/"><img src="xenofarm.gif" border="0"
+ alt="Xenofarm" title="Xenofarm" width="263" height="103" /></a>
+<br /><br />
+
+<table width="600">
+<tr valign="top"><td width="170">
+<menuitem href="about.xml">What is Xenofarm?</menuitem>
+<menuitem href="/~jhs/cvs/xenofarm.xml">Latest changes</menuitem>
+<menuitem href="download.xml">Download</menuitem>
+<menuitem href="installs.xml">Installations</menuitem>
+</td><td>
+<contents />
+</td>
+
+</body>
+</html>
+</define>
