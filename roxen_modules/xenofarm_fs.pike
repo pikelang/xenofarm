@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.9 2002/05/16 18:18:18 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.10 2002/05/24 22:25:56 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -27,14 +27,26 @@ void create() {
 	  "The directory where results will be stored." );
 }
 
+string info() {
+  return sprintf("<p><b>Downloaded</b><br /><pre>%O</pre></p>"
+		 "<p><b>Uploaded</b><br /><pre>%O</pre></p>", downloaded, uploaded);
+}
+
+// User variables
 static string mountpoint;
 static string distpath;
 static string resultpath;
 
+// Counter to prevent upload name clashes
 static int file_counter;
 
+// Info about the latest source distribution
 static string latest;
 static int latest_timestamp;
+
+// Statistics
+mapping(string:int) downloaded = ([]);
+mapping(string:int) uploaded = ([]);
 
 void start() {
   mountpoint = query("mountpoint");
@@ -197,6 +209,7 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 
     id->my_fd->set_id( ({ to, id->my_fd, id }) );
     id->my_fd->set_nonblocking(got_put_data, 0, done_with_put);
+    uploaded[id->remoteaddr]++;
     return http_pipe_in_progress();
   }
 
@@ -206,6 +219,7 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 
   Stat s = f->stat();
   s[3] = dist_mtime(path);
+  downloaded[id->remoteaddr]++;
 
   return ([
     "file" : f,
