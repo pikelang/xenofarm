@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.30 2002/12/05 19:47:52 mani Exp $
+// $Id: server.pike,v 1.31 2002/12/10 15:54:22 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -40,7 +40,7 @@ string repository = ":ext:nilsson@pike.ida.liu.se:/pike/data/cvsroot";
 #else
 string web_dir = "/pike/data/pikefarm/out/";
 string work_dir = "/pike/data/pikefarm/out_work/";
-string result_dir = "/pike/home/manual/web/pikefarm/";
+string result_dir = "/pike/data/pikefarm/results/pikefarm/";
 string repository = "/pike/data/cvsroot";
 #endif
 string cvs_module = "(ignored)"; // Not used.
@@ -130,7 +130,7 @@ string make_build_low_low(int latest_checkin)
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.30 2002/12/05 19:47:52 mani Exp $\n";
+"$Id: server.pike,v 1.31 2002/12/10 15:54:22 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Possible arguments:

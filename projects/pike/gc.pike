@@ -1,10 +1,10 @@
 //
 // Garbage collector for the Pike projects
-// $Id: gc.pike,v 1.5 2002/12/05 16:41:42 mani Exp $
+// $Id: gc.pike,v 1.6 2002/12/10 15:53:34 mani Exp $
 //
 
 constant my_out_dir = "/pike/data/pikefarm/out/";
-constant my_result_dir = "/pike/home/manual/web/pikefarm/";
+constant my_result_dir = "/pike/data/pikefarm/results/pikefarm/";
 constant gc_poll = 60*60*2;
 
 void debug(string msg, mixed ... args) {
