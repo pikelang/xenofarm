@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.20 2002/08/15 00:37:23 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.21 2002/08/26 05:23:11 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -124,7 +124,7 @@ static void got_put_data( array(object) id_arr, string data ) {
   if(putting[from] != 0x7fffffff)
     putting[from] -= bytes;
 
-  if(putting[from] < 0) {
+  if(putting[from] <= 0) {
     putting[from] = 0;
     done_with_put( id_arr );
   }
