@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.15 2002/08/18 16:00:51 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.16 2002/08/20 13:32:19 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -172,11 +172,18 @@ static class Build(int(0..) id,
     ]) + status_summary;
   }
 
-  array(mapping(string:int|string)) get_result_entities() {
+  array(mapping(string:int|string))|mapping(string:int|string)
+    get_result_entities(void|int machine) {
+
+    if(!zero_type(machine))
+      return ([ "status" : color[ratings[results[machine]]],
+		"system" : machine,
+		"build" : id, ]);
     array ret = ({});
     foreach(sort(indices(machines)), int system)
       ret += ({ ([ "status" : color[ratings[results[system]]],
-		   "system" : system, ]) });
+		   "system" : system,
+		   "build" : id, ]) });
     return ret;
   }
 
@@ -336,7 +343,22 @@ class TagEmitXF_Build {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
-    return builds->get_build_entities();
+    array res = builds->get_build_entities();
+
+    if(string order=m->sort)
+      switch (order) {
+      case "-id":
+      case "-time":
+	res = reverse(res);
+	// fallthrough
+      case "id":
+      case "":
+      case "time":
+	m_delete(m, "sort");
+	break;
+      }
+
+    return res;
   }
 }
 
@@ -348,9 +370,34 @@ class TagEmitXF_Result {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
-    if(!m->build) RXML.parse_error("No build attribute.\n");
-    return builds[search(build_indices, (int)m->build)]->
-      get_result_entities();
+    array res;
+
+    if(m->build && m->machine)
+      res = ({ builds[search(build_indices, (int)m->build)]->
+	       get_result_entities() });
+    else if(m->build)
+      res = builds[search(build_indices, (int)m->build)]->
+	get_result_entities();
+    else if(m->machine)
+      res = builds->get_result_entities( (int)m->machine );
+
+    if(!res)
+      RXML.parse_error("No build or machine attribute.\n");
+
+    if(string order=m->sort)
+      switch (order) {
+      case "-id":
+      case "-time":
+	res = reverse(res);
+	// fallthrough
+      case "id":
+      case "":
+      case "time":
+	m_delete(m, "sort");
+	break;
+      }
+
+    return res;
   }
 }
 
