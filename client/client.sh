@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.32 2002/08/30 23:30:29 zino Exp $
+# $Id: client.sh,v 1.33 2002/08/30 23:31:27 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -64,7 +64,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.32 2002/08/30 23:30:29 zino Exp $
+	echo \$Id: client.sh,v 1.33 2002/08/30 23:31:27 zino Exp $
 	exit 0
   ;;
   *)
@@ -399,7 +399,7 @@ chomp_ends() {
 #FIXME: This requires a base config file.
 get_nodeconfig() {
     if [ -f "$projectconfig.$node" ] ; then
-        projectconfig="$1.$node";
+        projectconfig="$projectconfig.$node";
         echo "NOTE: Found node specific config file: $configfile"
     fi
 }
