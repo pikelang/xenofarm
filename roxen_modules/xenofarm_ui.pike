@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.11 2002/08/14 19:28:36 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.12 2002/08/14 19:31:24 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -208,7 +208,7 @@ static int next_update;
 //! Xenofarm database of choice.
 //! @returns
 //!   The number of seconds left until the next update will happen.
-static void update_builds(Sql.Sql xfdb)
+static int update_builds(Sql.Sql xfdb)
 {
   // Only update internal state once a minute.
   int now = time(1), latency = query("latency");
