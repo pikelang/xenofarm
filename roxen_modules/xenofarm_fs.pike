@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.23 2002/11/18 01:30:48 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.24 2002/12/03 14:05:48 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -33,9 +33,16 @@ void create() {
 	  "The directory where uploaded results will be stored." );
 }
 
-string info() {
-  return sprintf("<p><b>Downloaded</b><br /><pre>%O</pre></p>"
-		 "<p><b>Uploaded</b><br /><pre>%O</pre></p>", downloaded, uploaded);
+string info()
+{
+  if(!sizeof(downloaded) && !sizeof(uploaded))
+    return "No downloads or uploads so far.";
+  string table = "<table border='1' cellspacing='0' cellpadding='2'>\n"
+    "<tr><th>Remote address</th><th>Downloads</th><th>Uploads</th></tr>\n";
+  foreach(sort(indices(downloaded) + indices(uploaded)), string ip)
+    table += sprintf("<tr><td>%s</td><td>%d</td><td>%d</td></tr>\n",
+		     downloaded[ip], uploaded[ip]);
+  return table + "</table>\n";
 }
 
 // User variables
@@ -239,6 +246,7 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 
     if(id->data && sizeof(id->data))
       got_put_data( ({ to, id->my_fd, id }), id->data );
+    uploaded[id->remoteaddr]++;
 
     if(!id) return 0;
     if(id->clientprot == "HTTP/1.1")
@@ -246,7 +254,6 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 
     id->my_fd->set_id( ({ to, id->my_fd, id }) );
     id->my_fd->set_nonblocking(got_put_data, 0, done_with_put);
-    uploaded[id->remoteaddr]++;
     return http_pipe_in_progress();
   }
 
