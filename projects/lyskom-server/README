@@ -1,0 +1,69 @@
+Xenofarm project lyskom-server
+==============================
+
+The LysKOM project is a conferencing system, or a kind of electronic
+bulletin board system.  It uses a client-server model.  There are
+several clients.  More information about the LysKOM system can be
+found on the web at http://www.lysator.liu.se/lyskom/index-en.html
+
+The LysKOM server is written i C.  This Xenofarm project is set up to
+ensure that it is portable.  The build results can be seen at
+http://www.lysator.liu.se/xenofarm/lyskom-server/latest.html
+
+The default test of lyskom-server takes about 12 minutes on a 266 MHz
+Pentium II with 128 MB.
+
+The configuration file lyskom-server.cfg contains several different
+test targets.  Comment out the tests you don't want to run,
+"decomment" the ones that you do want to run and copy or symlink the
+file to your Xenofarm clients config directory.
+
+Available targets
+=================
+
+default:  Compiled and tested as any user would do it.
+
+cc:	  Specify the compiler as "cc".  Useful on hosts that have
+	  both gcc and a vendor-supplied cc.  This can easily be
+	  adopted to other compilers as well, if you have one.
+
+coverage: Installs a few extra debug requests into the server, that
+	  the test suite uses to test code paths that are otherwise
+	  hard to test.
+
+valgrind-std: Like the "default" test, but use valgrind when running
+	  the test suite.  This currently requires valgrind-1.9.2.
+
+valgrind-cov: This combines "coverage" and valgrind.
+
+Helpful extras
+==============
+
+The only thing you need is an ANSI-C compiler and a C library that
+supports the socket API.  You will help us even more if you install
+the following software.  In order of usefulness:
+
+You need DejaGnu 1.4.2 and Python to run the test suite.  DejaGnu in
+turn needs TCL and expect.  They can be downloaded from:
+
+  ftp://ftp.funet.fi/pub/gnu/ftp.gnu.org/pub/gnu/dejagnu/dejagnu-1.4.2.tar.gz
+  ftp://ftp.scriptics.com/pub/tcl/tcl8_3/tcl8.3.4.tar.gz
+  http://expect.nist.gov/src/expect-5.38.0.tar.gz
+  http://www.python.org/download/
+
+If you are running Linux on x86, and if you have installed everything
+that the test suite needs, you should consider installing valgrind and
+enabling one or both of the valgrind targets.  You can find valgrind
+at:
+
+  http://developer.kde.org/~sewardj/
+
+In order to build the documentation, you need TeX and pdftex.  I'm not
+providing any links, since it would be useful to have people test
+different TeX distributions.
+
+If a core file is generated during the test, and if you have the GDB
+debugger installed, the test suite may be able to extract some helpful
+debugging information automatically.  GDB is available here:
+
+  ftp://ftp.funet.fi/pub/gnu/ftp.gnu.org/pub/gnu/gdb/
