@@ -172,12 +172,12 @@ This only works if the working copy fulfills the requirements defined
 in "Build package format". For projects that are not adapted to
 Xenofarm, this is most often not the case.
 
-You can specify an external program via the --source-transform
-argument. That program will receive three arguments: the name of the
-directory that holds the working copy of the source, the name of the
-resulting build package that it should create and the build id. The
-".tar.gz" suffix is not included in the name argument. This small
-shellscript is equivalent to the default built-in transformation:
+You can specify an external program via the --transformer argument. 
+That program will receive three arguments: the name of the directory
+that holds the working copy of the source, the name of the resulting
+build package that it should create and the build id. The ".tar.gz"
+suffix is not included in the name argument. This small shellscript is
+equivalent to the default built-in transformation:
 
     #!/bin/sh
     working=$1
@@ -251,11 +251,6 @@ Arguments:
       The CVS module the server should use. This argument is
       mandatory.
 
-  --update-opts=<options>
-      CVS options to append to "cvs -q update". Defaults to "-Pd" but
-      using "--update-opts=-d" could also make sense. Giving multiple
-      --update-opts adds arguments to the command line, in that order.
-
   --db=<database url>
       The database URL, eg. mysql://localhost/xenofarm. This argument
       is mandatory.
@@ -287,6 +282,14 @@ Arguments:
       as the -d argument to the CVS binary. (This value is not
       currently used by the generic server.pike script. Derived
       versions may find it useful.)
+
+  --transformer=<file path>
+      Program that builds the source package.
+
+  --update-opts=<options>
+      CVS options to append to "cvs -q update". Defaults to "-Pd" but
+      using "--update-opts=-d" could also make sense. Giving multiple
+      --update-opts adds arguments to the command line, in that order.
 
   --verbose
       Send messages about everything that happens to stdout. It might
@@ -548,7 +551,7 @@ mainlog.txt
     end       := result "\n" timestamp "\n"
     result    := "PASS" | "FAIL" | "WARN" (" " warnings)?
     version   := [0-9]+
-    task      := [a-ZA-Z0-9]+
+    task      := [_a-ZA-Z0-9]+
     warnings  := [0-9]+
     timestamp := [-.:/0-9a-zA-Z ]+
 
