@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.16 2002/08/20 13:32:19 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.17 2002/08/30 00:49:45 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -158,7 +158,12 @@ static class Build(int(0..) id,
       summary = min( @map( values(results),
 			   lambda(string in) { return ratings[in]; } ) );
 
-    string docs = get(xfdb, "build", "documentation", ([ "id":id ]));
+    if(!docs_status) {
+      string docs = get(xfdb, "build", "documentation", ([ "id":id ]));
+      docs_status = ([ 0:0, "no":1, "yes":2 ])[docs];
+      if(docs_status) changed=1;
+    }
+
     return changed;
   }
 
