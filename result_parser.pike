@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.37 2003/02/09 10:50:51 ceder Exp $
+// $Id: result_parser.pike,v 1.38 2003/05/30 12:54:25 norrby Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -22,6 +22,13 @@ int(0..1) dry_run;
 multiset(string) processed_results = (<>);
 array(string) ignored_warnings = ({});
 
+class Stack {
+  inherit ADT.Stack;
+#if _MINOR_<3
+  int _sizeof() { return ptr; }
+  array _values() { return values(arr[..ptr-1]); }
+#endif
+}
 
 //
 // Helper functions
@@ -148,8 +155,8 @@ void parse_log(string fn, mapping res) {
 
   multiset done_tasks = (<>);
 
-  ADT.Stack begin = ADT.Stack();
-  ADT.Stack tasks = ADT.Stack();
+  Stack begin = Stack();
+  Stack tasks = Stack();
 
   int pos=1;
   while(pos<sizeof(lines)) {
@@ -241,20 +248,16 @@ void parse_log(string fn, mapping res) {
 //! any case) and does not match any of the globs listed in the array
 //! ignored_warnings.
 int count_warnings(string fn) {
-  Stdio.FILE file;
-  catch {
-    file = Stdio.FILE(fn);
-  };
-  if(!file) return 0;
+  if(!file_stat(fn)) return 0;
 
   int warnings;
  newline:
-  foreach(file->line_iterator(1);; string line) {
+  foreach(Stdio.read_file(fn)/"\n", string line) {
     line = lower_case(line);
     if( has_value(line, "warning")||has_value(line, "(w)") ) {
       foreach(ignored_warnings, string ignore)
-	if(glob(ignore,line)) continue newline;
-	warnings++;
+        if(glob(ignore,line)) continue newline;
+        warnings++;
     }
   }
   return warnings;
@@ -654,7 +657,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.37 2003/02/09 10:50:51 ceder Exp $\n";
+"$Id: result_parser.pike,v 1.38 2003/05/30 12:54:25 norrby Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
