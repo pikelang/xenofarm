@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.31 2002/08/30 11:50:47 zino Exp $
+# $Id: client.sh,v 1.32 2002/08/30 23:30:29 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -64,7 +64,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.31 2002/08/30 11:50:47 zino Exp $
+	echo \$Id: client.sh,v 1.32 2002/08/30 23:30:29 zino Exp $
 	exit 0
   ;;
   *)
@@ -227,6 +227,7 @@ spinlock() {
 
 releaselock() {
     rm lock.tmp
+    gotlock="false"
 }
 
 #Make sure there is a put command available for this node
