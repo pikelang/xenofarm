@@ -134,3 +134,22 @@ your files.
 
 
 5. The Compilation Client
+
+
+6. The Web Import
+
+When the client has built its result file, it is uploaded through HTTP
+PUT to a URL specified in the client configuration file. The "Xenofarm
+I/O module" is able to be in the recieving end and store the results
+in the "Result search path" directory. The module accepts all files
+that are uploaded to "result" in its mountpoint. Given the default
+mountpoint /xenofarm, the default result URL path is /xenofarm/result.
+The uploaded files are named "res" followed by the posix time, an
+underscore, a counter incremented for every upload since the module
+stared, and finally ".tar.gz". The file name might look like
+res1021228036_31.tar.gz.
+
+Again it is possible to use any webserver and set up a path that
+accepts HTTP PUT. Possible solutions to minimize the risk of clashes
+is to let the clients name the result packages differently, or letting
+all clients have their own upload URL.
