@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.43 2002/12/08 18:56:35 grubba Exp $
+// $Id: server.pike,v 1.44 2002/12/08 19:08:29 grubba Exp $
 
 Sql.Sql xfdb;
 
@@ -81,20 +81,11 @@ string fmt_time(int t) {
 // this project.
 int get_latest_build()
 {
-  array res = persistent_query("SELECT MAX(time) AS latest_build, export "
-			       "FROM build GROUP BY export");
+  array res = persistent_query("SELECT time AS latest_build, export "
+			       "FROM build ORDER BY -time LIMIT 1");
   if(!res || !sizeof(res)) return 0;
-  int max = 0;
-  string state="FAIL";
-  foreach(res; mapping(string:string) row) {
-    int val = (int)row->latest_build;
-    if (val > max) {
-      max = val;
-      state = row->export;
-    }
-  }
-  latest_state = state;
-  return max;
+  latest_state = row[0]->export;
+  return (int)(row[0]->latest_build);
 }
 
 // The get_latest_checkin function should return the (UTC) unixtime of
@@ -459,7 +450,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.43 2002/12/08 18:56:35 grubba Exp $\n";
+"$Id: server.pike,v 1.44 2002/12/08 19:08:29 grubba Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
