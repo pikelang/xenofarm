@@ -1,17 +1,17 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.2 2002/05/03 22:36:44 mani Exp $
+// $Id: result_parser.pike,v 1.3 2002/05/11 01:58:40 mani Exp $
 
-constant db_def = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
-                  "name VARCHAR(255) NOT NULL, "
-                  "platform VARCHAR(255) NOT NULL)";
+constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
+                   "name VARCHAR(255) NOT NULL, "
+                   "platform VARCHAR(255) NOT NULL)";
 
-constant db_def = "CREATE TABLE result (build INT UNSIGNED NOT NULL, " // FK build.id
-                  "system INT UNSIGNED NOT NULL, " // FK system.id
-                  "status ENUM('failed','built','verified','exported') NOT NULL, "
-                  "warnings INT UNSIGNED NOT NULL, "
-                  "time_spent INT UNSIGNED NOT NULL)";
+constant db_def2 = "CREATE TABLE result (build INT UNSIGNED NOT NULL, " // FK build.id
+                   "system INT UNSIGNED NOT NULL, " // FK system.id
+                   "status ENUM('failed','built','verified','exported') NOT NULL, "
+                   "warnings INT UNSIGNED NOT NULL, "
+                   "time_spent INT UNSIGNED NOT NULL)";
 
 Sql.Sql xfdb;
 string result_dir;
