@@ -47,7 +47,7 @@ char* encode_base64( char *src, int len )
 void put_file( char *url, int len )
 {
   int i, port=80, fd;
-  char *host, *file, *id, buffer[4711], buffer2[1024];
+  char *host, *file, *id, buffer[4711], buffer2[1024], *p;
   struct hostent *hent;
   struct sockaddr_in addr;
   if( strncmp( url, "http://", 7 ) )
@@ -55,6 +55,7 @@ void put_file( char *url, int len )
     printf("Only HTTP urls are supported\n");
     exit(0);
   }
+  id = 0;
   host = url + 7;
   for( i = 0; i<strlen(host); i++ )
     if( host[i] == '/' )
@@ -150,8 +151,20 @@ void put_file( char *url, int len )
 
 	   file, host, port, buffer2, len );
 
-  write( fd, buffer, strlen(buffer) );
-
+  
+  i = strlen(buffer);
+  p = buffer;
+  while( i > 0 )
+  {
+    int w = write( fd, buffer, strlen(buffer) );
+    i -= w;
+    p += w;
+    if( w <= 0 )
+    {
+      perror("write");
+      exit(1);
+    }
+  }
   printf("done\n");
   
   i = 0;
@@ -164,17 +177,17 @@ void put_file( char *url, int len )
     if( b <= 0  )
     {
       perror("read");
-      exit(0);
+      exit(1);
     }
     i+=b;
     o = 0;
     while( b )
     {
-      int w = write( fd, buffer, b );
+      int w = write( fd, buffer+o, b );
       if( w <= 0 )
       {
 	perror("write");
-	exit(0);
+	exit(1);
       }
       o += w;
       b -= w;
@@ -207,7 +220,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.2 2002/05/18 11:04:05 zino Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.3 2002/07/30 18:05:48 cardeci Exp $" );
       exit(1);
     }
     put_file( argv[i], st.st_size );
