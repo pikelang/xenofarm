@@ -484,21 +484,27 @@ a new script is found does the following:
  3. Retrieves the machine id, eg. the host name and uname of the
     client machine.
  4. Finds out how many of the possible steps where completed, eg.
-    compilation and verification but not packaging.
+    compilation and verification but not packaging, and calculates an
+    overall result for the result.
  5. Counts the number of compilation warnings.
  6. Stores the results of the parsing in a database.
  7. Moves the log files to a directory reachable from the front end
     web server.
  8. Deletes the uploaded package.
 
+The heuristics for calculating the overall result in step 4 is as
+follows: If the task "build" doesn't pass, the the result failed. If
+everything passed, the result passed. Otherwise the build is in the
+state "WARN".
+
 
 7.1. Format of a Result Package
 
 This section documents how a result package should look like when the
 generic result_parser.pike script is used. It should be a gzipped tar
-file that contains a number of files. It should not contain any
-directory. The following files have special meaning in the generic
-result parser:
+file that contains a number of files. It must not contain any
+directory, since such tars will not be opened for security reasons.
+The following files have special meaning in the generic result parser:
 
 buildid.txt
   The first line of this file should contain the build id, which is
@@ -507,19 +513,31 @@ buildid.txt
 
 machineid.txt
   This file is always produced and included by the Xenofarm client.
-  The format of this file is described in section 6.
+  The format of this file is described in section 6. If duplicates of
+  a key is found, the last value will be used. It is thus possible to
+  override the generated values by adding an additional keypair in the
+  config/contact.txt file.
 
 mainlog.txt
-  A log of the build process, in a special format. Each entry in the
-  log is made up of two lines. The first line can have two formats:
+  A log of the build process, in a special format.
 
-    "Begin <task>", where <task> is something like "build", "check" or
-      "response assembly".
+    mainlog   := id logpair+ ("END\n" [0x00-0xff]*)?
+    id        := "FORMAT " version "\n"
+    logpair   := start logpair* end
+    start     := "BEGIN " task "\n" timestamp "\n"
+    end       := result "\n" timestamp "\n"
+    result    := "PASS" | "FAIL" | "WARN" (" " warnings)?
+    version   := [0-9]+
+    task      := [a-ZA-Z0-9]+
+    warnings  := [0-9]+
+    timestamp := [-.:/0-9a-zA-Z ]+
 
-    "Xenofarm OK". If this line is present, the build will be
-      considered successful.
-
-  The second line should contain the output of "date".
+  Where "version" is the version of the log file format, which
+  currently is "2". The token "task" is the name of the task or group
+  of tasks performed. Note that all tasks at the same level and within
+  the same supertask must have uniqe names. "warnings" is a numeric
+  value of the number of warnings encountered. "timestamp" is the
+  output from the date command in the "C" locale.
 
 compilelog.txt
   A log of the compilation. The warning count is the number of lines
