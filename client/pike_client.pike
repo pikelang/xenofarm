@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.7 2003/06/06 12:25:22 mani Exp $
+// $Id: pike_client.pike,v 1.8 2003/06/12 22:08:59 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -51,7 +51,6 @@ void exit(int code, void|string why, mixed ... extra) {
     write(why, @extra);
   else
     werror(why, @extra);
-  clean_exit();
   predef::exit(code);
 }
 
@@ -67,12 +66,13 @@ ADT.Stack dirs = ADT.Stack();
 //! to @[dir].
 //! @seealso
 //!   @[popd]
-void pushd(string dir) {
+int(1..1) pushd(string dir) {
   dirs->push(getcwd());
   if(!cd(dir)) {
     dirs->pop();
     error("Could not cd into %O\n", dir);
   }
+  return 1;
 }
 
 //! Return to the previous directory.
@@ -118,6 +118,34 @@ int web_head(string url) {
   if(r->status==302 && r->headers->location)
     return web_head(r->headers->location);
   return 0;
+}
+
+string zero_pad(string in, int size) {
+  if(sizeof(in)>size) error("In-string is too big.\n");
+  return in+"\0"*sizeof(size-in);
+}
+
+void tar_dir(Stdio.File out) {
+  foreach(get_dir("."), string fn) {
+    string head = "";
+    head += zero_pad(fn,100); // Filename
+    Stdio.Stat st=file_stat(fn);
+    head += sprintf("%07o\0", st->mode); // mode
+    head += sprintf("%07o\0", st->uid); // uid
+    head += sprintf("%07o\0", st->gid); // gid
+    head += sprintf("%011o\0", st->size); // size
+    head += sprintf("%011o\0", st->mtime); // mtime
+    head += "        "; // checksum placeholder
+    head += "0"; // link
+    head += zero_pad("",100); // link target
+
+    // Replace checksum placeholder with actual checksum.
+    int chksum = Array.sum((array)head);
+    head = head[..147]+sprintf("%07o\0", chksum)+head[156..];
+
+    out->write(head);
+    out->write(Stdio.read_file(fn));
+  }
 }
 
 
@@ -253,6 +281,7 @@ class Config {
       write("Failed to read from %s\n", snapshoturl);
       return 0;
     }
+    WERR("Writing data to disk.\n");
     last_serverchange = t;
     last_download = time();
 
@@ -319,13 +348,59 @@ class Config {
     untar_dir(fs, "");
     WERR("\n");
 
-    int chdir;
+    // Enter the directory found in the tar.
+    int(0..1) chdir;
     foreach(get_dir("."), string fn)
-      if(Stdio.is_dir(fn) && cd(fn)) {
+      if(Stdio.is_dir(fn) && pushd(fn)) {
 	chdir=1;
 	break;
       }
     if(!chdir) exit(31, "No directory to cd to in snapshot tar.\n");
+    WERR("  Building and running test %O: %O\n", name, cmd);
+
+    string result_dir = "../../result_"+name+"/";
+    if(!Stdio.recursive_rm(result_dir) ||
+       !mkdir(result_dir))
+      exit(19, "Could not create new result directory.\n");
+
+    if(!cp("buildid.txt", result_dir))
+      exit(20, "Could not copy buildid.txt to result directory.\n");
+
+    Process.Process p;
+    mapping(string:mixed) data = ([]);
+
+    // We don't honor build specific environment variables here, as
+    // is done in client.sh.
+    data->env = getenv();
+
+    Stdio.File log = result_dir + "xenofarmclient.txt";
+    data->stdout = log;
+    data->stderr = log;
+#ifdef __NT__
+    if(!has_value(cmd, "\""))
+      cmd = "\""+cmd+"\"";
+    p = Process.create_process( ({ "cmd", "/c", cmd }), data);
+#else
+    p = Process.create_process( ({ "/bin/sh", "-c", cmd }), data);
+#endif
+    if(!p->wait())
+      WERR("Build command failed.\n");
+
+    // We do not check the state for multimachine compilation here,
+    // as is done in client.sh.
+
+    if(file_stat("xenofarm_result.tar.gz")) {
+      if(!mv("xenofarm_result.tar.gz", result_dir))
+	exit(25, "Could not move xenofarm result file to result directory.\n");
+      popd();
+      pushd(result_dir);
+      make_machineid(name, cmd);
+    }
+    else {
+      popd();
+      pushd(result_dir);
+      make_machineid(name, cmd);
+    }
 
     exit(0, "End of the world reached.\n");
     // create resultdir
@@ -393,6 +468,20 @@ void setup_system_info() {
   // FIXME Apply longest_nodename() here.
 }
 
+void make_machineid(string test, string cmd) {
+  Stdio.File f = Stdio.File("machineid.txt", "cwt");
+  f->write("sysname: "+system->unames+"\n");
+  f->write("release: "+system->unamer+"\n");
+  f->write("version: "+system->unamev+"\n");
+  f->write("machine: "+system->unamem+"\n");
+  f->write("nodename: "+system->node+"\n");
+  f->write("testname: "+test+"\n");
+  f->write("command: "+cmd+"\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.8 2003/06/12 22:08:59 mani Exp $\n");
+  // We don't use put, so we don't add putversion to machineid.
+  f->write("contact: "+system->email+"\n");
+}
+
 void setup_pidfile() {
   string pidf = "xenofarm-"+system->node+".pid";
 
@@ -402,11 +491,7 @@ void setup_pidfile() {
   if(file_stat(pidf))
     exit(2, "Already running xenofarm pid %s.\n", Stdio.read_file(pidf));
   Stdio.write_file(pidf, (string)getpid());
-}
-
-//! Remove the pid file when this program object is destructed.
-void destroy() {
-  clean_exit();
+  atexit(clean_exit);
 }
 
 int main(int num, array(string) args) {
@@ -448,7 +533,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.7 2003/06/06 12:25:22 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.8 2003/06/12 22:08:59 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
@@ -465,8 +550,8 @@ int main(int num, array(string) args) {
 
   // We don't set up unlimits as client.sh do, since it won't work on Windows.
 
-  string email = get_email();
-  WERR("Email: %s\n",email);
+  system->email = get_email();
+  WERR("Email: %s\n", system->email);
 
   // We don't check multi machine compilation setup since sprsh doesn't run
   // under Windows.
@@ -483,6 +568,8 @@ int main(int num, array(string) args) {
   read_configs();
   while(1) {
     foreach(configs, Config config) {
+      WERR("Building project %s from %s.\n",
+	   config->project, config->snapshoturl);
       if(config->prepare())
 	config->run_tests();
     }
