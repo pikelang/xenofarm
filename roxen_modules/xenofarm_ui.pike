@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.4 2002/07/17 16:09:31 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.5 2002/07/17 16:18:47 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm UI module";
@@ -33,6 +33,20 @@ string fmt_time(int t) {
     return sprintf("%d-%02d-%02d %02d:%02d:%02d",
 		   m->year+1900, m->mon+1, m->mday,
 		   m->hour, m->min, m->sec);
+}
+
+string fmt_timespan(int t) {
+  string res = "";
+  if(t>3600) {
+    res += (t/3600)+" h, ";
+    t = t%3600;
+  }
+  if(t>60) {
+    res += (t/60)+" m, ";
+    t = t%60;
+  }
+  res += t+" s";
+  return res;
 }
 
 static class Build {
@@ -145,7 +159,7 @@ static class Build {
 	      "platform" : platforms[client],
 	      "result" : results[client],
 	      "warnings" : warnings[client],
-	      "time" : time_spent[client],
+	      "time" : fmt_timespan(time_spent[client]),
     ]);
   }
 }
