@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.45 2002/09/06 15:27:57 grubba Exp $
+# $Id: client.sh,v 1.46 2002/09/12 19:49:08 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -70,7 +70,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.45 2002/09/06 15:27:57 grubba Exp $
+	echo \$Id: client.sh,v 1.46 2002/09/12 19:49:08 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -180,68 +180,38 @@ get_email() {
     done
 }
 
-#Execution begins here.
-
-#Set up signal handlers
-trap sighup 1
-trap sigint 2
-trap sigint 15
-
-#Add a few directories to the PATH
-PATH=$PATH:/usr/local/bin:/sw/local/bin
-#cc on UNICOS fails to build with exotic settings like LC_CTYPE=iso_8859_1
-LC_ALL=C
-export PATH LC_ALL
-
-#Get user input
-parse_args $@
-
-if [ -d "$config_dir/." ]; then :; else
-    echo "FATAL: Configuration directory \"$config_dir\" does not exist."
-    exit 12
-fi
-
-#FIXME: Figure out what to do if we don't have an interactive shell here
-get_email
-
-#Make sure the remote nodes are up in a multi machine compilation setup
-if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
-    if [ X"`uname -m 2>/dev/null`" = X ] ; then
-        echo "FATAL: Unable to contact remote system using $REMOTE_METHOD."
-        exit 7
-    else if [ X"`uname -s`" = X ] ; then
-        echo "FATAL: Possible permission problem or unmounted volume on remote system."
-        exit 7
-    fi ; fi
-fi
-
-#Check and handle the pidfile for this node
-node=`uname -n`
-unames=`uname -s`
-unamer=`uname -r`
-unamem=`uname -m`
-unamev=`uname -v`
-pidfile="`pwd`/xenofarm-$node.pid"
-if [ -r $pidfile ]; then
-    pid=`cat $pidfile`
-    if `kill -0 $pid > /dev/null 2>&1`; then
-        echo "NOTE: Xenofarm client already running. pid: $pid"
-        exit 2
-    else
-        echo "NOTE: Removing stale pid-file."
-        rm -f $pidfile
+check_multimachinecompilation() {
+    if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
+        if [ X"`uname -m 2>/dev/null`" = X ] ; then
+            echo "FATAL: Unable to contact remote system using $REMOTE_METHOD."
+            exit 7
+        else if [ X"`uname -s`" = X ] ; then
+            echo "FATAL: Possible permission problem or unmounted volume on remote system."
+            exit 7
+        fi ; fi
     fi
-fi
+}
 
-echo $$ > $pidfile
+setup_pidfile() {
+    node=`uname -n`
+    unames=`uname -s`
+    unamer=`uname -r`
+    unamem=`uname -m`
+    unamev=`uname -v`
+    pidfile="`pwd`/xenofarm-$node.pid"
+    if [ -r $pidfile ]; then
+        pid=`cat $pidfile`
+        if `kill -0 $pid > /dev/null 2>&1`; then
+            echo "NOTE: Xenofarm client already running. pid: $pid"
+            exit 2
+        else
+            echo "NOTE: Removing stale pid-file."
+            rm -f $pidfile
+        fi
+    fi
 
-#If we are running a sprshd build the put command should be on the local node
-if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
-    #FIXME: See if this uname location is reasonable portable
-    putname=bin/put-`/bin/uname -n`
-else
-    putname=bin/put-$node
-fi
+    echo $$ > $pidfile
+}
 
 #Make sure we don't compile the put command on more than one node at the time
 #NOTE: This can deadlock if the client is killed without giving it a
@@ -266,27 +236,6 @@ releaselock() {
     rm lock.tmp
     gotlock="false"
 }
-
-#Make sure there is a put command available for this node
-if [ ! -x $putname ] ; then
-    spinlock
-    rm -f config.cache
-    ./configure
-    make clean
-    make put
-    if [ ! -x put ] ; then
-        echo "FATAL: Failed to compile put." 1>&2
-        clean_exit 3
-    else
-	mkdir bin 2>/dev/null
-	mv put $putname
-    fi
-    rm lock.tmp
-fi
-
-#Make sure wget and gzip exists
-wget --help > /dev/null 2>&1 || missing_req wget 10
-gzip --help > /dev/null 2>&1 || missing_req wget 11
 
 #Called to prepare the project build enviroment. Not reapeated for each id.
 prepare_project() {
@@ -473,6 +422,77 @@ get_nodeconfig() {
         echo "NOTE: Found node config file: $projectconfig"
     fi
 }
+
+setup_put() {
+    if [ ! -x $putname ] ; then
+        spinlock
+        rm -f config.cache
+        ./configure
+        make clean
+        make put
+        if [ ! -x put ] ; then
+            echo "FATAL: Failed to compile put." 1>&2
+            clean_exit 3
+        else
+            mkdir bin 2>/dev/null
+            mv put $putname
+        fi
+        rm lock.tmp
+    fi
+}
+
+
+#########################################################
+#Execution begins here.
+#########################################################
+
+#Set up signal handlers
+trap sighup 1
+trap sigint 2
+trap sigint 15
+
+#Add a few directories to the PATH
+PATH=$PATH:/usr/local/bin:/sw/local/bin
+#cc on UNICOS fails to build with exotic settings like LC_CTYPE=iso_8859_1
+LC_ALL=C
+export PATH LC_ALL
+
+#Try to limit the damage if something goes out of hand.
+#NOTE: Limitations are per spawned process. You can still get plenty hurt.
+ulimit -d 102400  # data segment   < 100 MiB
+ulimit -v 204800  # virtual memory < 200 MiB
+ulimit -t 14400   # CPU            < 4h
+
+#Get user input
+parse_args $@
+
+if [ -d "$config_dir/." ]; then :; else
+    echo "FATAL: Configuration directory \"$config_dir\" does not exist."
+    exit 12
+fi
+
+get_email
+
+#Make sure the remote nodes are up in a multi machine compilation setup
+check_multimachinecompilation
+
+#Check and handle the pidfile for this node
+setup_pidfile
+
+#If we are running a sprshd build the put command should be on the local node
+if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
+    #FIXME: See if this uname location is reasonable portable
+    putname=bin/put-`/bin/uname -n`
+else
+    putname=bin/put-$node
+fi
+
+#Make sure there is a put command available for this node
+setup_put
+
+#Make sure wget and gzip exists
+wget --help > /dev/null 2>&1 || missing_req wget 10
+gzip --help > /dev/null 2>&1 || missing_req wget 11
 
 #Build Each project and each test in that project sequentially
 basedir="`pwd`"
