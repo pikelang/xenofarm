@@ -19,14 +19,15 @@ projectname = "lyskom-server"
 
 files_per_task = {
     'cfg': ['configlog.txt', 'iscconfiglog.txt', 'configcache.txt',
-            'config-h.txt'],
+            'config-h.txt', 'oopconfiglog.txt'],
     'ckprg': ['lyskomd.log.txt', 'l2g.log.txt', 'leaks.log.txt'],
     'install': ['installedfiles.txt'],
     'id_tx': ['makeinfo.txt'],
     }
 
 files_per_task_re = {
-    'ckprg': ['valgrind-[0-9]+\.log\.txt'],
+    'ckprg': ['valgrind-[0-9]+\.log\.txt',
+              'memory-usage-[0-9]+\.log\.txt'],
     }
 
 hidden_files = [
