@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.38 2003/01/11 19:01:12 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.39 2003/01/11 19:21:13 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -322,7 +322,7 @@ static class ClientConfig
   }
 }
 
-class Task (string name, int sort_order) {
+class Task (string name, int id, int sort_order) {
   int(0..1) is_leaf = 1;
   string path;
   array children = ({});
@@ -363,6 +363,7 @@ static class Project
   //! task no:Task
   mapping(int:Task) tasks = ([]);
   int build_task;
+  array(int) ordered_leaf_tasks = ({});
 
   int new_build; // the last time we found a new build in the database
   int last_changed; // ditto when we noticed a change in the matrix
@@ -396,17 +397,19 @@ static class Project
     // Get all tasks
     array new = xfdb->query("SELECT id,name,parent,sort_order FROM task "
 			    "ORDER BY parent");
+    // Note that we assume that the list of tasks never shrinks. If it
+    // does, the module has to be reloaded.
     if(sizeof(tasks)!=sizeof(new)) {
       array top = ({});
       foreach(new, mapping res) {
 	string path = res->name;
-	Task t = Task(res->name, (int)res->sort_order);
+	Task t = Task(res->name, (int)res->id, (int)res->sort_order);
 	int parent = (int)res->parent;
 	if(!parent)
 	  top += ({ t });
 	else
 	  tasks[ parent ]->add_child( t );
-	tasks[ (int)res->id ] = t;
+	tasks[ t->id ] = t;
 	if(path=="build") build_task = (int)res->id;
       }
       // Initialize paths
@@ -417,6 +420,12 @@ static class Project
       int i = 1;
       foreach(top, Task t)
 	i = t->order(i);
+
+      // Get the leaf tasks in order.
+      array temp = values(tasks);
+      temp = filter(temp, lambda(Task t) { return t->is_leaf; });
+      sort(temp->sort_order, temp);
+      ordered_leaf_tasks = temp->id;
     }
 
     // Add new builds
@@ -685,15 +694,21 @@ class TagEmitXF_Task {
       client = (int)m->client;
     }
     if(build && client) {
-      Build b = p->get_build(build);
-      if(m->tasks) {
-	array ret = ({});
-	foreach( (array(int))(m->tasks/","), int task) {
-	  if(!task) continue;
-	  ret += ({ b->get_task_entities(client, task) });
-	}
-	return ret;
+      array(int) list;
+      if(m->tasks=="leafs")
+	list = p->ordered_leaf_tasks;
+      else if(m->tasks)
+	list = (array(int))(m->tasks/"\n");
+      else {
+	list = indices(p->tasks);
+	sort(list->sort_order, list);
+	list = list->id;
       }
+      Build b = p->get_build(build);
+      array ret = ({});
+      foreach( list, int task)
+	ret += ({ b->get_task_entities(client, task) });
+      return ret;
     }
 
     array res = ({});
