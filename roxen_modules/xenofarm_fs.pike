@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.21 2002/08/26 05:23:11 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.22 2002/09/07 13:29:01 ceder Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -197,7 +197,7 @@ array(string) find_dir(string path, RequestID id) {
 mapping|Stdio.File find_file(string path, RequestID id) {
 
   if(path=="latest") {
-    if(latest_timestamp+60*5 < time()) {
+    if(latest_timestamp+5 < time()) {
       array files = sort(get_dir(distpath));
       if(sizeof(files)) {
 	latest = files[-1];
