@@ -2,18 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.30 2002/11/15 18:23:10 jhs Exp $
-
-constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
-                   "name VARCHAR(255) NOT NULL, "
-                   "platform VARCHAR(255) NOT NULL)";
-
-constant db_def2 = "CREATE TABLE result (build INT UNSIGNED NOT NULL, " // FK build.id
-                   "system INT UNSIGNED NOT NULL, " // FK system.id
-                   "status ENUM('failed','built') NOT NULL, "
-                   "warnings INT UNSIGNED NOT NULL, "
-                   "time_spent INT UNSIGNED NOT NULL, "
-                   "PRIMARY KEY (build, system) )";
+// $Id: result_parser.pike,v 1.31 2002/11/30 03:34:53 mani Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -30,7 +19,7 @@ int(0..1) verbose;
 int(0..1) dry_run;
 
 multiset(string) processed_results = (<>);
-multiset(string) ignored_warnings = (<>);
+array(string) ignored_warnings = ({});
 
 
 //
@@ -107,7 +96,7 @@ void parse_machine_id(string fn, mapping res) {
       res[key] = value;
   }
 
-  if(res->sysname=="AIX")
+  if(res->sysname=="AIX" && res->version && res->release)
     res->release = res->version + "." + res->release;
 
   if(res->sysname && res->release && res->machine && !res->platform) {
@@ -117,29 +106,33 @@ void parse_machine_id(string fn, mapping res) {
   }
 }
 
-//! Reads the contents of the main log at @[fn] and adds all the
-//! found tasks in the mapping tasks in @[res]. The mapping will map
-//! from the task name to an array.
+//! Reads the contents of the main log at @[fn] and adds all the found
+//! tasks in the array tasks in @[res]. The array has the following
+//! layout;
+//!
 //! @array
 //!   @elem string 0
-//!     Contains the status of the task. One of "FAIL", "WARN" or "PASS".
+//!     The name of the task. The task name will be composed as a
+//!     string, e.g. if a task configure is performed inside the task
+//!     build it will be represented as @tt{"build/configure"@}.
+//!   @elem string 0
+//!     Contains the status of the task. One of @tt{"FAIL"@},
+//!     @tt{"WARN"@} or @tt{"PASS"@}.
 //!   @elem int 1
 //!     The time the task took, in seconds.
 //!   @elem int 2
 //!     The number of warnings generated.
 //! @endarray
-//! The task name will be composed as a string, e.g. if a task configure
-//! is performed inside the task build it will be represented as
-//! "build/configure".
 //!
-//! "status in @[res] will be set to the overall status of the build, one
-//! of "FAIL", "WARN" or "PASS". If the task "build" fails the status will
-//! be "FAIL". If there is any warnings or failures in any of the build
-//! tasks the status will be "WARN". Otherwise it will be "PASS".
+//! @tt{"status"@} in @[res] will be set to the overall status of the
+//! build, one of @tt{"FAIL"@}, @tt{"WARN"@} or @tt{"PASS"@}. If the
+//! task @tt{"build"@} fails the status will be @tt{"FAIL"@}. If there
+//! is any warnings or failures in any of the build tasks the status
+//! will be @tt{"WARN"@}. Otherwise it will be @tt{"PASS"@}.
 //!
-//! "total_time" in @[res] will be set to the time it took to complete all
-//! tasks, calculated as the sum of the time it took forall the top level
-//! tasks to complete.
+//! @tt{"total_time"@} in @[res] will be set to the time it took to
+//! complete all tasks, calculated as the sum of the time it took for
+//! all the top level tasks to complete.
 void parse_log(string fn, mapping res) {
   res->status = "FAIL";
   string file = Stdio.read_file(fn);
@@ -151,7 +144,8 @@ void parse_log(string fn, mapping res) {
     return;
   }
 
-  res->tasks=([]);
+  multiset done_tasks = (<>);
+  res->tasks=({});
 
   ADT.Stack begin = ADT.Stack();
   ADT.Stack tasks = ADT.Stack();
@@ -191,22 +185,25 @@ void parse_log(string fn, mapping res) {
       }
 
       string begun = begin->pop();
-      int time = Calendar.ISO.dwim_time(lines[pos++])->unix_time()-
-	Calendar.ISO.dwim_time(begun)->unix_time();
-      if(time<0) {
+      int time;
+      if(catch(time = Calendar.ISO.dwim_time(lines[pos++])->unix_time()
+	            - Calendar.ISO.dwim_time(begun)->unix_time())
+         || time < 0)
+      {
 	debug("Error parsing time (%O %O).\n", begun, lines[pos-1]);
-	time=0;
+	time = 0;
       }
 
       string task = values(tasks)*"/";
       tasks->pop();
 
-      if(res->tasks[task]) {
+      if(done_tasks[task]) {
 	debug("Task %O present twice.\n", task);
 	continue;
       }
 
-      res->tasks[ task ] = ({ line, time, warnings });
+      done_tasks[ task ] = 1;
+      res->tasks += ({ ({ task, line, time, warnings }) });
       continue;
     }
     debug("Error in main log.\n");
@@ -216,30 +213,32 @@ void parse_log(string fn, mapping res) {
   while(sizeof(tasks)) {
     string task = values(tasks)*"/";
     tasks->pop();
-    if(res->tasks[task]) {
+    if(done_tasks[task]) {
       debug("Task %O present twice.\n", task);
       continue;
     }
-    res->tasks[task] = ({ "FAIL", 0, 0 });
+    done_tasks[ task ] = 1;
+    res->tasks += ({ ({ task, "FAIL", 0, 0 }) });
   }
 
-  int badness;
-  foreach(res->tasks; string task; array data)
-    if(data[1]=="WARN" || data[1]=="FAIL") {
-      badness=1;
-      break;
-    }
-  if(res->tasks->build!="FAIL")
-    res->status = badness?"WARN":"PASS";
-
-  int total_time;
-  foreach(res->tasks; string task; array data) {
-    if(has_value(task, "/")) continue;
-    total_time += data[1];
+  int total_time, badness;
+  foreach(res->tasks, [string task, string status, int time, int warnings])
+  {
+    if(!has_value(task, "/"))
+      total_time += time;
+    if(status=="WARN" || status=="FAIL")
+      badness = 1;
   }
   res->total_time = total_time;
+  foreach(res->tasks, [string task, string status, int time, int warnings])
+    if(task=="build" && status!="FAIL")
+      res->status = badness ? "WARN" : "PASS";
 }
 
+//! Reads the file @[fn] and counts how many warnings it contains. A
+//! warning is a line that contains the string "warning" or "(w)" (in
+//! any case) and does not match any of the globs listed in the array
+//! ignored_warnings.
 void count_warnings(string fn, mapping res) {
   Stdio.FILE file;
   catch {
@@ -252,7 +251,7 @@ void count_warnings(string fn, mapping res) {
   foreach(file->line_iterator(1);; string line) {
     line = lower_case(line);
     if( has_value(line, "warning")||has_value(line, "(w)") ) {
-      foreach(indices(ignored_warnings), string ignore)
+      foreach(ignored_warnings, string ignore)
 	if(glob(ignore,line)) continue newline;
 	warnings++;
     }
@@ -260,27 +259,118 @@ void count_warnings(string fn, mapping res) {
   res->warnings = warnings;
 }
 
+//! Calculates the sorting order of a new task.
+class TaskOrderGenie {
+
+  static mapping state = ([]);
+
+  //! Every already done @[task] is fed into this method to update the
+  //! genie state.
+  void done(array(string)|string task) {
+    if(stringp(task)) task=task/"/";
+    mapping state = state;
+    foreach(task, string part) {
+      if(!state[part])
+	state[part] = ([]);
+      state = state[part];
+    }
+  }
+
+  //! Gives the correct(?) sorting order of a new task in context of
+  //! the already completed tasks. This method might renumber some
+  //! tasks in the task table in order to sqeeze in a task between two
+  //! tasks.
+  int(1..) get_order(array(string) task, int(0..) parent) {
+    mapping state = state;
+    foreach(task[..sizeof(task)-2], string part) {
+      if(!state[part]) {
+	// It could be that the state is out of sync with reality, but
+	// in the current code we also get here when we are traversing
+	// a path, eg. when "build/compile" is added (and the state is
+	// empty) we will get state["build"] which is 0.
+	state = ([]);
+	continue;
+      }
+
+      state = state[part];
+    }
+    if(state[task[-1]])
+      error("Task is already stored.\n%O\n%O\n", state, task);
+
+    array res = xfdb->query("SELECT name,sort_order FROM task WHERE parent=%d",
+			    parent);
+
+    if(!sizeof(res))
+      return 1;
+
+    if(sizeof(res)==sizeof(state))
+      return max( @(array(int))res->sort_order )+1;
+
+    res = filter(res, lambda(mapping in) { return state[in->name]; });
+    int order = max( @(array(int))res->sort_order );
+    xfdb->query("UPDATE task SET sort_order=sort_order+1 WHERE parent=%d && "
+		"sort_order>%d", parent, order);
+    return order+1;
+  }
+}
+
+//! Returns the id of the task @[tasks], which may be either a string
+//! with the "path" to the task with slashes as delimiters, eg. 
+//! @tt{build/compile/stage1@}, or an array with the path, eg. @tt{({
+//! "build", "compile", "stage1" })@}. If the task is not already in
+//! the task table in the database it will be created.
+int get_task_id(array(string)|string tasks, TaskOrderGenie gen) {
+  if(stringp(tasks)) tasks /= "/";
+
+  int parent;
+  if(sizeof(tasks)>1)
+    parent = get_task_id( tasks[..sizeof(tasks)-2], gen );
+  string task = tasks[-1];
+
+  array res = xfdb->query("SELECT id FROM task WHERE name=%s && parent=%d",
+			  task, parent);
+
+  if(sizeof(res)) return (int)res[0]->id;
+
+  xfdb->query("INSERT INTO task (sort_order, parent, name) VALUES "
+	      "(%d, %d, %s)", gen->get_order(tasks, parent), parent, task);
+
+  return (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+}
+
+// res->nodename must have a value.
+// res->tasks must have a value (at least an empty array).
 void store_result(mapping res) {
-  if(!res->nodename || !res->platform)
+  if(!res->nodename)
     return;
 
-  array qres = persistent_query("SELECT id FROM system WHERE name=%s && platform=%s",
-				res->nodename, res->platform);
+  array qres = persistent_query("SELECT id FROM system WHERE name=%s && "
+				"sysname=%s && release=%s && version=%s "
+				"&& machine=%s",
+				res->nodename, res->sysname||"",
+				res->release||"", res->version||"",
+				res->machine||"");
 
   if(sizeof(qres))
     res->system = (int)qres[0]->id;
   else {
-    xfdb->query("INSERT INTO system (name, platform) VALUES (%s,%s)",
-		res->nodename, res->platform);
+    xfdb->query("INSERT INTO system (name, sysname, release, version, machine) "
+		"VALUES (%s,%s,%s,%s,%s)",
+		res->nodename, res->sysname||"", res->release||"",
+		res->version||"", res->machine||"");
     res->system = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
 
-  // compatibility
-  res->status = replace(res->status, ([ "FAIL":"failed", "PASS":"built", "WARN":"failed" ]));
-
-  xfdb->query("REPLACE INTO result (build,system,status,warnings,time_spent) "
-	      "values (%d,%d,%s,%d,%d)", res->build, res->system,
-	      res->status, res->warnings, res->total_time);
+  TaskOrderGenie g = TaskOrderGenie();
+  foreach(res->tasks, [string task, string status, int time, int warnings]) {
+    int task_id = get_task_id(task, g);
+    xfdb->query("REPLACE INTO task_result "
+		"(build, system, task, status, warnings, time_spent) "
+		"VALUES (%d, %d, %d, %s, %d, %d)",
+		res->build, res->system, task_id,
+		status, warnings, time );
+    g->done(task);
+  }
 }
 
 mapping low_process_package() {
@@ -297,7 +387,8 @@ mapping low_process_package() {
     write("Failed to parse machine id.\n");
     return result;
   }
-  debug("Build: %O Host: %O Platform: %O\n", result->build, result->nodename, result->platform);
+  debug("Build: %O Host: %O Platform: %O\n",
+	result->build, result->nodename, result->platform);
 
   if(!result->status) {
     parse_log(main_log_file, result);
@@ -344,7 +435,7 @@ void process_package(string fn) {
   if(!content) return;
 
   if(has_value(content, "/")) {
-    write("Refusing to process %O since %s contains a slash\n", fn,
+    write("Refusing to process %O since %s contains a slash.\n", fn,
 	  String.implode_nicely(filter(content/"\n", has_value, "/")) );
     processed_results[fn]=1;
     return;
@@ -359,6 +450,7 @@ void process_package(string fn) {
 
   mapping result = low_process_package();
   if(dry_run) {
+    processed_results[fn]=1;
     werror("%O\n", result);
     return;
   }
@@ -531,7 +623,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.30 2002/11/15 18:23:10 jhs Exp $\n";
+"$Id: result_parser.pike,v 1.31 2002/11/30 03:34:53 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
