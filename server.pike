@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.39 2002/12/01 14:20:48 mani Exp $
+// $Id: server.pike,v 1.40 2002/12/02 19:52:47 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -401,6 +401,11 @@ int main(int num, array(string) args)
 	{
 	  sleep_for = min_build_distance;
 	  int timestamp = time();
+	  if(checkin_latency) {
+	    // Put the timestamp between latest checkin and now
+	    // to avoid mid-checkins.
+	    timestamp = timestamp - checkin_latency + 1;
+	  }
 	  if(timestamp < latest_checkin) {
 	    debug("System time < latest checkin!\n");
 	    timestamp = latest_checkin;
@@ -430,7 +435,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.39 2002/12/01 14:20:48 mani Exp $\n";
+"$Id: server.pike,v 1.40 2002/12/02 19:52:47 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
