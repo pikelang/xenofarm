@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.49 2003/03/11 12:29:56 mani Exp $
+// $Id: server.pike,v 1.50 2003/05/30 12:54:10 norrby Exp $
 
 Sql.Sql xfdb;
 
@@ -26,6 +26,169 @@ int(0..1) verbose;
 int latest_build;
 string latest_state="FAIL";
 
+//
+// Repository classes
+//
+string client_type;
+class RepositoryClient {
+  int get_latest_checkin();
+  void update_source();
+  string arguments();
+  void parse_arguments(array(string));
+  string module();
+  string name();
+  int time_of_change(array(string) log,
+		     string checkin_state_file,
+		     int latest_checkin,
+		     Calendar.TimeRange now)
+  {
+    if(sizeof(log))
+    {
+      debug("Something changed: \n  %s", log * "\n  ");
+      latest_checkin = now->unix_time();
+      Stdio.write_file(checkin_state_file, latest_checkin + "\n");
+    }
+    else {
+      debug("Nothing changed\n");
+    }
+    
+    // Handle a missing checkin_state_file file.  This should only happen
+    // the first time server.pike is run.
+    if(latest_checkin == 0)
+    {
+	debug("No check in timestamp found; assuming something changed.\n");
+	latest_checkin = now->unix_time();
+	Stdio.write_file(checkin_state_file, latest_checkin + "\n");
+    }
+    
+    return latest_checkin;
+  }
+}
+
+class CVSClient {
+  inherit RepositoryClient; 
+  string arguments() {
+    return 
+      "\nCVS specific arguments:\n\n"
+      "--cvs-module   The CVS module the server should use.\n"
+      "--update-opts  CVS options to append to \"cvs -q update\".\n"
+      "               Default: \"-d\". \"--update-opts=-Pd\" also makes sense.\n"
+      "--repository   The CVS repository the server should use.\n";
+  }
+  void parse_arguments(array(string) args) {
+  }
+  string module() {
+    return cvs_module;
+  }
+  string name() {
+    return "CVS";
+  }
+
+  // The get_latest_checkin function should return the (UTC) unixtime of
+  // the latest check in. This version actually returns the time we last
+  // detected that something has been checked in. That is good enough.
+  int get_latest_checkin()
+  {
+    if(!file_stat(cvs_module) || !file_stat(cvs_module)->isdir) {
+      write("Please check out %O inside %O and re-run this script.\n", 
+	    cvs_module, work_dir);
+      exit(1);
+    }
+    
+    debug("Running cvs update.\n");
+    Calendar.TimeRange now = Calendar.Second();
+    object update =
+      Process.create_process(({ "cvs", "-q", "update", "-D", now->format_time(),
+				@update_opts }),
+			     ([ "cwd"    : cvs_module,
+				"stdout" : Stdio.File("tmp/update.log", "cwt"),
+				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+    if(update->wait())
+    {
+	write("Failed to update CVS module %O in %O.\n", cvs_module, getcwd());
+	exit(1);
+    }
+    
+    int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    array(string) log;
+    log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
+		 lambda(string row) { return !has_prefix(row, "? "); });
+    return time_of_change(log, checkin_state_file, latest_checkin, now);
+  }
+}
+
+class StarTeamClient {
+  string st_module;
+  string st_project;
+  string st_pwdfile;
+  inherit RepositoryClient; 
+  string arguments() {
+    return 
+      "\nStarteam specific arguments:\n\n"
+      "--st-module    basename of dir where contents of the view folder will reside.\n"
+      "               Similar to the cvs-module option for the CVS client.\n"
+      "--st-project   username:password@host:port/project/view/folder/\n"
+      "--st-pwdfile   password filename\n";
+  }
+  void parse_arguments(array(string) args) {
+    foreach(Getopt.find_all_options(args, ({
+      ({ "st_module",   Getopt.HAS_ARG, "--st-module" }),
+      ({ "st_project",  Getopt.HAS_ARG, "--st-project" }),
+      ({ "st_pwdfile",  Getopt.HAS_ARG, "--st-pwdfile" }),}) ),array opt)
+      {
+	switch(opt[0])
+	{
+	  case "st_module":
+	    st_module = opt[1];
+	    break;
+	  case "st_project":
+	    st_project = opt[1];
+	    break;
+	  case "st_pwdfile":
+	    st_pwdfile = opt[1];
+	    break;
+	}
+      }
+  }
+  string module() {
+    return st_module;
+  }
+  string name() {
+    return "StarTeam";
+  }
+  int get_latest_checkin() {
+    //check out into work-dir/st_module
+    if(!file_stat(module()) || !file_stat(module())->isdir) {
+      write("Please check out %O inside %O and re-run this script.\n", 
+	    module(), work_dir);
+      exit(1);
+    }
+    debug("Running stcmd co.\n");
+    Calendar.TimeRange now = Calendar.Second();
+    object update =
+      Process.create_process(({ "stcmd", "co", "-nologo", "-is", "-p",
+				st_project, "-pwdfile", st_pwdfile, "-fp",
+				work_dir + "/" + module() }),
+			     ([ "cwd"    : module(),
+				"stdout" : Stdio.File("tmp/update.log", "cwt"),
+				"stderr" : Stdio.File("tmp/update.err", "cwt") ]));
+    debug("Ran stcmd co -nologo -is -p " + st_project + " -pwdfile " +
+	  st_pwdfile  + " -fp " + work_dir + "/" + module() + "\n");
+    if(update->wait())
+    {
+	write("Failed to check out module %O in %O.\n", module(), getcwd());
+	exit(1);
+    }
+
+    int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    array(string) log;
+    log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
+		 lambda(string row) {return has_suffix(row, ": checked out");});
+    return time_of_change(log, checkin_state_file, latest_checkin, now);
+  }
+}
+
+RepositoryClient client;
 
 //
 // Helper functions
@@ -88,74 +251,23 @@ int get_latest_build()
   return (int)(res[0]->latest_build);
 }
 
-// The get_latest_checkin function should return the (UTC) unixtime of
-// the latest check in. This version actually returns the time we last
-// detected that something has been checked in. That is good enough.
-int get_latest_checkin()
-{
-  if(!file_stat(cvs_module) || !file_stat(cvs_module)->isdir) {
-    write("Please check out %O inside %O and re-run this script.\n", 
-	  cvs_module, work_dir);
-    exit(1);
-  }
-
-  debug("Running cvs update.\n");
-  Calendar.TimeRange now = Calendar.Second();
-  object update =
-    Process.create_process(({ "cvs", "-q", "update", "-D", now->format_time(),
-			      @update_opts }),
-			   ([ "cwd"    : cvs_module,
-			      "stdout" : Stdio.File("tmp/update.log", "cwt"),
-			      "stderr" : Stdio.File("/dev/null", "cwt") ]));
-  if(update->wait())
-  {
-    write("Failed to update CVS module %O in %O.\n", cvs_module, getcwd());
-    exit(1);
-  }
-
-  int latest_checkin = (int)Stdio.read_file(checkin_state_file);
-  array(string) log;
-  log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
-	       lambda(string row) { return !has_prefix(row, "? "); });
-  if(sizeof(log))
-  {
-    debug("Something changed: \n  %s", log * "\n  ");
-    latest_checkin = now->unix_time();
-    Stdio.write_file(checkin_state_file, latest_checkin + "\n");
-  }
-  else {
-    debug("Nothing changed\n");
-  }
-
-  // Handle a missing checkin_state_file file.  This should only happen
-  // the first time server.pike is run.
-  if(latest_checkin == 0)
-  {
-    debug("No check in timestamp found; assuming something changed.\n");
-    latest_checkin = now->unix_time();
-    Stdio.write_file(checkin_state_file, latest_checkin + "\n");
-  }
-
-  return latest_checkin;
-}
-
 // Return true on success, false on error.
-int(0..1) transform_source(string cvs_module, string name, string buildid) {
+int(0..1) transform_source(string module, string name, string buildid) {
   if(source_transformer) {
-    if(Process.create_process( ({ source_transformer, cvs_module, name, buildid }),
+    if(Process.create_process( ({ source_transformer, module, name, buildid }),
 			       ([]) )->wait() ) {
       write(source_transformer+" failed\n");
       return 0;
     }
   } 
   else {
-    string stamp = cvs_module+"/buildid.txt";
+    string stamp = module+"/buildid.txt";
     if(file_stat(stamp)) {
       write(stamp+" exists!\n");
       exit(1);
     }
     Stdio.write_file(stamp, buildid+"\n");
-    if(Process.create_process( ({ "tar", "cf", name+".tar", cvs_module }),
+    if(Process.create_process( ({ "tar", "cf", name+".tar", module }),
 			       ([]) )->wait() ) {
       write("Failed to create %s.tar\n", name);
       rm(stamp);
@@ -190,7 +302,7 @@ string make_build_low(int latest_checkin)
     return 0;
   }
 
-  if (!transform_source(cvs_module, name, buildid)) {
+  if (!transform_source(client->module(), name, buildid)) {
     persistent_query("UPDATE build SET export='FAIL' WHERE id=%d", (int)buildid);
     return 0;
   }
@@ -227,7 +339,6 @@ void check_settings() {
     write("No database found.\n");
     exit(1);
   }
-
   if(work_dir) {
     if(!file_stat(work_dir) || !file_stat(work_dir)->isdir) {
       write("Working directory %s does not exist.\n", work_dir);
@@ -255,8 +366,8 @@ void check_settings() {
   }
   // FIXME: Check web dir write privileges.
 
-  if(!cvs_module) {
-    write("No CVS module selected.\n");
+  if(!client->module()) {
+    write("No client module selected.\n");
     exit(1);
   }
 
@@ -268,9 +379,10 @@ void check_settings() {
   }
 
   if(verbose) {
+    write("Client:    : %s\n", client->name());
     write("Database   : %s\n", xfdb->host_info());
     write("Project    : %s\n", project);
-    write("CVS module : %s\n", cvs_module);
+    write("Module     : %s\n", client->module());
     write("Repository : %s\n", repository||"(implicit)");
     write("Work dir   : %s\n", work_dir);
     write("Web dir    : %s\n", web_dir);
@@ -285,6 +397,7 @@ int main(int num, array(string) args)
   int (0..1) once_only = 0;
 
   foreach(Getopt.find_all_options(args, ({
+    ({ "client_type", Getopt.HAS_ARG, "--client-type"  }),
     ({ "db",          Getopt.HAS_ARG, "--db"           }),
     ({ "distance",    Getopt.HAS_ARG, "--min-distance" }),
     ({ "force",       Getopt.NO_ARG,  "--force"        }),
@@ -303,6 +416,18 @@ int main(int num, array(string) args)
     {
       switch(opt[0])
       {
+      case "client_type":
+	switch(opt[1])
+	{
+	case "starteam":
+	  client = StarTeamClient();
+	  break;
+	case "cvs":
+	  client = CVSClient();
+	  break;
+	}
+	break;
+
       case "db":
 	xfdb = Sql.Sql( opt[1] );
 	break;
@@ -317,6 +442,9 @@ int main(int num, array(string) args)
 
       case "help":
 	write(prog_doc);
+	write(CVSClient()->arguments());
+	write(StarTeamClient()->arguments());
+	write("\n");
 	return 0;
 
       case "latency":
@@ -361,6 +489,12 @@ int main(int num, array(string) args)
     }
   if(!sizeof(update_opts))
     update_opts = ({ "-Pd" });
+
+  if(!client) {
+    client = CVSClient();
+  }
+
+  client->parse_arguments(args);
   args -= ({ 0 });
 
   if(sizeof(args)>1) {
@@ -371,7 +505,7 @@ int main(int num, array(string) args)
 
   if(force_build)
   {
-    get_latest_checkin();
+    client->get_latest_checkin();
     make_build(time());
     exit(0);
   }
@@ -401,7 +535,7 @@ int main(int num, array(string) args)
     }
     else // After the next commit + inactivity cycle it's time for a new build
     {
-      int latest_checkin = get_latest_checkin();
+      int latest_checkin = client->get_latest_checkin();
 
       if(!sit_quietly) {
 	debug("Latest check in was %s ago.\n", fmt_time(now - latest_checkin));
@@ -450,14 +584,15 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.49 2003/03/11 12:29:56 mani Exp $\n";
+"$Id: server.pike,v 1.50 2003/05/30 12:54:10 norrby Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
 mandatory and the project is the name of the project.
 Possible arguments:
 
---cvs-module   The CVS module the server should use.
+--client-type  The repository client to use, \"cvs\" or \"starteam\".
+               Defaults to \"cvs\".
 --db           The database URL, e.g. mysql://localhost/xenofarm.
 --force        Make a new build and exit.
 --help         Displays this text.
@@ -467,12 +602,9 @@ Possible arguments:
 --min-distance The enforced minimum distance between to builds.
                Defaults to 7200 seconds (two hours).
 --once         Run just once.
---poll         How often the CVS is queried for new check ins.
+--poll         How often the the repository client is queried for new check ins.
                Defaults to every 60 seconds.
---repository   The CVS repository the server should use.
 --transformer  Program that builds the source package (see README).
---update-opts  CVS options to append to \"cvs -q update\".  Default: \"-d\".
-               \"--update-opts=-Pd\" also makes sense.
 --verbose      Send messages about everything that happens to stdout.
 --web-dir      Where the outgoing build packages should be put.
 --work-dir     Where temporary files should be put.
