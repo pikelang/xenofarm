@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.3 2003/05/20 11:40:14 mani Exp $
+// $Id: pike_client.pike,v 1.4 2003/05/20 12:58:09 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -40,6 +40,8 @@ array(Config) configs = ({});
 //!     Configuration directory not found
 //!   @value 15
 //!     Error in configuration file or unknown config format.
+//!   @value 16
+//!     Unknown parameter in config file.
 //! @endint
 void exit(int code, void|string why, mixed ... extra) {
   if(!why) predef::exit(code);
@@ -142,13 +144,14 @@ class Config {
       if( (< "project", "projectdir",
 	     "snapshoturl", "resulturl" >)[key] )
 	this_object()[key]=value;
+      else if( key=="test" ) {
+	if(sscanf(value, "%s%*[ \t]%s", key, value)!=3)
+	  exit(15, "Error in configure file (%s), line %d.\n",
+	       filename, line_no);
+	tests[key] = value;
+      }
       else
-	if( key=="test" ) {
-	  if(sscanf(value, "%s%*[ \t]%s", key, value)!=3)
-	    exit(15, "Error in configure file (%s), line %d.\n",
-		 filename, line_no);
-	  tests[key] = value;
-	}
+	exit(16, "%O is not a supported key.\n", key);
     }
 
     // Make sure we have all information needed to complete a build
@@ -241,13 +244,22 @@ class Config {
   }
 }
 
+
+// --- Application level functions
+
 //! Reads all the @tt{.cfg@} files from the @[config_dir],
 //! parses its contents and adds a @[Config] object to the
 //! @[configs] array.
 void read_configs() {
   foreach(get_dir(config_dir), string f) {
     if(!has_suffix(f, ".cfg")) continue;
-    configs += ({ Config(Stdio.read_file(config_dir + "/" +f)) });
+
+    // FIXME: Is this correct interpretation of get_nodeconfig()?
+    string nodeconfig = config_dir + "/" + f[..sizeof(f)-5] + "." + system->node;
+    if(stat_file(nodeconfig))
+      configs += ({ Config(Stdio.read_file(nodeconfig)) });
+    else
+      configs += ({ Config(Stdio.read_file(config_dir + "/" +f)) });
   }
 }
 
@@ -259,7 +271,7 @@ string get_email() {
   string email="";
   if( file_stat(config_dir + "contact.txt") ) {
     email = Stdio.read_file(config_dir + "contact.txt");
-    sscanf(email, "%s\n", email);
+    sscanf(email, "contact: %s\n", email);
     return email;
   }
   Stdio.Readline r = Stdio.Readline();
@@ -268,11 +280,11 @@ string get_email() {
   do {
     email = r->edit( email, "Address: ", ({ "bold" }) );
   } while( !email || !has_value(email, "@") );
-  Stdio.write_file(config_dir + "contact.txt", email+"\n");
+  Stdio.write_file(config_dir + "contact.txt", "contact: "+email+"\n");
   return email;
 }
 
-void setup_pidfile() {
+void setup_system_info() {
   system = uname();
   // Make alias
   system->node = system->nodename;
@@ -281,9 +293,17 @@ void setup_pidfile() {
   system->unamem = system->machine;
   system->unamev = system->version;
 
+  // FIXME Apply longest_nodename() here.
+}
+
+void setup_pidfile() {
   string pidf = "xenofarm-"+system->node+".pid";
+
+  // We should see if the process is still running, but I do not know
+  // how under Windows, so for now we always abort if we find a pid-file
+  // lying around...
   if(file_stat(pidf))
-    error("Already running xenofarm pid %s.\n", Stdio.read_file(pidf));
+    exit(2, "Already running xenofarm pid %s.\n", Stdio.read_file(pidf));
   Stdio.write_file(pidf, (string)getpid());
 }
 
@@ -330,7 +350,8 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.3 2003/05/20 11:40:14 mani Exp $\nMimics client.sh revision 1.72\n");
+	exit(0, "$Id: pike_client.pike,v 1.4 2003/05/20 12:58:09 mani Exp $\n"
+	     "Mimics client.sh revision 1.72\n");
 	break;
 
       case "nolimits":
@@ -349,7 +370,17 @@ int main(int num, array(string) args) {
   string email = get_email();
   WERR("Email: %s\n",email);
 
+  // We don't check multi machine compilation setup since sprsh doesn't run
+  // under Windows.
+
+  setup_system_info();
   setup_pidfile();
+
+  // We don't set putname nor compile put, since we are using an internal
+  // solution. Nor do we check for the availability of wget or gzip, since
+  // we use internal solutions there too. The Pike however needs to be compiled
+  // with gz, but we'll get a compilation error while trying to start this
+  // program if that is not the case.
 
   read_configs();
   while(1) {
