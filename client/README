@@ -13,14 +13,14 @@ You need to install this software on each machine you intend to attach
 to the Xenofarm as a compile and test client. To ensure that it is as
 easy as possible to set up on new and strange OSes the main part if
 the client in written in pure Posix sh, calling a few external
-binaries to handle the network communication with the Xenofarm master.
+binaries to handle the network communication with the Xenofarm server.
 
 
 2. Compiling "put".
 
-put will be built automatically when you start the Xenofarm client, so
-you can skip this if you don't want to compile it manually for usage
-outside Xenofarm.
+The binary program put will be built automatically when you start the
+Xenofarm client, so you can skip this section if you don't want to
+compile it manually for usage outside Xenofarm.
 
 The Xenofarm client needs a program called put that does the job of
 returning the result from the compiled and tested project to the
@@ -28,7 +28,7 @@ project result collector by way of HTTP PUT. The put program is a
 small program written specifically for the Xenofarm client in highly
 portable C.
 
-To compile it manually run the normal ./configure && make.
+To compile it manually, run the normal ./configure && make.
 
 
 3. Other requirements.
