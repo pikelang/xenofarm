@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.3 2002/05/11 01:59:29 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.4 2002/05/12 01:31:09 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -30,6 +30,7 @@ void create() {
 static string mountpoint;
 static string distpath;
 static string resultpath;
+
 static int file_counter;
 
 static string latest;
@@ -58,8 +59,36 @@ static string out_converter(string f) {
   return f + "/snapshot.tar.gz";
 }
 
+// XXXX-YYYYMMDD-hhmmss -> posix time
+static int dist_mtime(string f) {
+  int Y,M,D,h,m,s;
+  if( sscanf(f, "%*s-%4d%2d%2d-%2d%2d%2d", Y,M,D,h,m,s)!=7 )
+    return 0;
+  mapping m = ([
+    "year" : Y-1900,
+    "mon" : M-1,
+    "mday" : D,
+    "hour" : h,
+    "min" : m,
+    "sec" : s,
+  ]);
+  mapping tzm = localtime(time());
+  int tz = tzm->timezone;
+#if (__MAJOR__ <= 7) && (__MINOR__ <=2)
+  tz -= 3600*tzm->isdst;
+#endif
+  return mktime(m) - tz;
+}
+
+// API methods
+
 Stat stat_file(string f, RequestID id) {
-  return file_stat( distpath + f );
+  Stat s = file_stat( distpath + f );
+  if(!s) return 0;
+  int mtime = dist_mtime(f);
+  if(mtime)
+    s[3] = mtime;
+  return s;
 }
 
 string real_file(string f, RequestID id) {
@@ -106,6 +135,17 @@ mapping|Stdio.File find_file(string path, RequestID id) {
     return http_string_answer("Thanks!");
   }
 
-  return Stdio.File( distpath+in_converter(path) );
+  Stdio.File f = Stdio.File( distpath+in_converter(path) );
+
+  if(!f) return 0;
+
+  Stat s = f->stat();
+  s[3] = dist_mtime(path);
+
+  return ([
+    "file" : f,
+    "type" : "application/octet-stream",
+    "stat" : s,
+  ]);
 
 }
