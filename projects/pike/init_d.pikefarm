@@ -1,7 +1,7 @@
 #!/bin/sh
 # init.d script for Pikefarm.
 #
-# $Id: init_d.pikefarm,v 1.6 2002/12/13 16:21:57 mani Exp $
+# $Id: init_d.pikefarm,v 1.7 2004/04/26 01:33:42 mani Exp $
 
 pikefarmhome=/pike/home/xenofarm/xenofarm_cvs/projects/pike
 
@@ -12,7 +12,7 @@ pike=pike
 piddir=/var/run/pikefarm
 
 #list of servers to start:
-servers="result_parser_7.4 result_parser_7.5 server_7.4 server_7.5 gc"
+servers="result_parser_7.4 result_parser_7.6 result_parser_7.7 server_7.4 server_7.6 server_7.7 gc"
 
 start_server()
 {

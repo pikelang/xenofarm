@@ -1,6 +1,6 @@
 //
 // Garbage collector for the Pike projects
-// $Id: gc.pike,v 1.7 2002/12/13 16:21:15 mani Exp $
+// $Id: gc.pike,v 1.8 2004/04/26 01:33:42 mani Exp $
 //
 
 constant my_out_dir = "/pike/data/pikefarm/out/";
@@ -31,9 +31,10 @@ class PikeVersion {
 
 void main() {
 
-  array projects = ({ PikeVersion("7.3"),
-		      PikeVersion("7.4"),
-		      PikeVersion("7.5") });
+  array projects = ({ PikeVersion("7.4"),
+		      PikeVersion("7.5"),
+		      PikeVersion("7.6"),
+		      PikeVersion("7.7") });
 
   while(1) {
     foreach(projects, object project) {
