@@ -163,10 +163,10 @@ format").
 The generic server has built-in support for a very simple
 transformation: it simply runs
 
-	echo $buildid > $working/buildid.txt
-	tar cf $name.tar $working
-	rm $working/buildid.txt
-	gzip $name.tar
+   echo $buildid > $working/buildid.txt
+   tar cf $name.tar $working
+   rm $working/buildid.txt
+   gzip $name.tar
 
 This only works if the working copy fulfills the requirements defined
 in "Build package format". For projects that are not adapted to
@@ -321,8 +321,8 @@ You also need a web export directory (more about this below).
 
   $ mkdir -p /some/path/pythonexport
 
-Finally, you need to create a database.  Assuming that the user
-"linus" will do the database maintenance and run server.pike and
+Finally, you need to create a database. Assuming that the user "linus"
+will do the database maintenance and run server.pike and
 result_parser.pike, and that the Roxen modules will run as user "www",
 these commands will set up the privileges properly for a database
 called "argouml_xenofarm":
@@ -621,6 +621,7 @@ Arguments:
 
 
 8. The Result Interface
+
 
 9. Garbage Collection
 
