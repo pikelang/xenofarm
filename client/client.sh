@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.63 2002/11/25 11:33:50 zino Exp $
+# $Id: client.sh,v 1.64 2002/11/29 20:37:37 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -34,6 +34,7 @@
 #  2: Client already running
 #  3: Failed to compile put
 #  4: Failed to create result package
+#  5: dont_run file found
 #  7: Remote compilation failure
 #
 #  9: Admin email not configured
@@ -66,7 +67,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.63 2002/11/25 11:33:50 zino Exp $
+	echo \$Id: client.sh,v 1.64 2002/11/29 20:37:37 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -414,6 +415,10 @@ run_test() {
                 else
                     sh -c "$command"  > "$resultdir/xenofarmclient.txt" 2>&1;
                 fi
+
+                #If the remote node has disappeared we would send a false fail
+                check_multimachinecompilation
+
                 if [ -f xenofarm_result.tar.gz ] ; then
                     mv xenofarm_result.tar.gz "$resultdir" || exit 25
                     (
@@ -424,21 +429,19 @@ run_test() {
                      cd repack &&
                      gzip -cd "$resultdir/xenofarm_result.tar.gz" | tar xf - &&
                      cp "$resultdir/machineid.txt" . &&
-                     tar cvf "$resultdir/xenofarm_result.tar" * &&
-                     gzip "$resultdir/xenofarm_result.tar"
+                     tar cvf xenofarm_result.tar * &&
+                     gzip xenofarm_result.tar &&
+                     mv xenofarm_result.tar.gz "$resultdir"
                     ) || exit 25
                 else
                     (
                      cd "$resultdir" &&
                      make_machineid &&
-                     tar cvf xenofarm_result.tar xenofarmclient.txt \
-                        buildid.txt machineid.txt &&
+                     tar cvf xenofarm_result.tar * &&
                      gzip xenofarm_result.tar
                     ) || exit 25
                 fi
                 mv "../../current_$test" "../../last_$test";
-                #If the remote node has disappeared we would send a false fail
-                check_multimachinecompilation
                 echo "  Sending results for \"$project\": \"$test\"."
                 $basedir/$putname "$puturl" \
                     < "$resultdir/xenofarm_result.tar.gz" || put_exit
@@ -521,6 +524,12 @@ setup_put() {
 #########################################################
 #Execution begins here.
 #########################################################
+
+#Exit if there is a file called "dont_run".
+if [ -f dont_run ]; then
+    echo "FATAL: dont_run file found. Doing that." 1>&2
+    exit 5
+fi
 
 #Set up signal handlers
 trap sighup 1
