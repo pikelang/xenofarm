@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.29 2002/10/16 00:05:23 mani Exp $
+// $Id: server.pike,v 1.30 2002/11/01 19:08:20 jhs Exp $
 
 Sql.Sql xfdb;
 
@@ -24,7 +24,7 @@ string repository;
 string cvs_module;
 string work_dir;
 string source_transformer;
-string update_opts = "-d";
+array(string) update_opts = ({ "-Pd" });
 
 int(0..1) verbose;
 int latest_build;
@@ -80,41 +80,50 @@ string fmt_time(int t) {
 // "API" functions
 //
 
-// Should return the time of the latest build package made for
+// Should return the (UTC) unixtime of the latest build package made for
 // this project.
-int get_latest_build() {
-  array res = persistent_query("SELECT MAX(time) AS latest_build FROM build WHERE project=%s",
-			       project);
+int get_latest_build()
+{
+  array res = persistent_query("SELECT MAX(time) AS latest_build "
+			       "FROM build WHERE project=%s", project);
   if(!res || !sizeof(res)) return 0;
   return (int)res[0]->latest_build;
 }
 
-// The get_latest_checkin function should return the time of the
-// latest checkin. This version actually returns the time we last
+// The get_latest_checkin function should return the (UTC) unixtime of
+// the latest checkin. This version actually returns the time we last
 // detected that something has been checked in. That is good enough.
-int get_latest_checkin() {
-  int latest_checkin;
-
+int get_latest_checkin()
+{
   if(!file_stat(cvs_module) || !file_stat(cvs_module)->isdir) {
     write("Please check out %O inside %O and re-run this script.\n", 
 	  cvs_module, work_dir);
     exit(1);
   }
-  debug("Running cvs update\n");
-  if(Process.system("(cd "+cvs_module+" && cvs -q update "+update_opts+")"
-		    +" > tmp/update.log")) {
+
+  debug("Running cvs update.\n");
+  Calendar.TimeRange now = Calendar.Second();
+  object update =
+    Process.create_process(({ "cvs", "-q", "update", "-D", now->format_time(),
+			      @update_opts }),
+			   ([ "cwd"    : cvs_module,
+			      "stdout" : Stdio.File("tmp/update.log", "cwt"),
+			      "stderr" : Stdio.File("/dev/null", "cwt") ]));
+  if(update->wait())
+  {
     write("Failed to update CVS module %O in %O.\n", cvs_module, getcwd());
     exit(1);
   }
 
-  latest_checkin = (int)Stdio.read_file(checkin_state_file);
-
-  array(string)|string log = Stdio.read_file("tmp/update.log");
-  log = filter(log/"\n", lambda(string row) { return !has_prefix(row, "? "); });
-  if( sizeof(log)>1 ) {
+  int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+  array(string) log;
+  log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
+	       lambda(string row) { return !has_prefix(row, "? "); });
+  if(sizeof(log))
+  {
     debug("Something changed: \n  %s", log * "\n  ");
-    latest_checkin = time();
-    Stdio.write_file(checkin_state_file, latest_checkin+"\n");
+    latest_checkin = now->unix_time();
+    Stdio.write_file(checkin_state_file, latest_checkin + "\n");
   }
   else {
     debug("Nothing changed\n");
@@ -122,10 +131,11 @@ int get_latest_checkin() {
 
   // Handle a missing checkin_state_file file.  This should only happen
   // the first time server.pike is run.
-  if (latest_checkin == 0) {
-    debug("No checkin timestamp found.  Assuming something changed.\n");
-    latest_checkin = time();
-    Stdio.write_file(checkin_state_file, latest_checkin+"\n");
+  if(latest_checkin == 0)
+  {
+    debug("No checkin timestamp found; assuming something changed.\n");
+    latest_checkin = now->unix_time();
+    Stdio.write_file(checkin_state_file, latest_checkin + "\n");
   }
 
   return latest_checkin;
@@ -163,20 +173,18 @@ int(0..1) transform_source(string cvs_module, string name, string buildid) {
   return 1;
 }
 
-string make_build_low() {
-  object now = Calendar.now()->set_timezone("UTC");
+string make_build_low(int latest_checkin)
+{
+  int latest_build = latest_checkin;
+  object at = Calendar->set_timezone("UTC")->Second("unix", latest_build);
   string name = sprintf("%s-%s-%s", project,
-			now->format_ymd_short(),
-			now->format_tod_short());
-  
-  latest_build = now->unix_time();
-
+			at->format_ymd_short(),
+			at->format_tod_short());
   persistent_query("INSERT INTO build (time, project) VALUES (%d,%s)",
 		   latest_build, project);
 
   string buildid;
-  mixed err;
-  err = catch {
+  mixed err = catch {
     buildid = xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   };
   if(err) {
@@ -193,12 +201,13 @@ string make_build_low() {
   return name+".tar.gz";
 }
 
-void make_build() {
+void make_build(int latest_checkin)
+{
   debug("Making new build.\n");
 
   int old_build_time = latest_build;
 
-  string build_name = make_build_low();
+  string build_name = make_build_low(latest_checkin);
   if(!build_name) {
     write("No source distribution was created by make_build_low...\n");
     return;
@@ -279,9 +288,9 @@ void check_settings() {
   }
 }
 
-int main(int num, array(string) args) {
+int main(int num, array(string) args)
+{
   write(prog_id);
-
   int (0..1) force_build;
 
   foreach(Getopt.find_all_options(args, ({
@@ -363,10 +372,10 @@ int main(int num, array(string) args) {
 
   check_settings();
 
-  if(force_build) {
-    get_latest_checkin();
-    make_build();
-    return 0;
+  if(force_build)
+  {
+    make_build(get_latest_checkin());
+    exit(0);
   }
 
   latest_build = get_latest_build();
@@ -375,68 +384,46 @@ int main(int num, array(string) args) {
   else
     debug("No previous builds found.\n");
 
-  int real_checkin_poll;
-  int next_build;
-  int waitloop_state;
+  int sleep_for;
+  while(1)
+  {
+    int now = Calendar.now()->unix_time(), delta = now - latest_build;
 
-  while(1) {
-    if(checkin_poll==real_checkin_poll)
-      waitloop_state = 1;
+    if(delta < min_build_distance) // Enforce minimum time between builds
+    {
+      debug("Enforcing minimum build distance. Quarantine left: %s.\n",
+	    fmt_time(min_build_distance - delta));
+      sleep_for = min_build_distance - delta;
+    }
     else
-      waitloop_state = 0;
-
-    if(!waitloop_state) debug("Sleep %d seconds...\n", real_checkin_poll);
-    sleep(real_checkin_poll);
-    real_checkin_poll = checkin_poll;
-
-    // Enforce build distances
-    if(time()-latest_build < min_build_distance) {
-      debug("Enforce build distances. Quarantine left %s.\n",
-	    fmt_time(min_build_distance-(time()-latest_build)));
-      real_checkin_poll = min_build_distance - (time()-latest_build);
-      continue;
+    {
+      int latest_checkin = get_latest_checkin();
+      debug("Latest checkin was %s ago.\n", fmt_time(now - latest_checkin));
+      if(latest_checkin > latest_build)
+      {
+	if(latest_checkin + checkin_latency < now)
+	{
+	  sleep_for = min_build_distance;
+	  make_build(now);
+	  latest_build = get_latest_build();
+	}
+	else // Enforce minimum time of inactivity after a commit
+	{
+	  sleep_for = latest_checkin + checkin_latency - now;
+	  debug("A new build is scheduled to run in %s.\n",
+		fmt_time(sleep_for));
+	}
+      } else
+	sleep_for = checkin_poll; // poll frequency
     }
 
-    // Queue a build
-    int new_checkin = get_latest_checkin();
-    if(!waitloop_state) debug("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
-    if(new_checkin>latest_build) {
-      if(new_checkin + checkin_latency < time()) {
-	next_build = time()-1;
-	debug("A new build is scheduled to run at once.\n");
-	real_checkin_poll = 0;
-      }
-      else {
-	next_build = new_checkin+checkin_latency;
-	debug("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
-	real_checkin_poll = checkin_latency;
-	continue;
-      }
-    }
-
-    // Is there a queued build?
-    if(next_build) {
-      if(verbose) {
-	int diff = next_build-time();
-	if(diff<=0)
-	  debug("New build scheduled to run at once.\n");
-	else
-	  debug("New build scheduled to run in %s.\n", fmt_time(diff));
-      }
-      if(next_build<=time()) {
-	make_build();
-	latest_build = get_latest_build();
-	next_build = 0;
-      }
-    }
-
+    debug("Sleeping for %d seconds...\n", sleep_for);
+    sleep(sleep_for);
   }
-
-  return 1;
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.29 2002/10/16 00:05:23 mani Exp $\n";
+"$Id: server.pike,v 1.30 2002/11/01 19:08:20 jhs Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
@@ -455,7 +442,7 @@ Possible arguments:
 --min-distance The enforced minimum distance between to builds.
                Defaults to 7200 seconds (two hours).
 --poll         How often the CVS is queried for new checkins.
-               Defaults to 60 seconds.
+               Defaults to every 60 seconds.
 --repository   The CVS repository the server should use.
 --verbose      Send messages about everything that happens to stdout.
 --web-dir      Where the outgoing build packages should be put.
