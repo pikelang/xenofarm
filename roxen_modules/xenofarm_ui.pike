@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.37 2003/01/11 18:08:44 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.38 2003/01/11 19:01:12 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -250,6 +250,20 @@ static class Build
 		   "build" : id,
       ]) });
     return ret;
+  }
+
+  mapping(string:int|string) get_task_entities(int client, int task) {
+    mapping(string:int|string) ret = ([ "status" : "NONE",
+					"time_spent" : 0,
+					"warnings" : 0 ]);
+    array|mapping t = task_results[client];
+    if(!t) return ret;
+    t = t[task];
+    if(!t) return ret;
+    return ([ "status" : t[0],
+	      "time_spent": t[1],
+	      "warnings": t[2],
+    ]);
   }
 
   array(int) list_machines() {
@@ -511,6 +525,12 @@ class TagEmitXF_Machine {
     NOCACHE();
     Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
 
+    if(int id = (int)m_delete(m, "id")) {
+      ClientConfig c = p->clients[id];
+      if(c) return ({ c->entities() });
+      return ({});
+    }
+
     // Remove clients whose last max-columns builds were all white
     if(int maxcols = (int)m_delete(m, "recency"))
     {
@@ -520,7 +540,7 @@ class TagEmitXF_Machine {
 	ClientConfig c = p->clients[client_no];
 	array status = p->builds->get_result_entities( client_no )->status;
 	if(sizeof(status[..maxcols-1] - ({ "NONE" })))
-	  result += ({ p->clients[client_no]->entities() });
+	  result += ({ c->entities() });
       }
       return result;
     }
@@ -587,6 +607,12 @@ class TagEmitXF_Result {
     if(!res)
       RXML.parse_error("No build or machine attribute.\n");
 
+    if(m->results) {
+      multiset ok = (multiset)(m->results/",");
+      res = filter(res, lambda(mapping x) { return ok[x->status]; });
+      m_delete(m, "results");
+    }
+
     // Optimize sorting
     string needs_reordering = m->sort;
     if(needs_reordering)
@@ -625,8 +651,8 @@ class TagXF_Details {
 	  RXML.parse_error("Could not decode id (%O)\n", args->id);
       }
       else if(args->build && args->client) {
-	build = args->build;
-	client = args->client;
+	build = (int)args->build;
+	client = (int)args->client;
       }
       else
 	RXML.parse_error("No build chosen (id or build+client).\n");
@@ -638,20 +664,44 @@ class TagXF_Details {
   }
 }
 
-class TagEmitXF_Tasks {
+class TagEmitXF_Task {
   inherit RXML.Tag;
   constant name = "emit";
-  constant plugin_name = "xf-tasks";
+  constant plugin_name = "xf-task";
 
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
     Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
+
+    int build, client;
+
+    if(m->id) {
+      if( sscanf(m->id, "%d_%d", build, client)!=2 )
+	RXML.parse_error("Could not decode id (%O)\n", m->id);
+    }
+    if(m->build && m->client) {
+      build = (int)m->build;
+      client = (int)m->client;
+    }
+    if(build && client) {
+      Build b = p->get_build(build);
+      if(m->tasks) {
+	array ret = ({});
+	foreach( (array(int))(m->tasks/","), int task) {
+	  if(!task) continue;
+	  ret += ({ b->get_task_entities(client, task) });
+	}
+	return ret;
+      }
+    }
+
     array res = ({});
     foreach(indices(p->tasks), int id) {
       Task task = p->tasks[id];
       res += ({ ([ "id" : id,
 		   "name" : task->name,
+		   "pname" : String.capitalize(replace(task->name, "_", "&nbsp;")),
 		   "path" : task->path,
 		   "order" : task->sort_order,
 		   "leaf" : task->is_leaf ? "yes" : "no"
