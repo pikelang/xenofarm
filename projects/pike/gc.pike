@@ -1,6 +1,6 @@
 //
 // Garbage collector for the Pike projects
-// $Id: gc.pike,v 1.4 2002/12/01 14:30:51 mani Exp $
+// $Id: gc.pike,v 1.5 2002/12/05 16:41:42 mani Exp $
 //
 
 constant my_out_dir = "/pike/data/pikefarm/out/";
@@ -37,7 +37,6 @@ void main() {
 
   while(1) {
     foreach(projects, object project) {
-      project->info();
       project->clean_out_dir();
       project->clean_res_dir();
     }
