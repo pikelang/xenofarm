@@ -102,3 +102,60 @@ RESULT_PAGE = """<html>
 </body>
 </html>
 """
+
+SYS_OVERVIEW_PAGE = """<html>
+<head><title>%(project)s: all Xenofarm results for %(hostname)s %(testname)s</title></head>
+<body>
+<a href="index.html">[build overview]</a>
+<h1>%(project)s: all Xenofarm results for %(hostname)s %(testname)s</h1>
+This page collects all the results collected for %(hostname)s running
+the test %(testname)s.
+
+<p>The information on this page was collected
+%(now)s.
+
+<table border=0>
+  <tr>
+    <td>
+      <table border=1>
+        <tr>
+          <td>Host:</td>
+          <td>%(hostname)s</td>
+        </tr>
+        <tr>
+          <td>OS &amp; hardware:</td>
+          <td>%(os_hw)s %(os_rel)s</td>
+        </tr>
+        <tr>
+          <td>Test name:</td>
+          <td>%(testname)s</td>
+        </tr>
+      </table>
+    </td>
+    <td>
+      <table border=1>
+        <tr>
+          <th><img border=0 src="%(buttonurl)sgreen.gif"><br>(OK)</th>
+          <th><img border=0 src="%(buttonurl)syellow.gif"><br>(Warning)</th>
+          <th><img border=0 src="%(buttonurl)sred.gif"><br>(Failure)</th>
+        </tr>
+        <tr>
+          <td>%(green)s</td>
+          <td>%(yellow)s</td>
+          <td>%(red)s</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p>
+
+<table border=1>
+  %(heading)s
+  %(content)s
+</table>
+
+</body>
+</html>
+"""
