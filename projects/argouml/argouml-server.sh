@@ -33,7 +33,7 @@ test -x $DEPLOYMENT_JAVA_HOME/bin/javac || {
     exit 1;
 }
 
-$JAVA_HOME/bin/java -version > javaversion.txt
+$JAVA_HOME/bin/java -version > javaversion.txt 2>&1
 
 
 echo FORMAT 2 > $LOG
