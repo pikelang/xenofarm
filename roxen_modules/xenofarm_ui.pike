@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.34 2002/12/12 17:25:11 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.35 2002/12/12 17:47:45 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -453,7 +453,7 @@ class TagEmitXF_Machine {
   {
     NOCACHE();
     Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
-    report_debug("Listing machines for %O\n", p);
+
     // Remove clients whose last max-columns builds were all white
     if(int maxcols = (int)m_delete(m, "recency"))
     {
@@ -465,13 +465,11 @@ class TagEmitXF_Machine {
 	if(sizeof(status[..maxcols-1] - ({ "NONE" })))
 	  result += ({ p->clients[client_no]->entities() });
       }
-      report_debug("filtered out %O from %O\n", result, p->clients);
       return result;
     }
 
     array entities = values(p->clients)->entities();
     sort(entities->platform, entities);
-    report_debug("all: %O\n", entities);
     return entities;
   }
 }
