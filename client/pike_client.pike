@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.22 2003/09/22 13:01:09 mani Exp $
+// $Id: pike_client.pike,v 1.23 2003/09/23 01:27:38 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.73.
@@ -129,11 +129,11 @@ int web_head(string url) {
 //! Untars the the tar file system @[fs]. @[dir] is the current
 //! working directory inside the tar file system.
 void untar_dir(string fn) {
-    WERR("  Reading tar file %O.", fn);
-    object fs = Filesystem.Tar(fn);
-    untar_dir_low(fs);
-    WERR("\n");
-    destruct(fs);
+  WERR("  Reading tar file %O.", fn);
+  object fs = Filesystem.Tar(fn);
+  untar_dir_low(fs);
+  WERR("\n");
+  fs->tar->fd->close();
 }
 
 void untar_dir_low(object fs) {
@@ -586,7 +586,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.22 2003/09/22 13:01:09 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.23 2003/09/23 01:27:38 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -644,7 +644,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.22 2003/09/22 13:01:09 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.23 2003/09/23 01:27:38 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
