@@ -12,6 +12,11 @@ import updatehtml_templates
 
 _DB = None
 
+try:
+    hostmax = updatehtml_cfg.hostname_maxlen
+except:
+    hostmax = None
+
 def init_db():
     global _DB
     pwd = open(updatehtml_cfg.dbpwdfile, "r").readline()
@@ -153,7 +158,10 @@ def system_label(bs):
         bs.sysinfo.os_hw, bs.sysinfo.os_rel, bs.sysinfo.testname)
 
 def hostname_label(bs):
-    return bs.sysinfo.hostname
+    if hostmax == None:
+        return bs.sysinfo.hostname
+    else:
+        return bs.sysinfo.hostname[:hostmax]
 
 def buildid_label(bs):
     return "Build %s" % bs.buildid

@@ -33,3 +33,5 @@ hidden_files = [
     'index.html',
     'buildid.txt',
     ]
+
+hostname_maxlen = 20
