@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.5 2003/05/23 13:48:28 mani Exp $
+// $Id: pike_client.pike,v 1.6 2003/06/06 11:18:19 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -83,8 +83,9 @@ void popd() {
 
 //! Returns the data found at @[url].
 string web_get(string url) {
-  WERR("Fetching %s.\n",url);
+  WERR("Fetching %s. ",url);
   Protocols.HTTP.Query r = Protocols.HTTP.get_url(url);
+  WERR("done\n");
   if(r->status==200) return r->data();
   if(r->status==302 && r->headers->location)
     return web_get(r->headers->location);
@@ -94,8 +95,9 @@ string web_get(string url) {
 //! Returns the posix time when the data at @[url] was
 //! last modified.
 int web_head(string url) {
-  WERR("HEAD %s.\n", url);
+  WERR("HEAD %s. ", url);
   Protocols.HTTP.Query r = Protocols.HTTP.do_method("HEAD", url);
+  WERR("done\n");
 
   string date;
   if(r->status==200 && (date=r->headers["last-modified"])) {
@@ -146,11 +148,12 @@ class Config {
 	exit(15, "Empty value in key %O, line %d, %s.\n",
 	     key, line_no, filename);
 
-      if(line==0) {
+      if(line_no==0) {
 	if(key!="configformat")
 	  exit(15, "Unknown config format in %s.\n", filename);
 	if(value!="2")
 	  exit(15, "Unknown config format %s in %s.\n", value, filename);
+	continue;
       }
 
       switch(key) {
@@ -192,7 +195,7 @@ class Config {
 	  tests[key] = value;
 	  break;
 	}
-	exit(16, "%O is not a supported key.\n", key);
+	exit(16, "%O is not a supported key (line %d).\n", key, line_no);
       }
     }
 
@@ -209,6 +212,9 @@ class Config {
   static int last_download;
 
   int(0..1) prepare() {
+    if(file_stat("dont_run"))
+      exit(5, "FATAL: dont_run file found. Doing that.\n");
+
     WERR("Preparing %s.\n", project);
     Stdio.mkdirhier(projectdir);
     pushd(projectdir);
@@ -218,12 +224,16 @@ class Config {
   }
 
   int(0..1) low_prepare() {
+    // This is an improvement over client.sh.
+    if(file_stat("dont_run"))
+      exit(5, "FATAL: dont_run file found. Doing that.\n");
+
     if(!last_download) {
       Stdio.Stat st = file_stat("snapshot.tar.gz");
       if(st)
 	last_download = st->mtime;
     }
-    if(web_head(snapshoturl)<=last_download)
+    if(last_download && web_head(snapshoturl)<=last_download)
       return 0;
 
     string data = web_get(snapshoturl);
@@ -234,6 +244,8 @@ class Config {
 
     Stdio.write_file("snapshot.tar.gz", data);
     rm("snapshot.tar");
+    foreach(get_dir("."), string fn)
+      if(Stdio.is_dir(fn)) Stdio.recursive_rm(fn);
 
     return 1;
   }
@@ -242,13 +254,17 @@ class Config {
     WERR("Running tests in %s.\n", project);
     pushd(projectdir);
     if(!file_stat("snapshot.tar")) {
-      WERR("  Unpacking snapshot (gz).\n");
-      // We could unpack the file in smaller blocks, but
-      // we need to read the entire file below when reading
-      // the tar file, so we won't save any memory in reality,
-      // only delay its allocation.
-      string file = Gz.File("snapshot.tar.gz")->read();
-      Stdio.write_file("snapshot.tar", file);
+      WERR("  Uncompressing archive.");
+
+      Gz.File a = Gz.File("snapshot.tar.gz");
+      Stdio.File b = Stdio.File("snapshot.tar", "cwt");
+      string buf;
+      do {
+	WERR(".");
+	buf = a->read(1<<17);
+	b->write(buf);
+      } while( sizeof(buf)==1<<17 );
+      WERR("\n");
     }
 
     foreach(tests; string name; string cmd) {
@@ -263,9 +279,13 @@ class Config {
     popd();
   }
 
+  void untar_dir() {
+  }
+
   void run_test(string name, string cmd) {
 
-    Filesystem.Tar("../snapshot.tar");
+    WERR("  Reading tar file.\n");
+    object fs = Filesystem.Tar("../snapshot.tar");
     // untar here
 
     int chdir;
@@ -274,7 +294,7 @@ class Config {
 	chdir=1;
 	break;
       }
-    if(!chdir) write("fail");
+    if(!chdir) exit("No directory to cd to in snapshot tar.\n");
 
     // create resultdir
     // run cmd
@@ -299,7 +319,7 @@ void read_configs() {
     // FIXME: Is this correct interpretation of get_nodeconfig()?
     string nodeconfig = config_dir + "/" + f[..sizeof(f)-5] + "." +
       system->node;
-    if(stat_file(nodeconfig))
+    if(file_stat(nodeconfig))
       configs += ({ Config(Stdio.read_file(nodeconfig)) });
     else
       configs += ({ Config(Stdio.read_file(config_dir + "/" +f)) });
@@ -356,17 +376,18 @@ void destroy() {
 }
 
 int main(int num, array(string) args) {
+  WERR("%O started.\n", args[0]);
 
   // Check cwd for a "dont_run" file, in which case we'll abort.
-  if(has_value(get_dir("."), "dont_run"))
+  if(file_stat("dont_run"))
     exit(5, "FATAL: dont_run file found. Doing that.\n");
 
   // We don't trap signals as client.sh do since the Windows signal
   // system doesn't work.
 
 #ifndef __NT__
-  setenv("PATH", getenv("PATH")+":/usr/local/bin:/sw/local/bin");
-  setenv("LC_ALL","C");
+  putenv("PATH", getenv("PATH")+":/usr/local/bin:/sw/local/bin");
+  putenv("LC_ALL","C");
 #endif
 
   // Get user input.
@@ -393,7 +414,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.5 2003/05/23 13:48:28 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.6 2003/06/06 11:18:19 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
