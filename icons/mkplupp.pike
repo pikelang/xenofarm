@@ -39,18 +39,15 @@ Examples:
   if(size)
     res = res->scale(size, 0);
 
-  string format = "png";
-  if(n==4) {
-    format = lower_case(args[3]);
-    if( !(< "png", "gif" >)[format] ) {
-      werror("Only PNG and GIF formats are supported.\n");
-      return 1;
-    }
-  }
+  string format = "PNG";
+  if(n==4)
+    format = upper_case(args[3]);
 
-  string name = "plupp_" + c->name() + "." + format;
-  if(format=="gif")
-    Stdio.write_file(name, Image.GIF.encode(res));
-  else
-    Stdio.write_file(name, Image.PNG.encode(res));
+  string name = "plupp_" + c->name() + "." + lower_case(format);
+  if(Image[format] && Image[format]->encode)
+    Stdio.write_file(name, Image[format]->encode(res));
+  else {
+    werror("Can not encode images as %s.\n", args[3]);
+    return 1;
+  }
 }
