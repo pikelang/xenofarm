@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.74 2003/09/01 13:17:50 jhs Exp $
+# $Id: client.sh,v 1.75 2003/09/15 13:33:49 mani Exp $
 # Distribution version: 1.2
 # License: GPL
 #
@@ -25,6 +25,7 @@
 #                   first substring containing colons is on the form
 #                   <hour>:<minute>.*
 # tar 	            must be available in the PATH
+# awk               must be available in the PATH
 ##############################################
 # See `client.sh --help` for command line options.
 #
@@ -67,7 +68,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.74 2003/09/01 13:17:50 jhs Exp $
+	echo \$Id: client.sh,v 1.75 2003/09/15 13:33:49 mani Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -426,16 +427,25 @@ run_test() {
                 #If the remote node has disappeared we would send a false fail
                 check_multimachinecompilation
 
-                if [ -f xenofarm_result.tar.gz ] ; then
+                if [ -d xenofarm_result ] ; then
+                    (
+                     cd xenofarm_result &&
+                     make_machineid &&
+                     tar cf xenofarm_result.tar * &&
+                     gzip xenofarm_result.tar &&
+                     mv xenofarm_result.tar.gz "$resultdir"
+                    ) || exit 25
+                elif [ -f xenofarm_result.tar.gz ] ; then
+                    # This branch is for support of the old API
+                    # and is deprecated. FIXME: Remove in next major.
                     mv xenofarm_result.tar.gz "$resultdir" || exit 25
                     (
                      cd "$resultdir" &&
-                     make_machineid &&
                      rm -rf repack &&
                      mkdir repack &&
                      cd repack &&
                      gzip -cd "$resultdir/xenofarm_result.tar.gz" | tar xf - &&
-                     cp "$resultdir/machineid.txt" . &&
+                     make_machineid &&
                      tar cf xenofarm_result.tar * &&
                      gzip xenofarm_result.tar &&
                      mv xenofarm_result.tar.gz "$resultdir"
