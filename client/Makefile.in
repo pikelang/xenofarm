@@ -1,5 +1,5 @@
 
-# $Id: Makefile.in,v 1.6 2002/12/02 19:45:45 mani Exp $
+# $Id: Makefile.in,v 1.7 2002/12/06 18:32:43 zino Exp $
 
 # This line is needed on some machines.
 @SET_MAKE@
@@ -23,13 +23,26 @@ spotless: clean
 	-test -f .cvsignore && rm -rf `cat .cvsignore`
 
 #FIXME: Tagging and bumping should be automatic
+#FIXME: There is now a second disttarget in ../Makefile. Merge.
 pike-dist:
 	mkdir disttmp && \
 	mkdir disttmp/xenoclient && \
 	mkdir disttmp/xenoclient/config && \
 	cp README client.sh put.c configure Makefile.in start \
 		disttmp/xenoclient/ && \
-	cp ../projects/pike/pike.cfg disttmp/xenoclient/config/ && \
+	cp ../projects/pike/pike7.4.cfg disttmp/xenoclient/config/ && \
+	cp ../projects/pike/pike7.4.cfg disttmp/xenoclient/config/ && \
+	mkdir disttmp/xenoclient/projects &&\
+	for p in ../projects/*; do \
+	  if [ -f "$$p/README" ] ; then \
+	    echo "$$p"; \
+	    cp "$$p/README" \
+               "disttmp/xenoclient/projects/README.`basename $$p`"; \
+	    cp $$p/*.cfg "disttmp/xenoclient/projects/"; \
+	  else \
+	    echo "No README found in project $$p."; \
+	  fi \
+	done && \
 	(cd disttmp && tar cvf - xenoclient) | gzip -c > xenoclient.tar.gz && \
 	echo "Remember to tag and bump if you didn't already." && \
 	rm -rf disttmp
