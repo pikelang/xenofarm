@@ -1,14 +1,38 @@
 #!/bin/sh
 
 # Program som startar alla serversaker (Lenin)
+# Detta program körs regelbundet från crontab
 PATH=/bin:/usr/bin:/sw/local/bin
 export PATH
 
-DBURL=`cat /home/linus/.argouml_xenofarm_mysqlurl`
 ROOT=/lysator/www/projects/xenofarm/argouml
 
-while true
-do
+LOCKDIR=$ROOT/LOCKS
+lockfile="$LOCKDIR/start-server.sh.$$"
+lock=$LOCKDIR/start-server.sh
+echo $$ > $lockfile
+trap "/bin/rm -f $lockfile ; exit 0" 0 1 2 15
+
+if test -f $lock
+then
+    # Someone else has the lock. Is he live?
+    if kill -0 `cat $lock`
+    then
+        # Yes, he is live.
+        exit 0
+    else
+        # No, Lets take the lock
+        rm -f $lock
+    fi
+fi
+
+ln $lockfile $lock
+trap "rm -f $lockfile $lock ; exit 0" 0 1 2 15
+
+
+DBURL=`cat /home/linus/.argouml_xenofarm_mysqlurl`
+
+# Nu kör vi!
     # Bygg dist
     ../../server.pike \
 	--repository=:pserver:guest@cvs.tigris.org:/cvs \
@@ -19,9 +43,9 @@ do
 	--work-dir=$ROOT/work \
 	--transformer=`pwd`/argouml-server.sh \
 	--min-distance=20000 \
-	--latency=3000 \
+	--latency=9000 \
 	--once \
-	argouml
+	argouml > /dev/null
 
     # Ta emot och packa upp resultat
     ../../result_parser.pike \
@@ -29,7 +53,7 @@ do
 	--web-dir=$ROOT/files \
 	--result-dir=$ROOT/results \
 	--work-dir=$ROOT/work/res \
-	--once
+	--once > /dev/null
 
     SPARA_DAGAR=8
     export SPARA_DAGAR
@@ -55,6 +79,4 @@ do
         mv $filename $dir/junittesthtml.tar.done
     done
 
-    sleep 3100
-done
 exit 0
