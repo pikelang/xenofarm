@@ -33,7 +33,7 @@ To compile it manually run the normal ./configure && make.
 
 3. Other requirements.
 
-wget	GNU wget, must accept and handle the -N parameter.
+wget	GNU wget, must accept and handle the -N and --referer parameters.
 gzip	GNU gzip.
 
 Both can be downloaded from your nearest GNU mirror. See
