@@ -1,5 +1,5 @@
 
-# $Id: Makefile.in,v 1.4 2002/08/30 13:44:29 mani Exp $
+# $Id: Makefile.in,v 1.5 2002/09/17 16:42:05 zino Exp $
 
 # This line is needed on some machines.
 @SET_MAKE@
@@ -21,3 +21,15 @@ clean:
 
 spotless:
 	-test -f .cvsignore && rm -rf `cat .cvsignore`
+
+#FIXME: Tagging and bumping should be automatic
+pike-dist:
+	mkdir disttmp && \
+	mkdir disttmp/xenoclient && \
+	mkdir disttmp/xenoclient/config && \
+	cp README client.sh put.c configure Makefile.in start \
+		disttmp/xenoclient/ && \
+	cp ../projects/pike/pike.cfg disttmp/xenoclient/config/ && \
+	(cd disttmp && tar cvf - xenoclient) | gzip -c > xenoclient.tar.gz && \
+	echo "Remember to tag and bump if you didn't already." && \
+	rm -rf disttmp
