@@ -1,8 +1,10 @@
 #!/sw/local/bin/python
 
 import MySQLdb
-
 from time import time, strftime, gmtime
+from string import strip
+
+mysql_passwd = strip(open("/home/sfarmer/.xeno-mysql-ropwd").readlines()[0])
 
 url = "http://www.lysator.liu.se/xenofarm/python"
 yesterday = time() - 24 * 60 * 60 * 2
@@ -25,7 +27,7 @@ recent_results = """
 db = MySQLdb.connect(host = "mysql.lysator.liu.se",
                      db = "sfarmer",
                      user = "sfarmer_ro",
-                     passwd = "qgrXfAvh")
+                     passwd = mysql_passwd)
 cur = db.cursor()
 cur.execute(recent_builds)
 
