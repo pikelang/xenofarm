@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.12 2002/07/31 22:38:51 mani Exp $
+# $Id: client.sh,v 1.13 2002/08/02 16:56:18 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -30,6 +30,7 @@
 #  3: Failed to compile put
 #  4: Unable to decompress project snapshot
 #  5: Failed to fetch project snapshot
+#  6: Recursive mkdir failed
 #  
 # 10: wget not found
 # 11: gzip not found
@@ -99,6 +100,18 @@ check_delay() {
     true
 }
 
+#Make directories recursively
+pmkdir() {
+    while [ ! -d $1 ]; do 
+	rest=$1
+	while [ ! -d $rest ]; do
+	    tmp_dir=`basename $rest`
+	    rest=`dirname $rest`
+	done
+	mkdir $rest/$tmp_dir || exit 6
+    done
+}
+
 clean_exit() {
     rm -f $pidfile
     exit 0
@@ -113,6 +126,12 @@ sighup() {
     clean_exit
 }
 
+missing_req() {
+    echo $1 not found 
+    rm -f $pidfile
+    exit $2
+}
+
 #Execcution begins here.
 
 #Set up signal handlers
@@ -121,9 +140,10 @@ trap sigint 2
 trap sigint 15
 
 #Add a few directories to the PATH
-#FIXME: Make this configurable per project?
 PATH=$PATH:/usr/local/bin:/sw/local/bin
-export PATH
+#cc on UNICOS fails to build with exitic settings like LC_CTYPE=iso_8859_1
+LC_ALL=C
+export PATH LC_ALL
 
 #Get user input
 parse_args $@
@@ -133,7 +153,7 @@ node=`uname -n`
 pidfile="`pwd`/xenofarm-$node.pid"
 if [ -r $pidfile ]; then
     pid=`cat $pidfile`
-    if `kill -0 $pid`; then
+    if `kill -0 $pid > /dev/null 2>&1`; then
         echo "FATAL: Xenofarm client already running. pid: $pid"
         exit 2
     else
@@ -161,8 +181,8 @@ if [ ! -x bin/put-$node ] ; then
 fi
 
 #Make sure wget and gzip exists
-wget --help > /dev/null 2>&1 || (echo "wget not found"; exit 10)
-gzip --help > /dev/null 2>&1 || (echo "gzip not found"; exit 11)
+wget --help > /dev/null 2>&1 || missing_req wget 10
+gzip --help > /dev/null 2>&1 || missing_req wget 11
 
 #Build Each project and each target in that project sequentially
 basedir="`pwd`"
@@ -184,9 +204,8 @@ grep -v \# projects.conf | ( while
         echo "Building $project in $dir from $geturl with targets: $targets"
     fi
 
-    if [ ! -x "$dir" ]; then
-	#FIXME: Define portable recursive mkdir
-        mkdir -p "$dir"
+    if [ ! -d "$dir" ]; then
+        pmkdir "$dir"
     fi
 
     (cd "$dir" &&
@@ -201,6 +220,7 @@ grep -v \# projects.conf | ( while
      for target in `echo $targets` ; do
         if [ \! -f "../last_$target" ] ||
            [ X != X`find ../snapshot.tar.gz -newer "../last_$target"` ] ; then
+        echo $hour:$minute > "../../current_$target";
         #FIXME: Check if the project configurable build delay has passed
         if `check_delay`; then
             if [ x"$uncompressed" = x0 ] ; then
@@ -231,9 +251,9 @@ grep -v \# projects.conf | ( while
                 gzip xenofarm_result.tar)
             fi
             get_time
-            echo $hour:$minute > "../../last_$target";
+	    mv "../../current_$target" "../../last_$target";
 	    echo "Sending results for $project: $target."
-            $basedir/bin/put-$node "$puturl" < "$resultdir/xenofarm_result.tar.gz" &
+            $basedir/bin/put-$node "$puturl" < "$resultdir/xenofarm_result.tar.gz"
             cd ..
         else
             echo "NOTE: Build delay for $project not passed. Skipping."
