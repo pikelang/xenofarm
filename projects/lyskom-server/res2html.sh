@@ -75,7 +75,7 @@ do
       else
 	  color=white
       fi
-      echo "<th><a href=\"$url/$buildno/${task}log.txt\"><img border=0 src=\"http://130.236.214.222/pikefarm/${color}_button.gif\"></a></th>" >&7
+      echo "<th><a href=\"$url/$buildno/${task}log.txt\"><img border=0 src=\"pcl-${color}.gif\"></a></th>" >&7
     done
     echo '</tr>' >&7
     [ $status = red ]    && red=`expr $red + 1`

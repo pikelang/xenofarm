@@ -4,7 +4,7 @@ input=/lysator/www/projects/xenofarm/lyskom-server/files
 output=/lysator/www/user-pages/ceder/xeno/
 url=http://www.lysator.liu.se/xenofarm/lyskom-server/files
 tmp=/lysator/www/user-pages/ceder/xeno/tmp
-buttonurl=http://130.236.214.222/pikefarm
+buttonurl=pcl-
 
 mysql --batch -D lyskom_server_xenofarm -e 'select system, max(build), max(time) from result, build where result.build = build.id group by system' -p`cat /home/ceder/.xeno-mysql-pwd`|sed 1d > $tmp/lastest-builds.txt
 
@@ -110,12 +110,12 @@ do
       fi
       if [ "$astart" ] || [ $color != white ]
       then
-          echo "<th>$astart<img border=0 src=\"$buttonurl/${color}_button.gif\">$aend</th>" >&7
+          echo "<th>$astart<img border=0 src=\"$buttonurl${color}.gif\">$aend</th>" >&7
       else
 	  echo "<th>&nbsp;</th>" >&7
       fi
     done
-    echo "<th><img border=0 src=\"$buttonurl/${status}_button.gif\"></th>" >&7
+    echo "<th><img border=0 src=\"$buttonurl${status}.gif\"></th>" >&7
     echo '</tr>' >&7
 
     [ $status = red ]    && red=`expr $red + 1`
@@ -143,10 +143,10 @@ cat <<EOF >&8
 <h1>Summary</h1>
 <table border=1>
 <tr>
-<th><img border=0 src="$buttonurl/green_button.gif"></th>
-<th><img border=0 src="$buttonurl/yellow_button.gif"></th>
-<th><img border=0 src="$buttonurl/red_button.gif"></th>
-<th><img border=0 src="$buttonurl/white_button.gif"></th>
+<th><img border=0 src="${buttonurl}green.gif"></th>
+<th><img border=0 src="${buttonurl}yellow.gif"></th>
+<th><img border=0 src="${buttonurl}red.gif"></th>
+<th><img border=0 src="${buttonurl}white.gif"></th>
 </tr>
 `cat $tmp/latest-sumfrag`
 </table>
