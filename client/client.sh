@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.59 2002/09/27 07:53:39 zino Exp $
+# $Id: client.sh,v 1.60 2002/10/10 22:22:00 ceder Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -66,7 +66,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.59 2002/09/27 07:53:39 zino Exp $
+	echo \$Id: client.sh,v 1.60 2002/10/10 22:22:00 ceder Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -617,7 +617,7 @@ for projectconfig in $config_dir/*.cfg; do
             if [ X$running_default_tests = X -o \
                  X$running_default_tests = Xtrue ] ; then
                 running_default_tests="true"
-                #NOTE: Code duplication for clearity. Might reconsider.
+                #NOTE: Code duplication for clarity. Might reconsider.
                 test=`echo $arguments | awk '{ print $1 }'`
                 command=`echo $arguments | sed -e 's/[^ ]* //'`
                 command=`chomp_ends "$command"`
