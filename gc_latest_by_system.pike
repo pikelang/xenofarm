@@ -1,8 +1,7 @@
-
 // Xenofarm Garbage Collect variant to clean results dir by keeping
 // the latest results for each system.
 // By Quest
-// $Id: gc_latest_by_system.pike,v 1.1 2002/11/17 13:22:48 quest Exp $
+// $Id: gc_latest_by_system.pike,v 1.2 2002/11/20 20:25:34 quest Exp $
 
 inherit "gc.pike";
 
@@ -25,7 +24,7 @@ void clean_res_dir(string dir, int save) {
                                             return 1;
                                          });
     system_builds -= ({ 0 });
-    system_builds = sort(system_builds);
+    system_builds = sort((array(int))system_builds);
     if (sizeof(system_builds) > save) {
       system_builds = system_builds[..sizeof(system_builds) - 1 - save];
 
