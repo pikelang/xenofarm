@@ -2,7 +2,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.15 2002/08/12 06:36:15 ceder Exp $
+// $Id: server.pike,v 1.16 2002/08/12 07:09:39 ceder Exp $
 
 Sql.Sql xfdb;
 
@@ -47,17 +47,22 @@ string make_build_low() {
     return 0;
   }
 
-  if(Process.system("tar cf "+project+".tar "+cvs_module)) {
-    write("Failed to create %s.tar\n", project);
+  mapping(string:int) now = gmtime(time());
+  string name = sprintf("%s-%04d%02d%02d-%02d%02d%02d", project,
+			1900+now["year"], 1+now["mon"], now["mday"],
+		 	now["hour"], now["min"], now["sec"]);
+
+  if(Process.system("tar cf "+name+".tar "+cvs_module)) {
+    write("Failed to create %s.tar\n", name);
     return 0;
   }
 
-  if(Process.system("gzip -9 "+project+".tar")) {
-    write("Failed to compress %s.tar\n", project);
+  if(Process.system("gzip -9 "+name+".tar")) {
+    write("Failed to compress %s.tar\n", name);
     return 0;
   }
 
-  return project+".tar.gz";
+  return name+".tar.gz";
 }
 
 void make_build() {
@@ -295,7 +300,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.15 2002/08/12 06:36:15 ceder Exp $\n";
+"$Id: server.pike,v 1.16 2002/08/12 07:09:39 ceder Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
