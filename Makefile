@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2002/12/02 19:35:32 mani Exp $
+# $Id: Makefile,v 1.4 2002/12/02 22:45:37 mani Exp $
 #
 
 USER=mani
@@ -52,6 +52,9 @@ build/client.tar.gz: build
 	    echo "No README found in project $$p."; \
 	  fi \
 	done
+	find build/client -name Root | xargs pike -e \
+	  'Stdio.write_file(argv[1..][*], \
+	  ":pserver:anonymous@cvs.lysator.liu.se:/cvsroot/xenofarm");'
 	cd build ; tar c client > client.tar
 	cd build ; gzip -9 client.tar
 
