@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.28 2002/09/04 07:12:38 ceder Exp $
+// $Id: server.pike,v 1.29 2002/10/16 00:05:23 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -407,7 +407,7 @@ int main(int num, array(string) args) {
 	real_checkin_poll = 0;
       }
       else {
-	next_build = time()+checkin_latency;
+	next_build = new_checkin+checkin_latency;
 	debug("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
 	real_checkin_poll = checkin_latency;
 	continue;
@@ -436,7 +436,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.28 2002/09/04 07:12:38 ceder Exp $\n";
+"$Id: server.pike,v 1.29 2002/10/16 00:05:23 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
