@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.41 2002/09/03 07:31:25 zino Exp $
+# $Id: client.sh,v 1.42 2002/09/03 15:00:51 grubba Exp $
 # License: GPL
 #
 # Requirements:
@@ -65,7 +65,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.41 2002/09/03 07:31:25 zino Exp $
+	echo \$Id: client.sh,v 1.42 2002/09/03 15:00:51 grubba Exp $
 	exit 0
   ;;
   *)
@@ -466,7 +466,7 @@ for projectconfig in config/*.cfg; do
     uncompressed="false"
     get_nodeconfig
 
-    cat $projectconfig | while read line; do
+    sed -e '/^#/d' <$projectconfig | while read line; do
         type=`echo $line | awk -F: '{ print $1 }'`
         arguments=`echo $line | sed 's/[^:]*//' | sed 's/://'`
         arguments=`chomp_ends "$arguments"`
