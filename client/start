@@ -36,6 +36,10 @@ parse_args $@
 
 #main loop
 while : ; do
+        if [ \! -f config/contact.txt ] ; then
+            echo "You need to set a contact email by running client.sh manually once."
+            exit 1
+        fi
         echo "** Starting run at `date` *************************" >> debug.log
         echo "Building. $DELAY seconds to the next round." >> debug.log
 	./client.sh >>debug.log 2>&1 &
