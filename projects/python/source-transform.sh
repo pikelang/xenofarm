@@ -25,7 +25,7 @@ cat <<'EOF' > dist/Makefile
 xenofarm:
 	rm -f xenofarm_result.tar xenofarm_result.tar.gz
 	mkdir r
-	./create-response.sh $(VARIANT) > r/shlog.txt 2>&1
+	./create-response.sh > r/shlog.txt 2>&1
 	(cd r && tar cf - *) > xenofarm_result.tar
 	gzip -9 xenofarm_result.tar
 EOF
@@ -35,7 +35,6 @@ cat <<'EOF' > dist/create-response.sh
 
 BASE=python
 host=`uname -n | sed -e "s/\..*//"`
-variant=$1
 
 timeecho () {
     echo `TZ=UTC date|awk '{print $6 "-" $2 "-" $3 " " $4}'\
@@ -98,7 +97,6 @@ echo $PATH > r/path.txt
 
 uname -s -r -m > r/machineid.txt
 uname -n >> r/machineid.txt
-echo $variant >> r/machineid.txt
 
 cp buildid.txt r/buildid.txt
 

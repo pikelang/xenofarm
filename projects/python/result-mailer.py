@@ -15,11 +15,11 @@ ORDER BY time
 """ % yesterday
 
 recent_results = """
-   SELECT r.build, s.name, s.platform, s.variant, r.system, r.status, r.warnings
+   SELECT r.build, s.name, s.platform, r.system, r.status, r.warnings
      FROM (system s LEFT JOIN result r ON s.id = r.system)
           LEFT JOIN build b ON r.build = b.id
     WHERE b.time >= %i AND b.project LIKE 'python'
- ORDER BY s.name, s.platform, s.variant, r.build
+ ORDER BY s.name, s.platform, r.build
 """ % yesterday
 
 db = MySQLdb.connect(host = "mysql.lysator.liu.se",
@@ -49,7 +49,6 @@ name = ""
 
 current_name = ""
 current_platform = ""
-current_variant = ""
 count_builds = 0
 has_failure = 0
 end = 0
@@ -60,7 +59,7 @@ print
 
 while 1:
     try:
-        (build, name, platform, variant, system_id, status, warnings) = \
+        (build, name, platform, system_id, status, warnings) = \
 	    cur.fetchone()
         buildstr = "%5i -" % build
     except TypeError:
@@ -86,7 +85,6 @@ while 1:
         # prepare for processing new host
         current_name = name
 	current_platform = platform
-	current_variant = variant
         start_warnings = warnings
         count_builds = 0
         has_failure = 0
