@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.10 2002/05/24 22:25:15 mani Exp $
+// $Id: server.pike,v 1.11 2002/07/23 15:46:48 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -21,6 +21,11 @@ string work_dir;
 
 int(0..1) verbose;
 int latest_build;
+
+void debug(string msg, mixed ... args) {
+  if(verbose)
+    write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
+}
 
 int get_latest_build() {
   array res = xfdb->query("SELECT MAX(time) AS latest_build FROM build WHERE project=%s", project);
@@ -61,7 +66,7 @@ void make_build() {
     write("No source distribution was created by make_build_low...\n");
     return;
   }
-  if(verbose) write("The source distribution %s assembled.\n", build_name);
+  debug("The source distribution %s assembled.\n", build_name);
 
   if(latest_build == old_build_time)
     latest_build = time();
@@ -197,12 +202,10 @@ int main(int num, array(string) args) {
   check_settings();
 
   latest_build = get_latest_build();
-  if(verbose) {
-    if(latest_build)
-      write("Latest build was %s ago.\n", fmt_time(time()-latest_build));
-    else
-      write("No previous builds found.\n");
-  }
+  if(latest_build)
+    debug("Latest build was %s ago.\n", fmt_time(time()-latest_build));
+  else
+    debug("No previous builds found.\n");
 
   int real_checkin_poll;
   int next_build;
@@ -214,7 +217,7 @@ int main(int num, array(string) args) {
     else
       waitloop_state = 0;
 
-    if(verbose && !waitloop_state) write("Sleep %d seconds...\n", real_checkin_poll);
+    if(!waitloop_state) debug("Sleep %d seconds...\n", real_checkin_poll);
     sleep(real_checkin_poll);
     real_checkin_poll = checkin_poll;
 
@@ -223,12 +226,12 @@ int main(int num, array(string) args) {
       if(verbose) {
 	int diff = next_build-time();
 	if(diff<=0)
-	  write("New build scheduled to run at once.\n");
+	  debug("New build scheduled to run at once.\n");
 	else
-	  write("New build scheduled to run in %s.\n", fmt_time(diff));
+	  debug("New build scheduled to run in %s.\n", fmt_time(diff));
       }
       if(next_build<=time()) {
-	if(verbose) write("Making new build.\n");
+	debug("Making new build.\n");
 	make_build();
 	latest_build = get_latest_build();
 	next_build = 0;
@@ -238,23 +241,23 @@ int main(int num, array(string) args) {
 
     // Enforce build distances
     if(time()-latest_build < min_build_distance) {
-      if(verbose) write("Enforce build distances. Quarantine left %s.\n",
-			 fmt_time(min_build_distance-(time()-latest_build)));
+      debug("Enforce build distances. Quarantine left %s.\n",
+	    fmt_time(min_build_distance-(time()-latest_build)));
       real_checkin_poll = min_build_distance - (time()-latest_build);
       continue;
     }
 
     int new_checkin = get_latest_checkin();
-    if(verbose && !waitloop_state) write("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
+    if(!waitloop_state) debug("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
     if(new_checkin>latest_build) {
       if(new_checkin + checkin_latency < time()) {
 	next_build = time()-1;
-	if(verbose) write("A new build is scheduled to run at once.\n");
+	debug("A new build is scheduled to run at once.\n");
 	real_checkin_poll = 0;
       }
       else {
 	next_build = time()+checkin_latency;
-	if(verbose) write("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
+	debug("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
 	real_checkin_poll = checkin_latency;
       }
     }
@@ -264,6 +267,7 @@ int main(int num, array(string) args) {
   return 1;
 }
 
-constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.10 2002/05/24 22:25:15 mani Exp $\n";
+constant prog_id = "Xenofarm generic server\n"
+"$Id: server.pike,v 1.11 2002/07/23 15:46:48 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
