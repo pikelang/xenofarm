@@ -1,7 +1,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.2 2002/05/03 20:37:08 mani Exp $
+// $Id: server.pike,v 1.3 2002/05/03 21:56:13 mani Exp $
 
 // The Xenofarm server program is not really intended to be run verbatim, since almost
 // all projects have their own little funny things to take care of. This is an
@@ -11,7 +11,8 @@ inherit "server.pike";
 
 Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
 string project = "pike7.3";
-string web_dir = "/home/build/xenofarm/out/";
+string web_dir = "/home/nilsson/xenofarm/out/";
+string repository = ""; // Ignore this.
 
 string pike_version = "7.3";
 
