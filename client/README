@@ -68,6 +68,9 @@ resulturl:        <URL to PUT the result too>
 test: <testname>  <test commands that will be executed inside the 
                    unarchived snapshot. One line. Newlines cannot be quoted>
 
+If the client detects a line it doesn't know how to handle it will
+fail and skip the associated project.
+
 An arbitrary number of "test:" lines can be added to the
 configuration. Note that the "test:" lines must come last in the
 configuration file. <testname> should be low on funny characters as it
@@ -85,8 +88,7 @@ test-<nodename> directives.
 An alternative way of specifying node specific tests is by creating a
 separate configuration file with the filename
 <original.cfg>.<nodename>.  This configuration file has precedence
-over <original.cfg> and will not inherit any inherit any setting from
-that file.
+over <original.cfg> and will not inherit any setting from that file.
 
 BUGS: Multiple adjacent spaces in a <test commands> will be merged into
       one space. Commands like `make CC="/odd/p    ath/cc" will therefor
