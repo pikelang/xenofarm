@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.51 2002/09/20 11:53:31 zino Exp $
+# $Id: client.sh,v 1.52 2002/09/21 12:37:55 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -65,7 +65,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.51 2002/09/20 11:53:31 zino Exp $
+	echo \$Id: client.sh,v 1.52 2002/09/21 12:37:55 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -187,15 +187,39 @@ sizeof() {
     echo $1 | wc -c
 }
 
+#Overcomplex function that tries to get a proper fqdn for the host.
 longest_nodename() {
-    t_node=`uname -n`
-    t_hostname=`hostname`
-    if [ `sizeof $t_node` -gt `sizeof $t_hostname` ]; then
-        echo $t_node
+    #FIXME: This nasty heap of ifs needs to be replaced with something
+    #better. Reverse&forward-lookup is not the answer. That would
+    #render bad names for a lot of machines on locked down boring ISP
+    #DNS names
+
+    cur_node=`uname -n`
+
+    #To dangerout to fiddle with hostname switches if we are root.
+    if [ X`id -u` = X0 ]; then
+        echo "VARNING: You are running client.sh as root. Don't do that!" >&2
+    else if [ X`hostname --fqdn 2>/dev/null` != X ]; then
+        cur_node=`hostname --fqdn`
     else
-        echo $t_hostname
-    fi
+        t_hostname=`hostname`
+        if [ `sizeof $cur_node` -lt `sizeof $t_hostname` ]; then
+            cur_node=$t_hostname
+        fi
+        #This won't help for nodes that already have dots in their !domainnames
+        if [ X`echo $cur_node|sed 's/\.//'` = X$cur_node ]; then
+            if [ X`domainname` != X -a X`domainname` != "X(none)" ]; then
+                cur_node=$cur_node.`domainname`
+            else if [ X`dnsdomainname` != X -a X`dnsdomainname` != "X(none)"];
+            then
+                cur_node=$cur_node.`dnsdomainname`
+            fi; fi
+        fi
+    fi; fi
+
+    echo $cur_node
 }
+
 
 setup_pidfile() {
     node=`longest_nodename`
