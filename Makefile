@@ -1,13 +1,17 @@
 #
-# $Id: Makefile,v 1.4 2002/12/02 22:45:37 mani Exp $
+# $Id: Makefile,v 1.5 2002/12/05 00:28:02 mani Exp $
 #
 
 USER=mani
 SERVER=proton.lysator.liu.se
-.PHONY : publish website clean
+.PHONY : publish preview website clean
 
 publish: website
 	scp build/web/* $(USER)@$(SERVER):/lysator/www/projects/xenofarm
+
+preview: website
+	scp build/web/* \
+	  $(USER)@$(SERVER):/lysator/www/projects/xenofarm/preview
 
 website: build/web build/web/documentation.xml \
 	 build/client.tar.gz build/web/download.xml build/web/about.xml
