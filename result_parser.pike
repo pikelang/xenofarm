@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.24 2002/09/19 22:50:50 mani Exp $
+// $Id: result_parser.pike,v 1.25 2002/10/04 01:24:39 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -230,6 +230,7 @@ void process_package(string fn) {
   if(Process.create_process( ({ "gunzip", "-c", fn }),
 			     ([ "stdout" : f ]) )->wait()) {
     write("Unable to decompress %O to %O.\n", fn, getcwd());
+    processed_results[fn]=1;
     return;
   }
   f->close();
@@ -279,7 +280,10 @@ void process_package(string fn) {
     foreach(get_dir("."), string f)
       if( Process.create_process( ({"mv", f, dest+"/"+f}), ([]) )->wait() )
 	fail = 1;
-    if(fail || !rm(fn) )
+    if(fail)
+      write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
+
+    if(!fail && !rm(fn) )
       write("Unable to remove %O\n", fn);
     else
       processed_results[fn]=1;
@@ -428,7 +432,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.24 2002/09/19 22:50:50 mani Exp $\n";
+"$Id: result_parser.pike,v 1.25 2002/10/04 01:24:39 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
