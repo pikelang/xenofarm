@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.61 2002/10/23 21:34:43 zino Exp $
+# $Id: client.sh,v 1.62 2002/11/25 09:39:21 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -33,7 +33,7 @@
 #  1: Unsupported argument
 #  2: Client already running
 #  3: Failed to compile put
-#
+#  4: Failed to create result package
 #  7: Remote compilation failure
 #
 #  9: Admin email not configured
@@ -66,7 +66,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.61 2002/10/23 21:34:43 zino Exp $
+	echo \$Id: client.sh,v 1.62 2002/11/25 09:39:21 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -414,9 +414,8 @@ run_test() {
                 else
                     sh -c "$command"  > "$resultdir/xenofarmclient.txt" 2>&1;
                 fi
-                #FIXME: Full disk inside this if will be bad
                 if [ -f xenofarm_result.tar.gz ] ; then
-                    mv xenofarm_result.tar.gz "$resultdir"
+                    mv xenofarm_result.tar.gz "$resultdir" || exit 25
                     (
                      cd "$resultdir" &&
                      make_machineid &&
@@ -426,7 +425,7 @@ run_test() {
                      gzip -cd $resultdir/xenofarm_result.tar.gz | tar xf - &&
                      cp $resultdir/machineid.txt . &&
                      tar cf - * | gzip -c > $resultdir/xenofarm_result.tar.gz
-                    )
+                    ) || exit 25
                 else
                     (
                      cd "$resultdir" &&
@@ -434,9 +433,11 @@ run_test() {
                      tar cvf xenofarm_result.tar xenofarmclient.txt \
                         buildid.txt machineid.txt &&
                      gzip xenofarm_result.tar
-                    )
+                    ) || exit 25
                 fi
                 mv "../../current_$test" "../../last_$test";
+                #If the remote node has disappeared we would send a false fail
+                check_multimachinecompilation
                 echo "  Sending results for \"$project\": \"$test\"."
                 $basedir/$putname "$puturl" \
                     < "$resultdir/xenofarm_result.tar.gz" || put_exit
@@ -463,6 +464,7 @@ run_test() {
         # 22: Unable to extract project snapshot.
         # 23: Failed to fetch project snapshot.
         # 24: Failed to send result.
+        # 25: Failed to create result package.
         #Be more verbose in some common cases:
         case $last in
         '20')
