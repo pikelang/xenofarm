@@ -13,6 +13,9 @@
 #ifdef HAVE_POLL
 # include <sys/poll.h>
 #endif
+#ifdef HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
 void syntax( char * cmd )
 {
   printf( "Syntax: %s [--help] [--version] <url> < <file>\n", cmd );
@@ -291,7 +294,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.13 2003/01/08 20:12:33 mani Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.14 2003/01/12 21:14:16 ceder Exp $" );
       exit(0);
     }
     if( (st.st_mode & S_IFMT) != S_IFREG )
