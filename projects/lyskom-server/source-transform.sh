@@ -22,12 +22,17 @@ echo $stamp > dist/buildid.txt
 echo $stamp > dist/export.stamp
 echo $stamp > dist/exportstamp.txt
 
+# Compatibility makefile, for things that use old-style client config.
+# This can be removed once all clients are updated.  At that time, the
+# export.stamp and exportstamp.txt can also be safely removed.
 cat <<EOF > dist/Makefile
 xenofarm:
 	rm -f xenofarm_result.tar xenofarm_result.tar.gz
 	rm -rf r
 	mkdir r
-	./create-response.sh > r/shlog.txt 2>&1
+	./create-response.sh --compat > r/shlog.txt 2>&1
+	touch r/unzip.warn
+	echo old-style config > r/unziplog.txt
 	(cd r && tar cf - *) > xenofarm_result.tar
 	gzip -9 xenofarm_result.tar
 
@@ -35,7 +40,9 @@ xenofarm-cc:
 	rm -f xenofarm_result.tar xenofarm_result.tar.gz
 	rm -rf r
 	mkdir r
-	./create-response.sh cc > r/shlog.txt 2>&1
+	./create-response.sh --compat cc > r/shlog.txt 2>&1
+	touch r/unzip.warn
+	echo old-style config > r/unziplog.txt
 	(cd r && tar cf - *) > xenofarm_result.tar
 	gzip -9 xenofarm_result.tar
 EOF
