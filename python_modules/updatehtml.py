@@ -3,6 +3,7 @@
 import os
 import stat
 import time
+import re
 
 import MySQLdb
 
@@ -11,7 +12,7 @@ import updatehtml_templates
 
 _DB = None
 
-def init():
+def init_db():
     global _DB
     pwd = open(updatehtml_cfg.dbpwdfile, "r").readline()
     if pwd[-1] == "\n":
@@ -20,6 +21,14 @@ def init():
                           user=updatehtml_cfg.dbuser,
                           host=updatehtml_cfg.dbhost,
                           passwd=pwd)
+
+def init_cfg():
+    m = updatehtml_cfg.files_per_task_re
+    for task in m.keys():
+        r = []
+        for s in m[task]:
+            r.append(re.compile(s))
+        m[task] = r
 
 
 def get_systems_for_latest():
@@ -374,8 +383,16 @@ def mkindex(buildid, systemid, force = 0):
         tl.append("<pre>")
         for suffix in ["log.txt", "warn.txt", "fail.txt"]:
             add_file(tl, files_left, dirname, t.name + suffix, maxlen)
+        lst = []
         for fn in updatehtml_cfg.files_per_task.get(t.name, []):
-            add_file(tl, files_left, dirname, fn, maxlen)
+            add_file(lst, files_left, dirname, fn, maxlen)
+        for rx in updatehtml_cfg.files_per_task_re.get(t.name, []):
+            for fn in files_left.keys():
+                if rx.match(fn) != None:
+                    lst.append(file_listing(dirname, fn, maxlen))
+                    del files_left[fn]
+        lst.sort()
+        tl = tl + lst
         tl.append("</pre>")
             
     m["tasklist"] = ''.join(tl)
@@ -579,7 +596,8 @@ def mk_all_index(force):
         mk_system_overview(systemid)
 
 def main(force):
-    init()
+    init_cfg()
+    init_db()
     update_latest()
     mk_all_index(force)
 

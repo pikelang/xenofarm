@@ -766,6 +766,21 @@ You need to set the following variables in updatehtml.cfg:
 
         files_per_task = { }
 
+  files_per_task_re
+      This is like files_per_task, but instead of specifying an exact
+      file name you can specify a regular expression. The syntax of
+      the regular expressions is documented at
+
+        http://www.python.org/doc/current/lib/re-syntax.html
+
+      The following example ensures that all files named
+      valgrind-0.log.txt, valgrind-1.log.txt et c are listed under the
+      ckprg task:
+
+        files_per_task_re = {
+            'ckprg': ['valgrind-[0-9]+\.log\.txt'],
+            }
+        
   hidden_files
       This is a list of files that should not be included on the
       detailed result pages. Example:

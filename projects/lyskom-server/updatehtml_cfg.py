@@ -32,6 +32,10 @@ files_per_task = {
     'id_tx': ['makeinfo.txt'],
     }
 
+files_per_task_re = {
+    'ckprg': ['valgrind-[0-9]+\.log\.txt'],
+    }
+
 hidden_files = [
     'index.html',
     'buildid.txt',
