@@ -26,31 +26,29 @@ platform independent applications. Most programmers would say, "If I
 want to do something platform independent I use Pike/Python/Perl/Java/LOGO",
 but there are still some guys struggling to get these programming languages 
 to work on all strange OS on all strange platforms. It is for them (us)
-this tool is built. It is used on IDA and Lysator on Linköping University
-to maintain the quality of the programming languages Pike and Python.
+this tool is built.
 
-From a historical point of view Xenofarm is a complete rewrite of the
-automated build and regression test tool of the Pike programming
-language. It was called AutoBuild and was done by Martin Nilsson and
-Johan Schön at Roxen Internet Software. AutoBuild was in turn derived
-from (or rather inspired by) Tinderbox. When the maintenance
-responsibility for Pike moved from Roxen Internet Software to
-Linköping University Martin Nilsson and friends wrote Xenofarm to
-better suit the new environment (and to fix quite a few annoying
-things...).
+From a historical point of view, Xenofarm is a complete rewrite of the
+automated build and regression test tool that was used by the Pike
+programming language development team between 1999 and 2002. It was
+called AutoBuild and was created by Martin Nilsson and Johan Schön at
+Roxen Internet Software. AutoBuild was in turn derived from (or rather
+inspired by) Tinderbox. Xenofarm still sticks to the basic AutoBuild
+concept, but was redesigned to get rid of the few annoying flaws and
+shortcomings of its predecessor.
 
 SH-client by Peter Bortas
 HTTP PUT  by Per Hedbor
 The rest  by Martin Nilsson
 
-Everything is released under GNU GPL.
+Xenofarm is released under GNU GPL.
 
 
 2. The Grand Design of Everything
 
 The basic idea with Xenofarm is to help developers solve bugs, as
 compared with the Mozilla projects Tinderbox where the goal is to find
-the bugs as quickly as possible.  We believe that it is better to get
+the bugs as quickly as possible. We believe that it is better to get
 "the full picture" of what is broken, and as much information as
 possible, before starting to fix the code. There are essentially three
 ways that differs between Tinderbox and Xenofarm in this aspect;
