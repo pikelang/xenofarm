@@ -21,14 +21,13 @@ buy that? Well, normally the world isn't as perfect as we like it to
 be, but in this case it is, since Xenofarm is just some glue
 components holding together other components.
 
-The goal of Xenofarm is to aid programmers who wants to build
-extremely platform independent applications. Most programmers would
-say, "If I want to do something platform independent I use
-Pike/Python/Perl/Java/LOGO", but there are still some guys struggling
-to get these programming languages to work on all strange OS on all
-strange platforms. It is for them (us) this tool is built. It is used
-on IDA and Lysator on Linköping University to maintain the quality of
-the programming languages Pike and Python.
+The goal of Xenofarm is to aid programmers who want to build extremely
+platform independent applications. Most programmers would say, "If I
+want to do something platform independent I use Pike/Python/Perl/Java/LOGO",
+but there are still some guys struggling to get these programming languages 
+to work on all strange OS on all strange platforms. It is for them (us)
+this tool is built. It is used on IDA and Lysator on Linköping University
+to maintain the quality of the programming languages Pike and Python.
 
 From a historical point of view Xenofarm is a complete rewrite of the
 automated build and regression test tool of the Pike programming
@@ -79,7 +78,7 @@ client then decides which packages they want to "subscribe" to. The
 workflow is as follows:
 
  1. Some trigger mechanism signals that it is time to make a new
-    build. The trigger is typically a CVS check in.
+    build. The trigger is typically a CVS checkin.
  2. The server script creates a new source package and exports it
     through a web server.
  3. The client polls the web server and finds a new package, which it
@@ -119,7 +118,7 @@ accessible from the mountpoint, e.g.
 /xenofarm/Pike7.3-20020509-203344.tar.gz in this case. The latest
 version is exported through the stable URL mountpoint/latest, e.g.
 /xenofarm/latest in this case. This in turn returns a redirect to a
-snapshot.tar.gz in a subdirectory, named after the latest source
+snapshot.tar.gz in a subdirectory named after the latest source
 distribution. In this case /xenofarm/latest would redirect to
 /xenofarm/Pike7.3-20020509-203344/snapshot.tar.gz. The Last-Modified
 header is derived from the file name, not the actual mtime of the
@@ -146,7 +145,7 @@ that are uploaded to "result" in its mountpoint. Given the default
 mountpoint /xenofarm, the default result URL path is /xenofarm/result.
 The uploaded files are named "res" followed by the posix time, an
 underscore, a counter incremented for every upload since the module
-stared, and finally ".tar.gz". The file name might look like
+started, and finally ".tar.gz". The file name might look like
 res1021228036_31.tar.gz.
 
 Again it is possible to use any webserver and set up a path that
