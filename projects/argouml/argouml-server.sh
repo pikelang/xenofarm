@@ -36,7 +36,7 @@ do
     logfile=$task.log
     if sh -c "$command" > $logfile 2>&1
     then
-	if egrep -v " TEST .* FAILED" $logfile > /dev/null
+	if egrep " TEST .* FAILED" $logfile > /dev/null
 	then
 	    echo FAIL >> $LOG
 	elif grep -i warning $logfile > /dev/null
