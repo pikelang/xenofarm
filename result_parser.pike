@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.31 2002/11/30 03:34:53 mani Exp $
+// $Id: result_parser.pike,v 1.32 2002/11/30 05:29:47 mani Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -340,24 +340,27 @@ int get_task_id(array(string)|string tasks, TaskOrderGenie gen) {
 
 // res->nodename must have a value.
 // res->tasks must have a value (at least an empty array).
+// res->tesname must have a value.
 void store_result(mapping res) {
   if(!res->nodename)
     return;
+  string testname = res->testname;
+  if(testname=="default") testname="";
 
   array qres = persistent_query("SELECT id FROM system WHERE name=%s && "
 				"sysname=%s && release=%s && version=%s "
-				"&& machine=%s",
+				"&& machine=%s && testname=%s",
 				res->nodename, res->sysname||"",
 				res->release||"", res->version||"",
-				res->machine||"");
+				res->machine||"", testname);
 
   if(sizeof(qres))
     res->system = (int)qres[0]->id;
   else {
-    xfdb->query("INSERT INTO system (name, sysname, release, version, machine) "
-		"VALUES (%s,%s,%s,%s,%s)",
+    xfdb->query("INSERT INTO system (name, sysname, release, version, "
+		"machine, testname) VALUES (%s,%s,%s,%s,%s,%s)",
 		res->nodename, res->sysname||"", res->release||"",
-		res->version||"", res->machine||"");
+		res->version||"", res->machine||"", testname);
     res->system = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
 
@@ -623,7 +626,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.31 2002/11/30 03:34:53 mani Exp $\n";
+"$Id: result_parser.pike,v 1.32 2002/11/30 05:29:47 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
