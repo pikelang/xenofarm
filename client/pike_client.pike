@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.20 2003/09/15 11:14:24 mani Exp $
+// $Id: pike_client.pike,v 1.21 2003/09/22 12:49:24 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.73.
@@ -387,7 +387,7 @@ class Config {
   }
 
   // Decompresses the gz package, iterates over all tests and
-  // calls tun_test for each of them.
+  // calls run_test for each of them.
   void run_tests() {
     WERR("Running tests in %s.\n", project);
     pushd(projectdir);
@@ -474,9 +474,16 @@ class Config {
     // We do not check the state for multimachine compilation here,
     // as is done in client.sh.
 
-    if(file_stat("xenofarm_result.tar.gz")) {
-      if(!mv("xenofarm_result.tar.gz", result_dir))
+
+    if(Stdio.is_dir("xenofarm_result")) {
+      cd("xenofarm_result");
+    }
+    else if(file_stat("xenofarm_result.tar.gz")) {
+      if(!mv("xenofarm_result.tar.gz", result_dir)) {
+	werror("CWD %O\n", getcwd());
+	werror("result_dir: %O\n", result_dir);
 	exit(25, "Could not move xenofarm result file to result directory.\n");
+      }
       popd();
       pushd(result_dir);
       Stdio.recursive_rm("repack");
@@ -485,9 +492,6 @@ class Config {
       object fs = Filesystem.Tar("xenofarm_result.tar");
       cd("repack");
       untar_dir(fs);
-    }
-    else if(Stdio.is_dir("xenofarm_result")) {
-      cd("xenofarm_result");
     }
     else {
       popd();
@@ -505,6 +509,7 @@ class Config {
     c->write(Stdio.read_file("xenofarm_result.tar"));
     c->close();
 
+    WERR("Upload result to %s\n", resulturl);
     Protocols.HTTP.put_url(resulturl,
 			   Stdio.read_file("xenofarm_result.tar.gz"));
     popd();
@@ -580,7 +585,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.20 2003/09/15 11:14:24 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.21 2003/09/22 12:49:24 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -638,7 +643,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.20 2003/09/15 11:14:24 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.21 2003/09/22 12:49:24 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
