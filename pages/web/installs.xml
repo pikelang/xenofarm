@@ -24,10 +24,13 @@
   for the  <a href="/~sfarmer/xeno/latest-stable.html">stable python</a>.
   <br /><br /></li>
 <li><a href="http://argouml.tigris.org/">ArgoUML</a><br />
-  ArgoUML is a Java based Universal Modeling Language tool. It is able
-  to create and save most of the nine standard UML diagrams. ArgoUML
-  also has the ability to reverse engineer compiling Java code and
-  generate UML diagrams for it.<br /><br /></li>
+  ArgoUML is a Java based modeling tool for UML distributed with the
+  BSD License.
+  It is able to create and save most of the nine standard UML diagrams.
+  ArgoUML also has the ability to reverse engineer correct Java code and
+  generate UML diagrams for it.
+  See <a href="/xenofarm/argouml/result.html">the result page</a> for
+  details on how the xenofarm builds are doing.<br /><br /></li>
 </ul>
 </header>
 <footer/>

@@ -1,0 +1,20 @@
+Building ArgoUML with Xenofarm
+
+ArgoUML is an UML design tool with cognitive support built entirely in Java.
+It is also an Open Source project located at Tigris distributed with the 
+BSD License. See http://argouml.tigris.org/ for details.
+
+The Xenofarm project provides ArgoUML with help in building and
+running through the JUnit test cases. The task "package" builds the
+whole of ArgoUML. The task "tests" runs all the JUnit test cases.
+
+The configuration file argouml.cfg contains one test for each jdk 
+version that you want to run. You can run as many as you have the
+corresponding jdk installed. Each one should take less than an hour
+to run. The JDK1.2 (target called java12) is rather pointless though
+since it is not maintained.
+
+The result of the xenofarm builds are currently presented at 
+http://www.lysator.liu.se/xenofarm/argouml/result.html
+
+	/Linus
