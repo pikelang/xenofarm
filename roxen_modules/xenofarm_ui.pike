@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.5 2002/07/17 16:18:47 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.6 2002/07/24 18:22:55 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm UI module";
@@ -15,6 +15,9 @@ void create() {
 
   defvar( "xfdb", "mysql://localhost/xenofarm", "Xenofarm database",
 	  TYPE_STRING, "The build/result database" );
+
+  defvar( "results", 10, "Number of results", TYPE_INT,
+	  "The maximum number of results" );
 }
 
 static Sql.sql xfdb;
@@ -29,7 +32,7 @@ constant YELLOW = 2;
 constant GREEN = 3;
 
 string fmt_time(int t) {
-    mapping m = gmtime(t);
+    mapping m = localtime(t);
     return sprintf("%d-%02d-%02d %02d:%02d:%02d",
 		   m->year+1900, m->mon+1, m->mday,
 		   m->hour, m->min, m->sec);
@@ -187,7 +190,7 @@ static void update_builds() {
     latest_build = builds[0]->buildtime;
 
   array new = xfdb->query("SELECT id,time FROM build WHERE time > "+latest_build+
-			  " ORDER BY time DESC LIMIT 10");
+			  " ORDER BY time DESC LIMIT "+query("results") );
 
   if(sizeof(new)) {
     builds = map(new, lambda(mapping in) {
