@@ -1,0 +1,60 @@
+#!/bin/sh
+# init.d script for Pikefarm.
+#
+# $Id: init_d.pikefarm,v 1.1 2002/12/08 17:39:27 grubba Exp $
+
+pikefarmhome=/pike/home/manual/xenofarm_cvs/projects/pike
+
+pikefarmuser=manual
+
+pike=pike
+
+#list of servers to start:
+servers="result_parser_7.4 result_parser_7.5 server_7.4 server_7.5 gc"
+
+start_server()
+{
+  server="$1"
+  if test -f "$server.pid" && \
+     read pid <"$server.pid" && \
+     kill -0 "$pid"; then
+    echo "Pikefarm server $server already running (pid $pid)."
+  else
+    echo "Starting server $server..."
+    su "$pikefarmuser" sh -c 'echo $$ >"'"$server.pid"'" && \
+      "'"$pike"'" "'"$server.pike"'" --verbose >>"'"log_$server"'" 2>&1; \
+      rm "'"$server.pid"'"' </dev/null >/dev/null 2>&1 &
+  fi
+}
+
+case $1 in
+  'start_msg')
+    echo "Start Pikefarm in $pikefarmhome."
+    exit 0
+  ;;
+  'stop_msg')
+    echo "Stop Pikefarm in $pikefarmhome."
+    exit 0
+  ;;
+  'start')
+    echo "Starting Pikefarm in $pikefarmhome..."
+    cd "pikefarmhome" &&
+      for server in $servers; do
+        start_server $server
+      done
+  ;;
+  'stop')
+    echo "Stopping Pikefarm in $pikefarmhome..."
+    cd "pikefarmhome" &&
+      for server in $servers; do
+        if test -f "$server.pid" && \
+	   read pid <"$server.pid"; then
+	  kill -HUP $pid;
+	fi
+      done
+  ;;
+  *)
+    echo "Unknown option $1".
+  ;;
+esac
+
