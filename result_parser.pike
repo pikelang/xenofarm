@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.1 2002/05/03 15:46:57 mani Exp $
+// $Id: result_parser.pike,v 1.2 2002/05/03 22:36:44 mani Exp $
 
 constant db_def = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                   "name VARCHAR(255) NOT NULL, "
@@ -16,13 +16,51 @@ constant db_def = "CREATE TABLE result (build INT UNSIGNED NOT NULL, " // FK bui
 Sql.Sql xfdb;
 string result_dir;
 
+void parse_build_id(string fn, mapping res) {
+  string file = Stdio.read_file(fn);
+  if(!file || !sizeof(file)) return;
+
+  int year;
+  if( sscanf("%*syear:%d", year)!=2 ) return;
+  int month;
+  if( sscanf("%*smonth:%d", month)!=2 ) return;
+  int day;
+  if( sscanf("%*sday:%d", day)!=2 ) return;
+  int hour;
+  if( sscanf("%*shour:%d", hour)!=2 ) return;
+  int min;
+  if( sscanf("%*sminute:%d", min)!=2 ) return;
+  int sec;
+  if( sscanf("%*ssecond:%d", sec)!=2 ) return;
+
+  res->build = sprintf("%04d%02d%02d-%02d%02d%02d",
+		    year, month, day, hour, min, sec);
+}
+
 void parse_id(string fn, mapping res) {
+  string file = Stdio.read_file(fn);
+  if(!file || !sizeof(file)) return;
+  sscanf(file, "%s\n", file);
+  res->machine = String.trim_all_whites(file);
+  // res->host
 }
 
 void parse_log(string fn, mapping res) {
+  string file = Stdio.read_file(fn);
+  if(!file || !sizeof(file)) return;
+
 }
 
 void count_warnings(string fn, mapping res) {
+  Stdio.FILE file = Stdio.FILE(fn);
+  if(!file) return;
+
+  int warnings;
+  foreach(file->line_iterator(1);; string line) {
+    if( has_value(lower_case(line), "warning")
+	warnings++;
+  }
+    res->warnings = warnings;
 }
 
 void store_result(mapping res) {
