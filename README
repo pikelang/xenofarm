@@ -55,8 +55,8 @@ HTTP PUT  by Per Hedbor
 The rest  by Martin Nilsson
 
 Substantial contributors:
-  Per Cederqvist,
-  Johan Sundström,
+  Per  Cederqvist
+  Johan Sundström
   Anders Qvist
 
 Xenofarm is released under GNU GPL.
@@ -228,6 +228,7 @@ example of a transformation script.
 The build package must:
 
  - create a toplevel directory and unpack in it.
+
  - contain a buildid.txt file in the toplevel directory that
    identifies the build. If an unmodified result parser is to be used
    the buildid.txt file must conform to the description in section
@@ -247,6 +248,7 @@ possible, so some arguments are mandatory. These are cvs-module, db,
 web-dir and work-dir.
 
 Arguments:
+
   --cvs-module=<name>
       The CVS module the server should use. This argument is
       mandatory.
@@ -586,6 +588,7 @@ files from the result directory at given intervals. Every successfully
 parsed file will be removed from the result directory.
 
 Arguments:
+
   --db=<database url>
       The database URL, e.g. mysql://localhost/xenofarm. This argument
       is mandatory, unless --dry-run has been issued.
@@ -644,18 +647,28 @@ result package. The latest build result of every status, eg. one that
 failed to build, one that failed to verify etc. is another.
 
 Arguments:
+
   --dists-left=<number>
+      The maximum number of build packages that should remain after
+      the garbage collector has made a sweep. Defaults to 1.
 
   --help
       Displays a summary of the available arguments and their use.
 
   --out-dir=<path>
+      The directory where the outgoing build packages resides.
 
   --poll=<seconds>
+      The number of secods to sleep between every sweep. Defaults to
+      two hours.
 
   --result-dir=<path>
+      The directory where the decompressed results are stored, ie. the
+      path in --web-dir argument to the result parser.
 
   --results-left=<number>
+      The maximum number of results that should remain after the
+      garbage collector has made a sweep. Defaults to 11.
 
 
 10. Creating your own Project
