@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.19 2002/09/19 22:44:07 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.20 2002/09/25 15:46:53 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -575,7 +575,7 @@ constant tagdoc = ([
 
   // ------------------------------------------------------------
 
-  "emit:xf-machine":({ #"<desc type='plugin'>
+  "emit#xf-machine":({ #"<desc type='plugin'>
 <p>
   Lists all the clients that are visible on the result table.
 </p></desc>", ([
@@ -589,16 +589,16 @@ constant tagdoc = ([
 </p></desc>",
 
   "&_.platform;":#"<desc type='entity'><p>
-  The systom of the client.
+  The system of the client.
 </p></desc>",
 
   // ------------------------------------------------------------
 
-  "emit:xf-build":"<desc type='plugin'></desc>",
+  "emit#xf-build":"<desc type='plugin'></desc>",
 
   // ------------------------------------------------------------
 
-  "emit:xf-result":"<desc type='plugin'></desc>",
+  "emit#xf-result":"<desc type='plugin'></desc>",
 
   // ------------------------------------------------------------
 
