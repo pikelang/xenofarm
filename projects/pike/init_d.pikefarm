@@ -1,7 +1,7 @@
 #!/bin/sh
 # init.d script for Pikefarm.
 #
-# $Id: init_d.pikefarm,v 1.3 2002/12/08 17:57:23 grubba Exp $
+# $Id: init_d.pikefarm,v 1.4 2002/12/08 18:01:49 grubba Exp $
 
 pikefarmhome=/pike/home/manual/xenofarm_cvs/projects/pike
 
@@ -23,8 +23,7 @@ start_server()
     echo "Pikefarm server $server already running (pid $pid)."
   else
     echo "Starting server $server..."
-    su "$pikefarmuser" sh -c 'mkdir "'"$piddir"'"; \
-      echo $$ >"'"$piddir/$server.pid"'" && \
+    su "$pikefarmuser" sh -c 'echo $$ >"'"$piddir/$server.pid"'" && \
       "'"$pike"'" "'"$server.pike"'" --verbose >>"'"log_$server"'" 2>&1; \
       rm "'"$piddir/$server.pid"'"' </dev/null >/dev/null 2>&1 &
   fi
@@ -41,6 +40,11 @@ case $1 in
   ;;
   'start')
     echo "Starting Pikefarm in $pikefarmhome..."
+    if test -d "$piddir/."; then :; else
+      mkdir "$piddir" && \
+        chown "$pikefarmuser" "$piddir" && \
+        chmod 755 "$piddir"
+    fi
     cd "$pikefarmhome" &&
       for server in $servers; do
         start_server $server
