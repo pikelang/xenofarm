@@ -37,7 +37,7 @@ do
     echo BEGIN $task >> $LOG
     date >> $LOG
     logfile=$task.log
-    if sh -c "$command" > $logfile 2>&1
+    if sh -x -c "$command" > $logfile 2>&1
     then
 	if egrep " TEST .* FAILED" $logfile > /dev/null
 	then
