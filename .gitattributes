@@ -7,6 +7,7 @@
 # Files containing CVS ids follow.
 # Remove the corresponding line before committing
 # changes to these files.
+/client/put.c foreign_ident
 /projects/pike/server.pike foreign_ident
 /result_parser.pike foreign_ident
 /roxen_modules/xenofarm_fs.pike foreign_ident
