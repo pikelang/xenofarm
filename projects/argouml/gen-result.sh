@@ -6,11 +6,17 @@ output=/lysator/www/projects/xenofarm/argouml/result.html
 url=http://www.lysator.liu.se/xenofarm/argouml/files/
 
 cat <<EOF |
-select build.id,build.time,result.system,status,warnings,time_spent,name,platform
-from build,result,system
-where build.id = result.build
-and result.system = system.id
-order by build.id desc;
+select build.id, build.time, # $1, $2
+system.id, # $3
+system.name, system.sysname, system.release, system.version, system.machine,
+# $4 - $8
+task.name, # $9
+task_result.status, task_result.warnings, task_result.time_spent # $10-$12
+from build, system, task, task_result
+where build.id = task_result.build
+and task_result.system = system.id
+and task.id = task_result.task
+order by build.id desc, task.id, system.name;
 EOF
 mysql --batch \
     -D argouml_xenofarm \
@@ -31,9 +37,9 @@ BEGIN { print "<H1>Build results for ArgoUML</H1>";
     }
   print "<TR><TD>";
   printf "<A HREF=\"'$url'%d_%d\">", $1, $3;
-  print $8, "</A></TD>";
-  print "<TD ALIGN=CENTER>", $4, "</TD><TD ALIGN=CENTER>", $5, "</TD>";
-  print "<TD>", $7, "</TD>";
+  print $9, $5, $6, $7, $8, "</A></TD>";
+  print "<TD ALIGN=CENTER>", $10, "</TD><TD ALIGN=CENTER>", $11, "</TD>";
+  print "<TD>", $4, "</TD>";
   print "</TR>";
 }
 END { print "</TABLE>"; }' |
