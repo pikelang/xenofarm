@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.31 2002/11/03 00:46:33 mani Exp $
+// $Id: server.pike,v 1.32 2002/11/03 04:04:28 jhs Exp $
 
 Sql.Sql xfdb;
 
@@ -24,7 +24,7 @@ string repository;
 string cvs_module;
 string work_dir;
 string source_transformer;
-array(string) update_opts = ({ "-Pd" });
+array(string) update_opts = ({});
 
 int(0..1) verbose;
 int latest_build;
@@ -360,10 +360,12 @@ int main(int num, array(string) args)
 	break;
 
       case "updateopts":
-	update_opts = opt[1];
+	update_opts += ({ opt[1] });
 	break;
       }
     }
+  if(!sizeof(update_opts))
+    update_opts = ({ "-Pd" });
   args -= ({ 0 });
 
   if(sizeof(args)>1) {
@@ -392,9 +394,9 @@ int main(int num, array(string) args)
 
     if(delta < min_build_distance) // Enforce minimum time between builds
     {
-      debug("Enforcing minimum build distance. Quarantine left: %s.\n",
-	    fmt_time(min_build_distance - delta));
       sleep_for = min_build_distance - delta;
+      debug("Enforcing minimum build distance. Quarantine left: %s.\n",
+	    fmt_time(sleep_for));
     }
     else
     {
@@ -424,7 +426,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.31 2002/11/03 00:46:33 mani Exp $\n";
+"$Id: server.pike,v 1.32 2002/11/03 04:04:28 jhs Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
