@@ -12,11 +12,11 @@ this website.</p>
 <p>Get the latest version of all server software, client software and
 documentation from the Lysator CVS. Login with
 <pre>
-cvs -d :pserver:anonymous@cvs.lysator.liu.se:/xenofarm login
+cvs -d :pserver:anonymous@cvs.lysator.liu.se:/cvsroot/xenofarm login
 </pre>
 and just press return when prompted for password. Then type
 <pre>
-cvs -d :pserver:anonymous@cvs.lysator.liu.se:/xenofarm co xenofarm
+cvs -d :pserver:anonymous@cvs.lysator.liu.se:/cvsroot/xenofarm co xenofarm
 </pre>
 to get a fresh copy of Xenofarm.</p>
 
