@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.7 2002/07/25 02:17:23 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.8 2002/07/29 00:54:45 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm UI module";
@@ -68,6 +68,7 @@ static class Build {
     array res = xfdb->query("SELECT export,documentation FROM build WHERE "
 			    "id=%d", id);
     src_export = ([ "yes":1 ])[res[0]->export];
+    if(!src_export) summary = 1;
     documentation = ([ "yes":2,"no":1 ])[res[0]->documentation];
   }
 
