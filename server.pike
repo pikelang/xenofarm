@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.21 2002/08/13 10:10:46 ceder Exp $
+// $Id: server.pike,v 1.22 2002/08/13 13:36:24 ceder Exp $
 
 Sql.Sql xfdb;
 
@@ -23,6 +23,7 @@ string web_dir;
 string repository;
 string cvs_module;
 string work_dir;
+string source_transformer;
 
 int(0..1) verbose;
 int latest_build;
@@ -78,21 +79,35 @@ int get_latest_checkin() {
   return latest_checkin;
 }
 
+// Return true on success, false on error.
+int transform_source(string cvs_module, string name) {
+  if(source_transformer) {
+    if(Process.system(source_transformer+" "+cvs_module+" "+name)) {
+      write(source_transformer+" failed\n");
+      return 0;
+    }
+  } 
+  else {
+    if(Process.system("tar cf "+name+".tar "+cvs_module)) {
+      write("Failed to create %s.tar\n", name);
+      return 0;
+    }
+    if(Process.system("gzip -9 "+name+".tar")) {
+      write("Failed to compress %s.tar\n", name);
+      return 0;
+    }
+  }
+  return 1;
+}
+
 string make_build_low() {
   object now = Calendar.now()->set_timezone("UTC");
   string name = sprintf("%s-%s-%s", project,
 			now->format_ymd_short(),
 			now->format_tod_short());
 
-  if(Process.system("tar cf "+name+".tar "+cvs_module)) {
-    write("Failed to create %s.tar\n", name);
+  if (!transform_source(cvs_module, name))
     return 0;
-  }
-
-  if(Process.system("gzip -9 "+name+".tar")) {
-    write("Failed to compress %s.tar\n", name);
-    return 0;
-  }
 
   return name+".tar.gz";
 }
@@ -206,6 +221,7 @@ int main(int num, array(string) args) {
     ({ "verbose",   Getopt.NO_ARG,  "--verbose"      }),
     ({ "webdir",    Getopt.HAS_ARG, "--web-dir"      }),
     ({ "workdir",   Getopt.HAS_ARG, "--work-dir"     }),
+    ({ "sourcetransformer", Getopt.HAS_ARG, "--source-transform" }),
   }) ),array opt)
     {
       switch(opt[0])
@@ -252,6 +268,10 @@ int main(int num, array(string) args) {
 
       case "workdir":
 	work_dir = opt[1];
+	break;
+
+      case "sourcetransformer":
+	source_transformer = opt[1];
 	break;
       }
     }
@@ -335,7 +355,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.21 2002/08/13 10:10:46 ceder Exp $\n";
+"$Id: server.pike,v 1.22 2002/08/13 13:36:24 ceder Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
@@ -357,4 +377,5 @@ Possible arguments:
 --verbose      Send messages about everything that happens to stdout.
 --web-dir      Where the outgoing source packages should be put.
 --work-dir     Where temporary files should be put.
+--source-transform Program that builds the source package (see README).
 ";
