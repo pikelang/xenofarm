@@ -25,6 +25,7 @@ a  {font-weight: bold}
 <table width="600">
 <tr valign="top"><td width="170">
 <menuitem href="about.xml">What is Xenofarm?</menuitem>
+<menuitem href="documentation.xml">Documentation</menuitem>
 <menuitem href="/~jhs/cvs/xenofarm.xml">Latest changes</menuitem>
 <menuitem href="download.xml">Download</menuitem>
 <menuitem href="installs.xml">Installations</menuitem>
