@@ -35,6 +35,29 @@ test -x $DEPLOYMENT_JAVA_HOME/bin/javac || {
 
 $JAVA_HOME/bin/java -version > javaversion.txt 2>&1
 
+# Kanske start av Xvfb
+if test -x "$XVFB" -a -x "$XRDB"
+then
+    DISPLAY=:141
+    export DISPLAY
+    $XVFB $DISPLAY &
+    pid=$!
+    trap "kill -15 $pid" 0 1 15
+
+    sleep 10
+
+    if $XRDB < /dev/null > /dev/null 2> /dev/null
+    then
+        XVFB=cremebrulee
+        XRDB=yuk
+        export XVFB XRDB
+        ./doit.sh "$@"
+    fi
+
+    kill -15 $pid
+    exit 0
+fi
+
 
 echo FORMAT 2 > $LOG
 
