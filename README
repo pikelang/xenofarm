@@ -429,6 +429,7 @@ machineid.txt
   enviroment. Currently it contains the following pairs:
      sysname: <output from "uname -s">
      release: <output from "uname -r">
+     version: <output from "uname -v">
      machine: <output from "uname -m">
      nodename: <output from "uname -n">
      testname: <the name of the test as specified in the config file>
@@ -437,6 +438,10 @@ machineid.txt
      putversion: <the output from "put --version">
      contact: <an email address to the person maintaining the client 
                instance as specified in config/contact.txt>
+
+  New identifiers might be added in new versions of the
+  client. Unknown identifiers should not couse a fatal error on the
+  result parser.
 
 buildid.txt
   This file is a copy of the buildid.txt file in the package.

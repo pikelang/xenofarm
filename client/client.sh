@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.33 2002/08/30 23:31:27 zino Exp $
+# $Id: client.sh,v 1.34 2002/08/31 12:58:45 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -64,7 +64,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.33 2002/08/30 23:31:27 zino Exp $
+	echo \$Id: client.sh,v 1.34 2002/08/31 12:58:45 zino Exp $
 	exit 0
   ;;
   *)
@@ -166,6 +166,7 @@ export PATH LC_ALL
 #Get user input
 parse_args $@
 
+#FIXME: Figure out what to do if we don't have an interactive shell here
 get_email
 
 #Make sure the remote nodes are up in a multi machine compilation setup
@@ -184,6 +185,7 @@ node=`uname -n`
 unames=`uname -s`
 unamer=`uname -r`
 unamem=`uname -m`
+unamev=`uname -v`
 pidfile="`pwd`/xenofarm-$node.pid"
 if [ -r $pidfile ]; then
     pid=`cat $pidfile`
@@ -288,6 +290,7 @@ uncompress_exit() {
 make_machineid() {
        echo "sysname: $unames" >  machineid.txt &&
        echo "release: $unamer" >> machineid.txt &&
+       echo "version: $unamev" >> machineid.txt &&
        echo "machine: $unamem" >> machineid.txt &&
        echo "nodename: $node"   >> machineid.txt &&
        echo "testname: $id"     >> machineid.txt &&
@@ -320,7 +323,7 @@ run_test() {
                     echo " Uncompressing archive..." &&
                     rm -f "$basedir/$dir/snapshot.tar" &&
                     test -f "$basedir/$dir/snapshot.tar.gz" &&
-                    #This will not fail on full disk, but the tar will
+                    #This will not fail on full disk, but the tar should
                     gzip -cd "$basedir/$dir/snapshot.tar.gz" \
                         > "$basedir/$dir/snapshot.tar" || 
                             uncompress_exit "$basedir/$dir/snapshot.tar.gz"
@@ -408,6 +411,8 @@ get_nodeconfig() {
 basedir="`pwd`"
 for projectconfig in config/*.cfg; do 
 (
+    #FIXME: Signals needs to be caught in subshells and propagated via 
+    #       exit codes
     configformat="" ; testnames="" ; testcmds=""
     virgin="true"
     uncompressed="false"
