@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.22 2002/08/22 21:22:24 zino Exp $
+# $Id: client.sh,v 1.23 2002/08/25 14:43:52 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -22,7 +22,6 @@
 #                   first substring containing colons is on the form
 #                   <hour>:<minute>.*
 # tar 	            must be available in the PATH
-# find              must be available in the PATH
 ##############################################
 # NOTE: The following changes will be committed when Pikefarm officially
 # moves to pike.ida.liu.se.
@@ -41,9 +40,12 @@
 #  5: Failed to fetch project snapshot
 #  6: Recursive mkdir failed
 #  7: Remote compilation failure
-#  
+#  8: Failed to send result  (not propagated)
+#
 # 10: wget not found
 # 11: gzip not found
+#
+# 13: Reserved for internal usage.
 
 #FIXME: Error codes are often caught in subshells
 #FIXME: use logger to put stuff in the syslog if available
@@ -147,6 +149,10 @@ wget_exit() {
     clean_exit 5 
 }
 
+is_newer() {
+    test "X`\ls -t \"$1\" \"$2\" | head -1`" = X"$1"
+}
+
 #Execution begins here.
 
 #Set up signal handlers
@@ -165,7 +171,7 @@ parse_args $@
 
 #Make sure the remote nodes are up in a multi machine compilation setup
 if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
-    if [ X"`uname -m`" = X ] ; then
+    if [ X"`uname -m 2>/dev/null`" = X ] ; then
         echo "FATAL: Unable to contact remote system using $REMOTE_METHOD."
         exit 7
     else if [ X"`uname -s`" = X ] ; then
@@ -176,6 +182,7 @@ fi
 
 #Check and handle the pidfile for this node
 node=`uname -n`
+machineid=`uname -s -r -m`
 pidfile="`pwd`/xenofarm-$node.pid"
 if [ -r $pidfile ]; then
     pid=`cat $pidfile`
@@ -227,6 +234,10 @@ fi
 #Build Each project and each target in that project sequentially
 basedir="`pwd`"
 grep -v \# $configfile | ( while 
+    if [ X$? != X0 ] ; then
+        echo "Project $project failed with exit code $?";
+    fi
+
     read project ; do
     read dir
     read geturl
@@ -264,11 +275,14 @@ grep -v \# $configfile | ( while
         # the first one is downloaded. (Yes, this long text is necessary.)
         touch localtime_lastdl
      fi || wget_exit
-     rm -rf buildtmp && mkdir buildtmp && 
+     if [ ! `rm -rf buildtmp && mkdir buildtmp` ] ; then
+        echo "FATAL: unable to create a fresh build directory. Skipping to the next project." 1>&2
+        exit 13
+     fi
      cd buildtmp &&
      for target in `echo $targets` ; do
         if [ \! -f "../last_$target" ] ||
-           [ X != X`find ../localtime_lastdl -newer "../last_$target"` ] ; then
+           is_newer ../localtime_lastdl "../last_$target" ; then
         get_time
         echo $hour:$minute > "../current_$target";
         #FIXME: Check if the project configurable build delay has passed
@@ -295,14 +309,17 @@ grep -v \# $configfile | ( while
                 mv xenofarm_result.tar.gz "$resultdir/"
             else
                 (cd "$resultdir" &&
-                uname -s -r -m > machineid.txt &&
+                echo $machineid > machineid.txt &&
                 echo $node >> machineid.txt &&
                 tar cvf xenofarm_result.tar RESULT export.stamp machineid.txt &&
                 gzip xenofarm_result.tar)
             fi
 	    mv "../../current_$target" "../../last_$target";
 	    echo "Sending results for $project: $target."
-            $basedir/$putname "$puturl" < "$resultdir/xenofarm_result.tar.gz"
+            #FIXME: Store failed result sendings and restry every client run.
+            #possible date string: date | sed 's/ //g' | sed 's/://g'
+            $basedir/$putname "$puturl" < "$resultdir/xenofarm_result.tar.gz" ||
+            echo "OBSERVE: Failed to send result package to $puturl. Result will be lost. Skipping to the next project." 1>&2 && exit 8
             cd ..
         else
             echo "NOTE: Build delay for $project not passed. Skipping."
