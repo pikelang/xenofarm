@@ -28,6 +28,6 @@ do
 	--once
 
     ./gen-result.sh
-    sleep 3600
+    sleep 1000
 done
 exit 0
