@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.17 2002/08/30 00:49:45 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.18 2002/08/30 09:58:38 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -350,6 +350,7 @@ class TagEmitXF_Build {
     NOCACHE();
     array res = builds->get_build_entities();
 
+    // Optimize sorting
     if(string order=m->sort)
       switch (order) {
       case "-id":
@@ -389,6 +390,7 @@ class TagEmitXF_Result {
     if(!res)
       RXML.parse_error("No build or machine attribute.\n");
 
+    // Optimize sorting
     if(string order=m->sort)
       switch (order) {
       case "-id":
@@ -470,3 +472,101 @@ array(string) format_idx_is_val(Sql.Sql db, mapping(string:mixed) what)
                                     db->quote((string)w[1]));
                    });
 }
+
+
+TAGDOCUMENTATION;
+#ifdef manual
+constant tagdoc = ([
+  "xf-update": ({ #"<desc type='both'>
+<p>
+ Updates the cached result table from the database. The tag works as a mutex
+ if used as a container tag. Then the contents of the tag will not change during
+ output.
+</p>
+
+<attr name='db'><p>
+ The database that contains the Xenofarm result table.
+</p></attr>
+
+</desc>", ([
+  "&_.updated;":#"<desc type='entity'><p>
+ Returns the time when the table was updated.
+</p>
+<ex type='box'>2002-08-30 11:26:01</ex>
+</desc>"
+]) }),
+
+  // ------------------------------------------------------------
+
+  "emit:xf-machine":({ #"<desc type='plugin'>
+<p>
+  Lists all the clients that are visible on the result table.
+</p></desc>", ([
+
+  "&_.id;":#"<desc type='entity'><p>
+  The numeric id of the client.
+</p></desc>",
+
+  "&_.name;":#"<desc type='entity'><p>
+  The node name of the client.
+</p></desc>",
+
+  "&_.platform;":#"<desc type='entity'><p>
+  The systom of the client.
+</p></desc>",
+
+  // ------------------------------------------------------------
+
+  "emit:xf-build":"<desc type='plugin'></desc>",
+
+  // ------------------------------------------------------------
+
+  "emit:xf-result":"<desc type='plugin'></desc>",
+
+  // ------------------------------------------------------------
+
+  "xf-details":({ #"<desc type='cont'>
+<p>
+ Displays detailed information about a specific build. Either the
+ attribute id or the attribute build and client must be present.
+</p>
+
+<attr name='id'><p>
+  An identification of the build in the form build_client, e.g.
+  107_22.
+</p></attr>
+
+<attr name='build'><p>
+  Which build to show details for. Must be used together with the
+  attribute client.
+</p></attr>
+
+<attr name='client'><p>
+  Which client to show details for. Must be used together with the
+  attribute build.
+</p></attr>
+
+</desc>", ([
+  "&_.machine;" : #"<desc attr='entity'><p>
+  The node name of the client machine.
+</p></desc>",
+
+  "&_.platform" : #"<desc attr='entity'><p>
+  The system on the client machine. Resembles 'uname -s -r -m'.
+</p></desc>",
+
+  "&_.result" : #"<desc attr='entity'><p>
+  The status of the build, e.g. 'failed'.
+</p></desc>",
+
+  "&_.warnings" : #"<desc attr='entity'><p>
+  The number of warnings detected during build.
+</p></desc>",
+
+  "&_.time" : #"<desc attr='entity'><p>
+  The time spent during build.
+</p></desc>",
+]) }),
+
+]);
+#endif
