@@ -18,11 +18,13 @@ mysql --batch \
 sed -e '1d' |
 awk -F'	' '
 BEGIN { print "<H1>Build results for ArgoUML</H1>"; 
+    print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
     print "<TABLE BORDER=3>";
     print "<TR><TH>System</TH><TH>Result</TH><TH>Warnings</TH></TR>";
 }
 { if (id != $1) {
-    print "<TR><TH COLSPAN=3>Build", $1, " at ", $2, "</TH></TR>";
+    print "<TR><TH COLSPAN=3>Build", $1, " from ";
+    print strftime("%a %b %d %H:%M:%S %Y", $2), "</TH></TR>";
     id = $1;
     }
   print "<TR><TD>";
