@@ -18,7 +18,7 @@ set -e
 
 rm -rf workdir dist
 cp -a $project workdir
-(cd workdir && misc/bootstrap.sh) # Run automake, autoconf etc
+(cd workdir && ./.bootstrap) # Run automake, autoconf etc
 (cd workdir && ./configure -C \
                --with-lib-path=/usr/local/lib \
 	       --with-include-path=/usr/local/include ) # Create makefiles
