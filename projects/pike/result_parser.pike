@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.18 2002/11/30 19:06:24 mani Exp $
+// $Id: result_parser.pike,v 1.19 2002/12/01 14:15:09 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -10,6 +10,10 @@ string work_dir = "/pike/data/pikefarm/in_work/";
 string web_dir = "/pike/home/manual/web/pikefarm/";
 
 void create() {
+  if(!this_object()->pike_version) {
+    werror("This program is not intended to be run.\n");
+    exit(1);
+  }
 #define FIX(X) X += this_object()->pike_version + "/";
   FIX(web_dir);
   FIX(work_dir);
