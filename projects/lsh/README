@@ -1,0 +1,27 @@
+Xenofarm project lsh
+====================
+
+LSH is a free implementation of the Secure Shell (ssh) protocol. It
+includes a server, a client, and several utility programs. More
+information can be found at http://www.lysator.liu.se/~nisse/lsh.
+
+It is written in C, with some source files automatically generated
+from scheme-like expressions. You don't need any Scheme interpreter to
+build it, though, an ANSI-C compiler is enough.
+
+There's only one xenofarm configuration to test. It takes
+approximately 18 minutes to build and test on a Pentium III.
+
+
+Dependencies
+============
+
+To be able to build LSH, you first need to install
+
+  GMP,         http://www.swox.se/gmp
+  liboop,      http://www.liboop.org
+  GNU make     http://www.gnu.org/software/make
+							   
+It is also recommended that you install tcputils,
+ftp://ftp.lysator.liu.se/pub/unix/tcputils, which is needed for the
+proper testing of the lsh port forwarding features.
