@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.6 2002/07/23 15:45:53 mani Exp $
+// $Id: result_parser.pike,v 1.7 2002/07/24 18:37:43 mani Exp $
 
 inherit "result_parser.pike";
 
@@ -58,13 +58,23 @@ void parse_build_id(string fn, mapping res) {
   int sec;
   if( sscanf(file, "%*ssecond:%d", sec)!=2 ) return;
 
-
   int build_time = mktime(sec, min, hour, day, month-1, year-1900, 0, 0);
   if(!build_time) return;
 
-  res->build = (int)xfdb->query("SELECT id FROM build WHERE "
-				"project='pike7.3' AND time=%d",
-				build_time)[0]->id;
+  array err = catch {
+    res->build = (int)xfdb->query("SELECT id FROM build WHERE "
+				  "project='pike7.3' AND time=%d",
+				  build_time)[0]->id;
+  };
+
+  if(err) {
+    debug("Build %d-%02d-%02d %02d:%02d:%02d not found.\n",
+	  year, month, day, hour, min, sec);
+    if(verbose)
+      write(describe_backtrace(err));
+    else
+      werror(describe_backtrace(err));
+  }
 }
 
 void parse_log(string fn, mapping res) {
