@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.28 2002/11/30 03:27:11 mani Exp $
+// $Id: server.pike,v 1.29 2002/12/01 14:15:44 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -17,9 +17,13 @@ inherit "../../server.pike";
 Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
 #endif /* NILSSON */
 
-string pike_version = "X";
+string pike_version;
 
 void create() {
+  if(!this_object()->pike_version) {
+    werror("This program is not intended to be run.\n");
+    exit(1);
+  }
 #define FIX(X) X += this_object()->pike_version + "/";
   FIX(web_dir);
   FIX(work_dir);
@@ -83,8 +87,11 @@ string make_build_low(int t) {
   debug("Build id is %O\n", res[0]->id);
   string target_dir = result_dir + res[0]->id;
   mkdir(target_dir);
-  mv(work_dir+"Pike/"+pike_version+"/export_result.txt",
-     target_dir+"/export_result.txt");
+  if(!mv(work_dir+"Pike/"+pike_version+"/export_result.txt",
+	 target_dir+"/export_result.txt"))
+    debug("Failed to move %O to %O.\n",
+	  work_dir+"Pike/"+pike_version+"/export_result.txt",
+	  target_dir+"/export_result.txt");
   return ret;
 }
 
@@ -123,7 +130,7 @@ string make_build_low_low(int latest_checkin)
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.28 2002/11/30 03:27:11 mani Exp $\n";
+"$Id: server.pike,v 1.29 2002/12/01 14:15:44 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Possible arguments:
