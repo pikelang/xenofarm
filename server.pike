@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.4 2002/05/12 19:24:12 mani Exp $
+// $Id: server.pike,v 1.5 2002/05/12 21:14:36 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -15,9 +15,9 @@ int checkin_poll = 60;
 int checkin_latency = 60*5;
 
 string project;
-
 string web_dir;
 string repository;
+string work_dir;
 
 int(0..1) verbose;
 int latest_build;
@@ -71,6 +71,15 @@ void check_settings() {
     exit(1);
   }
 
+  if(work_dir) {
+    if(!file_stat(work_dir) || !file_stat(work_dir)->isdir) {
+      werror("Working directory %s does not exist.\n", work_dir);
+      exit(1);
+    }
+    cd(work_dir);
+    // FIXME: Check write privileges.
+  }
+
   if(!web_dir) {
     werror("No web dir found.\n");
     exit(1);
@@ -83,6 +92,8 @@ void check_settings() {
     werror("%s is no directory.\n", web_dir);
     exit(1);
   }
+  // FIXME: Check web dir write privileges.
+
 
   if(!repository) {
     werror("No repository selected.\n");
@@ -107,6 +118,7 @@ int main(int num, array(string) args) {
     ({ "webdir",    Getopt.HAS_ARG, "--web-dir"      }),
     ({ "repository",Getopt.HAS_ARG, "--repository"   }),
     ({ "verbose",   Getopt.NO_ARG,  "--verbose"      }),
+    ({ "workdir",   Getopt.HAS_ARG, "--work-dir"     }),
   }) ),array opt)
     {
       switch(opt[0])
@@ -133,6 +145,10 @@ int main(int num, array(string) args) {
 
       case "webdir":
 	web_dir = opt[1];
+	break;
+
+      case "workdir":
+	work_dir = opt[1];
 	break;
 
       case "repository":
@@ -204,6 +220,6 @@ int main(int num, array(string) args) {
   return 1;
 }
 
-constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.4 2002/05/12 19:24:12 mani Exp $\n";
+constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.5 2002/05/12 21:14:36 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
