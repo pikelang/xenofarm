@@ -7,7 +7,6 @@ Contents
  4. Configuring the client
  5. Starting the client
 
-
 1. This is the Xenofarm client.
 
 You need to install this software on each machine you intend to attach
@@ -41,8 +40,8 @@ Both can be downloaded from your nearest GNU mirror. See
 http://www.gnu.org/prep/ftp.html for a list of mirrors.
 
 NOTE: There is a known bug in wget 1.6 and prior of wget that will
-cause occasional missed builds. Versions 1.8.2 and newer are known to
-work.  Versions between 1.6 and 1.8.2 are untested.
+      cause occasional missed builds. Versions 1.8.2 and newer are
+      known to work. Versions between 1.6 and 1.8.2 are untested.
 
 If your system is strange (ie not Posix compliant) the commands the
 system must supply are listed in the topmost comment in
@@ -63,7 +62,7 @@ configuration file must have these configurations:
 
 configformat:     2
 project:          <Project name>
-projectdir:       <Project testdirectory relative to cwd. Avoid spaces>
+projectdir:       <Project test directory relative to cwd. Avoid spaces>
 snapshoturl:      <URL to GET the snapshot from>
 resulturl:        <URL to PUT the result too>
 test: <testname>  <test commands that will be executed inside the 
@@ -71,14 +70,24 @@ test: <testname>  <test commands that will be executed inside the
 
 An arbitrary number of "test:" lines can be added to the
 configuration. Note that the "test:" lines must come last in the
-configuration file.
+configuration file. <testname> should be low on funny characters as it
+will be used in file and directory names.
+
+BUGS: Multiple adjacent spaces in a <test command> will be merged into
+      one space. Commands like `make CC="/odd/p    ath/cc" will therefor
+      fail.
+
+Each client installation also has a config/contact.txt that should
+list a contact address for the person responsible for that particilar
+client installation. The client will automaticly ask for an email
+address the first time it starts up.
 
 
 5.  Starting the client.
 
-To check that your client setup is working run `./client.sh` once
-manually and make sure it completes properly and sends the result to
-the result collector.
+To check that your client setup is working and to configure the
+contact email address run `./client.sh` once manually and make sure it
+completes properly and sends the result to the result collector.
 
 The normal way of running the Xenofarm client is to make an entry in
 the crontab. 
@@ -96,10 +105,10 @@ Examples:
  24 2 * * * cd $HOME/xenofarm/client/ && ./client.sh 1>/dev/null
 
 The "1>/dev/null" will make sure that you only get emails from the
-cron daemon when somthing goes seriously wrong. You can leave it out
+cron daemon when something goes seriously wrong. You can leave it out
 if you wish to get a complete log mailed to you every time the client
 is started.
 
-note: There is no problem with letting it running often as it will
-make sure there isn't another client already running and check if
-there is a new snapshot available before downloading anything.
+NOTE: There is no problem with letting it running often as it will
+      make sure there isn't another client already running and check
+      if there is a new snapshot available before downloading anything.
