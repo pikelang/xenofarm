@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.5 2002/05/17 10:42:43 zino Exp $
+# $Id: client.sh,v 1.6 2002/05/18 11:05:26 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -87,7 +87,7 @@ check_delay() {
 sigint() {
     echo "SIGINT recived. Exiting."
     rm -f $pidfile
-    exit 0    
+    exit 0
 }
 sighup() {
     echo "SIGHUP recived. Exiting for now."
@@ -97,13 +97,17 @@ sighup() {
 
 #Execcution begins here.
 
+#Set up signal handlers
 trap sighup 1
 trap sigint 2
 trap sigint 15
 
+#Get user input
 parse_args $@
 
-pidfile="`pwd`/autobuild-`uname -n`.pid"
+#Check and handle the pidfile for this node
+node=`uname -n`
+pidfile="`pwd`/autobuild-$node.pid"
 if [ -r $pidfile ]; then
     pid=`cat $pidfile`
     if `kill -0 $pid`; then
@@ -117,18 +121,24 @@ fi
 
 echo $$ > $pidfile
 
-if [ ! -x put ]; then
+#Make sure there is a put command available for this node
+if [ ! -x bin/put-$node ] ; then
+    make clean
     make put
-    if [ ! -x put ]; then
-        echo "FATAL: No put command found."
+    if [ ! -x put ] ; then
+        echo "FATAL: Failed to compile put."
         rm $pidfile
         exit 3
+    else
+	mkdir bin 2>/dev/null
+	mv put bin/put-$node
     fi
 fi
 
+#Build Each project and each target in that project sequentially
 basedir="`pwd`"
 grep -v \# projects.conf | ( while 
-    read project ; do 
+    read project ; do
     read dir
     read geturl
     read puturl
@@ -141,26 +151,28 @@ grep -v \# projects.conf | ( while
         # This will drop from the subshell to the backend
         exit 0;
     else
+	dir="$dir/$node/"
         echo "Building $project in $dir from $geturl with targets: $targets"
     fi
 
     if [ ! -x "$dir" ]; then
-        mkdir "$dir"
+	#FIXME: Define portable recursive mkdir
+        mkdir -p "$dir"
     fi
 
     (cd "$dir" &&
      uncompressed=0
      NEWCHECK="`ls -l snapshot.tar.gz`";
      wget --dot-style=binary -N "$geturl" &&
-     if [ X"`ls -l snapshot.tar.gz`" == X"$NEWCHECK" ]; then
+     if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         echo "NOTE: No newer snapshot for $project available."
      fi
      rm -rf buildtmp && mkdir buildtmp && 
      cd buildtmp &&
-     for target in `echo $targets`; do
-        #FIXME: Check if the project configurable build delay has passed
+     for target in `echo $targets` ; do
         if [ \! -f "../last_$target" ] ||
-           [ "../last_$target" -ot ../../snapshot.tar.gz ]; then
+           [ "../last_$target" -ot ../../snapshot.tar.gz ] ; then
+        #FIXME: Check if the project configurable build delay has passed
         if `check_delay`; then
             if [ x"$uncompressed" = x0 ] ; then
               echo "Uncompressing archive..." &&
@@ -173,13 +185,13 @@ grep -v \# projects.conf | ( while
                 exit 4
               fi
             fi
-            cd */. 
+            cd */.
             resultdir="../../result_$target"
             rm -rf "$resultdir" && mkdir "$resultdir" &&
             cp export.stamp "$resultdir/" &&
             echo "Building $target" &&
             make $target >"$resultdir/RESULT" 2>&1;
-            if [ -f autobuild_result.tar.gz ]; then
+            if [ -f autobuild_result.tar.gz ] ; then
                 mv autobuild_result.tar.gz "$resultdir/"
             else
                 (cd "$resultdir" && 
@@ -188,7 +200,8 @@ grep -v \# projects.conf | ( while
             fi
             get_time
             echo $hour:$minute > "../../last_$target";
-            $basedir/put "$puturl" < "$resultdir/autobuild_result.tar.gz" &
+	    echo "Sending results for $project: $target."
+            $basedir/bin/put-$node "$puturl" < "$resultdir/autobuild_result.tar.gz" &
             cd ..
         else
             echo "NOTE: Build delay for $project not passed. Skipping."
