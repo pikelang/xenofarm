@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.46 2002/09/12 19:49:08 zino Exp $
+# $Id: client.sh,v 1.47 2002/09/12 21:25:34 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -70,7 +70,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.46 2002/09/12 19:49:08 zino Exp $
+	echo \$Id: client.sh,v 1.47 2002/09/12 21:25:34 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -459,9 +459,15 @@ export PATH LC_ALL
 
 #Try to limit the damage if something goes out of hand.
 #NOTE: Limitations are per spawned process. You can still get plenty hurt.
-ulimit -d 102400  # data segment   < 100 MiB
-ulimit -v 204800  # virtual memory < 200 MiB
-ulimit -t 14400   # CPU            < 4h
+# data segment   < 100 MiB
+ulimit -d 102400 2>/dev/null ||
+    echo "NOTE: Failed to limit data segment. Might already be lower."
+# virtual memory < 200 MiB
+ulimit -v 204800 2>/dev/null || 
+    echo "NOTE: Failed to limit virtual mem. Might already be lower."
+# CPU            < 4h
+ulimit -t 14400  2>/dev/null || 
+    echo "NOTE: Failed to limit CPU time. Might already be lower."
 
 #Get user input
 parse_args $@
