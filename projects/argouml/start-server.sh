@@ -31,7 +31,7 @@ do
 	--work-dir=$ROOT/work/res \
 	--once
 
-    SPARA_DAGAR=14
+    SPARA_DAGAR=8
     export SPARA_DAGAR
 
     # Bygg hemsidan
