@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.29 2002/08/29 22:16:27 zino Exp $
+# $Id: client.sh,v 1.30 2002/08/29 22:24:02 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -64,7 +64,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.29 2002/08/29 22:16:27 zino Exp $
+	echo \$Id: client.sh,v 1.30 2002/08/29 22:24:02 zino Exp $
 	exit 0
   ;;
   *)
@@ -295,7 +295,7 @@ make_machineid() {
           >> machineid.txt &&
        echo "putversion: `$basedir/$putname --version`" \
           >> machineid.txt &&
-       cat config/contact.txt   >> machineid.txt
+       cat "$basedir/config/contact.txt" >> machineid.txt
 }
 
 #Run _one_ test
