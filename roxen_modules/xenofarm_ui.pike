@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.27 2002/11/30 06:15:11 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.28 2002/11/30 19:44:16 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -177,12 +177,14 @@ static class Build {
 
     foreach(new_systems, int system) {
       mapping tasks = task_results[system];
-      string status = tasks[build_task];
+      array status = tasks[build_task];
       array data = values(tasks);
       if(!status)
 	results[system] = "FAIL";
-      else if(status=="PASS") {
-	results[system] = my_min( column(data,0) );
+      else if(status[0]=="PASS") {
+	string status = my_min( column(data,0) );
+	if(status=="FAIL") status="WARN";
+	results[system] = status;
       }
       else
 	results[system] = status[0];
