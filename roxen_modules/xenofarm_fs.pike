@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.13 2002/07/29 20:40:36 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.14 2002/07/31 22:37:37 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -203,15 +203,11 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 
     chmod(fn, 0666);
 
-    /*
-    if(id->data && sizeof(id->data)) {
-      to->write(id->data);
-      to->close();
-      return http_string_answer("Thanks!");
-    }
-    */
-
     putting[id->my_fd] = id->misc->len;
+
+    if(id->data && sizeof(id->data))
+      got_put_data( ({ to, id->my_fd, id }), id->data );
+
     if(id->clientprot == "HTTP/1.1")
       id->my_fd->write("HTTP/1.1 100 Continue\r\n");
 
