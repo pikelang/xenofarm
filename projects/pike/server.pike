@@ -1,7 +1,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.13 2002/07/23 15:45:00 mani Exp $
+// $Id: server.pike,v 1.14 2002/07/25 02:06:56 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -31,13 +31,11 @@ constant latest_pike73_checkin = "http://pelix.ida.liu.se/development/cvs/latest
 
 // XXXX-YYYYMMDD-hhmmss.tar.gz
 int time_from_filename(string fn) {
-  int Y,M,D,h,m,s;
-  if( sscanf(fn, "%*s-%4d%2d%2d-%2d%2d%2d",
-	     Y,M,D,h,m,s)!=7 )
-    return 0;
-  int isdst = localtime(time())->isdst;
-  int tz = localtime(time())->timezone;
-  return mktime(s,m,h,D,M-1,Y-1900,isdst,tz);
+  catch {
+    if( sscanf(fn, "%*s-%s.", fn)!=2 ) return 0;
+    return Calendar.set_timezone("UTC")->parse("%d-%t", fn)->unix_time();
+  };
+  return 0;
 }
 
 int get_latest_checkin()
@@ -52,7 +50,14 @@ int get_latest_checkin()
     return 0;
   }
 
-  return Calendar.set_timezone("UTC")->dwim_time(timestamp)->unix_time();
+  err = catch {
+    int ts = Calendar.set_timezone("UTC")->dwim_time(timestamp)->unix_time();
+    return ts;
+  };
+
+  if(err)
+    write(describe_backtrace(err));
+  return 0;
 }
 
 string make_build_low() {
@@ -78,4 +83,4 @@ string make_build_low() {
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.13 2002/07/23 15:45:00 mani Exp $\n";
+"$Id: server.pike,v 1.14 2002/07/25 02:06:56 mani Exp $\n";
