@@ -19,8 +19,12 @@
 /projects/pike/gc.pike foreign_ident
 /projects/pike/result_parser.pike foreign_ident
 /projects/pike/result_parser_7.3.pike foreign_ident
+/projects/pike/result_parser_7.4.pike foreign_ident
+/projects/pike/result_parser_7.5.pike foreign_ident
 /projects/pike/server.pike foreign_ident
 /projects/pike/server_7.3.pike foreign_ident
+/projects/pike/server_7.4.pike foreign_ident
+/projects/pike/server_7.5.pike foreign_ident
 /projects/pike/start.sh foreign_ident
 /result_parser.pike foreign_ident
 /roxen_modules/xenofarm_fs.pike foreign_ident
