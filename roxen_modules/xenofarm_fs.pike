@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.6 2002/05/12 03:13:45 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.7 2002/05/15 17:27:18 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -72,13 +72,12 @@ static int dist_mtime(string f) {
 
 static mapping(object:int) putting = ([]);
 
-static void got_put_data( array(object|string) id_arr, string data ) {
+static void got_put_data( array(object) id_arr, string data ) {
   object to;
   object from;
   object id;
-  object oldf;
 
-  [to, from ,id, oldf] = id_arr;
+  [to, from ,id] = id_arr;
 
   // Truncate last block
   data = data[..putting[from]];
@@ -103,13 +102,12 @@ static void got_put_data( array(object|string) id_arr, string data ) {
   }
 }
 
-static void done_with_put( array(object|string) id_arr ) {
+static void done_with_put( array(object) id_arr ) {
   object to;
   object from;
   object id;
-  object oldf;
 
-  [to, from ,id, oldf] = id_arr;
+  [to, from ,id] = id_arr;
 
   to->close();
   from->set_blocking();
@@ -182,7 +180,7 @@ mapping|Stdio.File find_file(string path, RequestID id) {
     if(!to)
       return http_low_answer(403, "Open new file failed.");
 
-    chmod(fn, 0644);
+    chmod(fn, 0666);
 
     if(id->data && sizeof(id->data)) {
       to->write(id->data);
@@ -194,8 +192,7 @@ mapping|Stdio.File find_file(string path, RequestID id) {
     if(id->clientprot == "HTTP/1.1")
       id->my_fd->write("HTTP/1.1 100 Continue\r\n");
 
-    id->my_fd->set_id( ({ to, id->my_fd, id,
-			  combine_path(mountpoint + "/" + path, ".") }) );
+    id->my_fd->set_id( ({ to, id->my_fd, id }) );
     id->my_fd->set_nonblocking(got_put_data, 0, done_with_put);
     return http_pipe_in_progress();
   }
