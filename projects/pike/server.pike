@@ -1,7 +1,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.1 2002/05/03 15:46:57 mani Exp $
+// $Id: server.pike,v 1.2 2002/05/03 20:37:08 mani Exp $
 
 // The Xenofarm server program is not really intended to be run verbatim, since almost
 // all projects have their own little funny things to take care of. This is an
@@ -13,11 +13,13 @@ Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
 string project = "pike7.3";
 string web_dir = "/home/build/xenofarm/out/";
 
+string pike_version = "7.3";
+
 // Also, our database has a few more fields than the standard definition.
-constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO INCREMENT PRIMARY KEY, "
+constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, "
                   "time INT UNSIGNED NOT NULL, "
                   "project ENUM('pike7.3') NOT NULL, "
-                  "export ENUM('yes','no') NOT NULL, "
+                  "export ENUM('yes','no') NOT NULL DEFAULT 'yes', "
                   "documentation ENUM('yes','no') )";
 
 int get_latest_checkin() {
@@ -25,15 +27,17 @@ int get_latest_checkin() {
 }
 
 string make_build_low() {
-  // "cvs co "+Pike/7.3
-  // "cd "+Pike/7.3
-  // "make autobuild_export"
+  if(Process.system("cvs co Pike/"+pike_version))
+    return 0;
+  cd("Pike/"+pike_version);
+  if(Process.system("make autobuild_export"))
+     return 0;
 
   array potential_build_names = glob("Pike*", get_dir("."));
   if(!sizeof(potential_build_names)) {
-    // Register export failure (db?)
-    // Remove build tree
-    return;
+    xfdb->query("INSERT INTO builds (time, project, export) VALUES (%d,%s,'no')", latest_build, project);
+    Stdio.recursive_rm("Pike/"+pike_version);
+    return 0;
   }
   return potential_build_names[0];
 }

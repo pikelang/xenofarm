@@ -1,12 +1,12 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.1 2002/05/03 15:46:57 mani Exp $
+// $Id: server.pike,v 1.2 2002/05/03 20:37:08 mani Exp $
 
 Sql.Sql xfdb;
 
 // One way to improve the database is to use an enum for the project column.
-constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO INCREMENT PRIMARY KEY, "
+constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, "
                   "time INT UNSIGNED NOT NULL, "
                   "project VARCHAR(255) NOT NULL)";
 
@@ -15,7 +15,10 @@ int checkin_poll = 60;
 int checkin_latency = 60*5;
 
 string project;
+
 string web_dir;
+string repository;
+
 
 int latest_build;
 
@@ -26,15 +29,21 @@ int get_latest_build() {
 }
 
 int get_latest_checkin() {
-  // Parser.RCS code here.
+  // Parse history file
   return 0;
 }
 
 string make_build_low() {
-  // cvs co project
-  // tar project
-  // gzip project
-  return filename;
+  if(!Process.system("cvs co "+repository))
+    return 0;
+
+  if(!Process.system("tar -c "+repository+" > "+project+".tar"))
+    return 0;
+
+  if(!Process.system("gzip -9 "+project+".tar"))
+    return 0;
+
+  return project+".tar.gz";
 }
 
 void make_build() {
@@ -62,8 +71,13 @@ void check_settings() {
     werror("%s does not exist.\n", web_dir);
     exit(1);
   }
-  if(!fil_stat(web_dir)->isdir) {
+  if(!file_stat(web_dir)->isdir) {
     werror("%s is no directory.\n", web_dir);
+    exit(1);
+  }
+
+  if(!repository) {
+    werror("No repository selected.\n");
     exit(1);
   }
 
@@ -74,15 +88,16 @@ void check_settings() {
 }
 
 int main(int num, array(string) args) {
-  werror(prog_name);
+  werror(prog_id);
 
-  foreach(Getopt.find_all_options(argv, ({
+  foreach(Getopt.find_all_options(args, ({
     ({ "db",        Getopt.HAS_ARG, "--db"           }),
     ({ "distance",  Getopt.HAS_ARG, "--min-distance" }),
     ({ "help",      Getopt.NO_ARG,  "--help"         }),
     ({ "latency",   Getopt.HAS_ARG, "--latency"      }),
     ({ "poll",      Getopt.HAS_ARG, "--poll"         }),
-    ({ "webdir",   Getopt.HAS_ARG, "--web-dir"      }),
+    ({ "webdir",    Getopt.HAS_ARG, "--web-dir"      }),
+    ({ "repository",Getopt.HAS_ARG, "--repository"   }),
   }) ),array opt)
     {
       switch(opt[0])
@@ -105,9 +120,15 @@ int main(int num, array(string) args) {
 
       case "db":
 	xfdb = Sql.Sql( opt[1] );
+	break;
 
       case "webdir":
 	web_dir = opt[1];
+	break;
+
+      case "repository":
+	repository = opt[1];
+	break;
       }
     }
 
