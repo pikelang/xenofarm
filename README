@@ -318,9 +318,25 @@ You also need a web export directory (more about this below).
 
   $ mkdir -p /some/path/pythonexport
 
-Finally, you need to create a database populate it with a few tables:
+Finally, you need to create a database.  Assuming that the user
+"linus" will do the database maintenance and run server.pike and
+result_parser.pike, and that the Roxen modules will run as user "www",
+these commands will set up the privileges properly for a database
+called "argouml_xenofarm":
 
-  [FIXME -- what is the proper way to do this?]
+  $ mysql -u root -p
+  mysql> create database argouml_xenofarm;
+  mysql> grant select, insert, update, delete, create, drop, index, alter
+      -> on argouml_xenofarm.*
+      -> to linus@localhost;
+  mysql> grant select, insert, update, delete
+      -> on argouml_xenofarm.*
+      -> to www@localhost;
+  mysql> exit
+
+And then populate it with a few tables:
+
+  mysql -u linus -p < tables.sql
 
 Once all this is in place, you can run the generic script like this:
 
