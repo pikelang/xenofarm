@@ -1,9 +1,20 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.3 2002/06/17 17:33:12 mani Exp $
+// $Id: result_parser.pike,v 1.4 2002/07/16 12:29:14 mani Exp $
 
 inherit "result_parser.pike";
+
+constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
+                   "name VARCHAR(255) NOT NULL, "
+                   "platform VARCHAR(255) NOT NULL)";
+
+constant db_def2 = "CREATE TABLE result (build INT UNSIGNED NOT NULL, " // FK build.id
+                   "system INT UNSIGNED NOT NULL, " // FK system.id
+                   "status ENUM('failed','built','verified','exported') NOT NULL, "
+                   "warnings INT UNSIGNED NOT NULL, "
+                   "time_spent INT UNSIGNED NOT NULL, "
+                   "PRIMARY KEY (build, system) )";
 
 Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
 string result_dir = "/home/nilsson/xenofarm/in/";
@@ -44,8 +55,24 @@ void parse_build_id(string fn, mapping res) {
   int build_time = mktime(sec, min, hour, day, month-1, year-1900, 0, 0);
   if(!build_time) return;
 
-  res->build = xfdb->query("SELECT id FROM build WHERE "
-			   "project='pike7.3' AND time=%d",
-			   build_time)[0]->id;
+  res->build = (int)xfdb->query("SELECT id FROM build WHERE "
+				"project='pike7.3' AND time=%d",
+				build_time)[0]->id;
 }
 
+void parse_log(string fn, mapping res) {
+  ::parse_log(fn, res);
+
+  if(res->status=="built") {
+    res->status="exported";
+    return;
+  }
+
+  if(res->time_export) {
+    res->status = "verified";
+    return;
+  }
+
+  if(res->time_verify)
+    res->status = "built";
+}

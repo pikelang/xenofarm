@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.5 2002/06/17 17:32:34 mani Exp $
+// $Id: result_parser.pike,v 1.6 2002/07/16 12:29:14 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -9,9 +9,10 @@ constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL
 
 constant db_def2 = "CREATE TABLE result (build INT UNSIGNED NOT NULL, " // FK build.id
                    "system INT UNSIGNED NOT NULL, " // FK system.id
-                   "status ENUM('failed','built','verified','exported') NOT NULL, "
+                   "status ENUM('failed','built') NOT NULL, "
                    "warnings INT UNSIGNED NOT NULL, "
-                   "time_spent INT UNSIGNED NOT NULL)";
+                   "time_spent INT UNSIGNED NOT NULL, "
+                   "PRIMARY KEY (build, system) )";
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -58,8 +59,16 @@ void parse_log(string fn, mapping res) {
     if(last_item)
       res["time_"+last_item] = new-last_time;
     last_time = new;
+    if(thing[0]=="Xenofarm OK")
+      res->status = "built";
     sscanf(thing[0], "Begin %s", last_item);
   }
+  int total;
+  foreach(res; string ind; mixed val) {
+    if(has_prefix(ind, "time_"))
+      total += val;
+  }
+  res->total_time = total;
 }
 
 void count_warnings(string fn, mapping res) {
@@ -76,31 +85,27 @@ void count_warnings(string fn, mapping res) {
 	warnings++;
     }
   }
-    res->warnings = warnings;
+  res->warnings = warnings;
 }
 
 void store_result(mapping res) {
-  werror("%O\n", res);
-  return;
-  array qres = xfdb->query("SELECT id FROM system WHERE name=%s && platform=%s",
-			   res->name, res->platform);
-
-  if(!res->name || !res->platform)
+  if(!res->host || !res->platform)
     return;
 
-  int system_id;
+  array qres = xfdb->query("SELECT id FROM system WHERE name=%s && platform=%s",
+			   res->host, res->platform);
+
   if(sizeof(qres))
-    system_id = qres[0]->id;
+    res->system = (int)qres[0]->id;
   else {
     xfdb->query("INSERT INTO system (name, platform) VALUES (%s,%s)",
-		res->name, res->platform);
-    system_id = xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+		res->host, res->platform);
+    res->system = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
-  res->system = system_id;
 
-  xfdb->query("INSERT INTO result (build,system,status,warnings,time_spent) "
+  xfdb->query("REPLACE INTO result (build,system,status,warnings,time_spent) "
 	      "values (%d,%d,%s,%d,%d)", res->build, res->system,
-	      res->status, res->warnings, res->time_spent);
+	      res->status, res->warnings, res->total_time);
 }
 
 mapping low_process_package() {
@@ -144,7 +149,7 @@ void process_package(string fn) {
   mapping result = low_process_package();
 
   if(result->build && result->system) {
-    mkdir(web_dir, result->build+"_"+result->system);
+    mkdir(web_dir + result->build+"_"+result->system);
     // mv dir, webdir
   }
 
@@ -155,6 +160,10 @@ void process_package(string fn) {
 }
 
 int main(int num, array(string) args) {
+
+  if(web_dir[-1]!='/') web_dir += "/";
+  if(work_dir[-1]!='/') work_dir += "/";
+  if(result_dir[-1]!='/') result_dir += "/";
 
   if(!cd(work_dir)) {
     write("Could not cd to working dir %O\n", work_dir);
