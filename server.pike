@@ -3,14 +3,9 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.36 2002/11/23 18:15:51 jhs Exp $
+// $Id: server.pike,v 1.37 2002/11/30 03:25:58 mani Exp $
 
 Sql.Sql xfdb;
-
-// One way to improve the database is to use an enum for the project column.
-constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, "
-                  "time INT UNSIGNED NOT NULL, "
-                  "project VARCHAR(255) NOT NULL)";
 
 constant checkin_state_file = "state/checkin.timestamp";
 
@@ -84,8 +79,7 @@ string fmt_time(int t) {
 // this project.
 int get_latest_build()
 {
-  array res = persistent_query("SELECT MAX(time) AS latest_build "
-			       "FROM build WHERE project=%s", project);
+  array res = persistent_query("SELECT MAX(time) AS latest_build FROM build");
   if(!res || !sizeof(res)) return 0;
   return (int)res[0]->latest_build;
 }
@@ -180,21 +174,20 @@ string make_build_low(int latest_checkin)
   string name = sprintf("%s-%s-%s", project,
 			at->format_ymd_short(),
 			at->format_tod_short());
-  persistent_query("INSERT INTO build (time, project) VALUES (%d,%s)",
-		   latest_build, project);
+  persistent_query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
+		   latest_build);
 
   string buildid;
   mixed err = catch {
     buildid = xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   };
   if(err) {
-    catch(xfdb->query("DELETE FROM build WHERE time=%d && project=%s",
-		      latest_build, project));
+    catch(xfdb->query("DELETE FROM build WHERE time=%d", latest_build));
     return 0;
   }
 
   if (!transform_source(cvs_module, name, buildid)) {
-    persistent_query("DELETE FROM build WHERE id = %s", buildid);
+    persistent_query("UPDATE build SET export='FAIL' WHERE id=%d", (int)buildid);
     return 0;
   }
 
@@ -287,19 +280,19 @@ int main(int num, array(string) args)
   int (0..1) force_build;
 
   foreach(Getopt.find_all_options(args, ({
-    ({ "db",        Getopt.HAS_ARG, "--db"           }),
-    ({ "distance",  Getopt.HAS_ARG, "--min-distance" }),
-    ({ "force",     Getopt.NO_ARG,  "--force"        }),
-    ({ "help",      Getopt.NO_ARG,  "--help"         }),
-    ({ "latency",   Getopt.HAS_ARG, "--latency"      }),
-    ({ "module",    Getopt.HAS_ARG, "--cvs-module"   }),
-    ({ "poll",      Getopt.HAS_ARG, "--poll"         }),
-    ({ "repository",Getopt.HAS_ARG, "--repository"   }),
-    ({ "verbose",   Getopt.NO_ARG,  "--verbose"      }),
-    ({ "webdir",    Getopt.HAS_ARG, "--web-dir"      }),
-    ({ "workdir",   Getopt.HAS_ARG, "--work-dir"     }),
-    ({ "sourcetransformer", Getopt.HAS_ARG, "--source-transform" }),
-    ({ "updateopts", Getopt.HAS_ARG, "--update-opts" }),
+    ({ "db",          Getopt.HAS_ARG, "--db"           }),
+    ({ "distance",    Getopt.HAS_ARG, "--min-distance" }),
+    ({ "force",       Getopt.NO_ARG,  "--force"        }),
+    ({ "help",        Getopt.NO_ARG,  "--help"         }),
+    ({ "latency",     Getopt.HAS_ARG, "--latency"      }),
+    ({ "module",      Getopt.HAS_ARG, "--cvs-module"   }),
+    ({ "poll",        Getopt.HAS_ARG, "--poll"         }),
+    ({ "repository",  Getopt.HAS_ARG, "--repository"   }),
+    ({ "verbose",     Getopt.NO_ARG,  "--verbose"      }),
+    ({ "webdir",      Getopt.HAS_ARG, "--web-dir"      }),
+    ({ "workdir",     Getopt.HAS_ARG, "--work-dir"     }),
+    ({ "transformer", Getopt.HAS_ARG, "--transformer" }),
+    ({ "updateopts",  Getopt.HAS_ARG, "--update-opts" }),
   }) ),array opt)
     {
       switch(opt[0])
@@ -348,7 +341,7 @@ int main(int num, array(string) args)
 	work_dir = opt[1];
 	break;
 
-      case "sourcetransformer":
+      case "transformer":
 	source_transformer = opt[1];
 	break;
 
@@ -430,7 +423,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.36 2002/11/23 18:15:51 jhs Exp $\n";
+"$Id: server.pike,v 1.37 2002/11/30 03:25:58 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
@@ -438,8 +431,6 @@ mandatory and the project is the name of the project.
 Possible arguments:
 
 --cvs-module   The CVS module the server should use.
---update-opts  CVS options to append to \"cvs -q update\".  Default: \"-d\".
-               \"--update-opts=-Pd\" also makes sense.
 --db           The database URL, e.g. mysql://localhost/xenofarm.
 --force        Make a new build and exit.
 --help         Displays this text.
@@ -451,8 +442,10 @@ Possible arguments:
 --poll         How often the CVS is queried for new checkins.
                Defaults to every 60 seconds.
 --repository   The CVS repository the server should use.
+--transformer  Program that builds the source package (see README).
+--update-opts  CVS options to append to \"cvs -q update\".  Default: \"-d\".
+               \"--update-opts=-Pd\" also makes sense.
 --verbose      Send messages about everything that happens to stdout.
 --web-dir      Where the outgoing build packages should be put.
 --work-dir     Where temporary files should be put.
---source-transform Program that builds the source package (see README).
 ";
