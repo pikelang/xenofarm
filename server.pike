@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.30 2002/11/01 19:08:20 jhs Exp $
+// $Id: server.pike,v 1.31 2002/11/03 00:46:33 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -387,7 +387,8 @@ int main(int num, array(string) args)
   int sleep_for;
   while(1)
   {
-    int now = Calendar.now()->unix_time(), delta = now - latest_build;
+    int now = Calendar.now()->unix_time();
+    int delta = now - latest_build;
 
     if(delta < min_build_distance) // Enforce minimum time between builds
     {
@@ -423,7 +424,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.30 2002/11/01 19:08:20 jhs Exp $\n";
+"$Id: server.pike,v 1.31 2002/11/03 00:46:33 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
