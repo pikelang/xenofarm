@@ -18,6 +18,7 @@ do
 	--web-dir=$ROOT/export \
 	--work-dir=$ROOT/work \
 	--transformer=`pwd`/argouml-server.sh \
+	--min-distance=14400 \
 	--once \
 	argouml
 
@@ -29,7 +30,7 @@ do
 	--work-dir=$ROOT/work/res \
 	--once
 
-    SPARA_DAGAR=25
+    SPARA_DAGAR=14
     export SPARA_DAGAR
 
     # Bygg hemsidan
@@ -39,6 +40,19 @@ do
     # Rensa bort gamla filer
     ( cd $ROOT && find files -type d -mtime +$SPARA_DAGAR -exec rm -r "{}" ";" )
     ( cd $ROOT && find export -mtime +$SPARA_DAGAR -exec rm "{}" ";" )
+    # packa upp tar-arkiv
+    find $ROOT/files -type f -name junittesthtml.tar -print |
+    while read filename
+    do
+	dir=`dirname $filename`
+	if tar tf $filename | grep '\\.\\.' > /dev/null
+        then
+            echo vi skall inte packa upp denna
+        else
+            ( cd $dir && mkdir junit && cd junit && tar xf ../junittesthtml.tar )
+        fi
+        mv $filename $dir/junittesthtml.tar.done
+    done
 
     sleep 1000
 done
