@@ -2,7 +2,8 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.20 2002/08/13 10:04:43 mani Exp $
+// Made useable on its own by Per Cederqvist
+// $Id: server.pike,v 1.21 2002/08/13 10:10:46 ceder Exp $
 
 Sql.Sql xfdb;
 
@@ -10,6 +11,8 @@ Sql.Sql xfdb;
 constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, "
                   "time INT UNSIGNED NOT NULL, "
                   "project VARCHAR(255) NOT NULL)";
+
+constant checkin_state_file = "state/checkin.timestamp";
 
 int min_build_distance = 60*60*2;
 int checkin_poll = 60;
@@ -36,17 +39,46 @@ int get_latest_build() {
   return (int)res[0]->latest_build;
 }
 
+// The get_latest_checkin function should return the time of the
+// latest checkin. This version actually returns the time we last
+// detected that something has been checked in. That is good enough.
 int get_latest_checkin() {
-  // Parse history file
-  return 0;
+  int latest_checkin;
+
+  if(!file_stat(cvs_module) || !file_stat(cvs_module)->isdir) {
+    write("Please check out %O inside %O and re-run this script.\n", 
+	  cvs_module, work_dir);
+    exit(1);
+  }
+  debug("Running cvs update\n");
+  if(Process.system("(cd "+cvs_module+" && cvs -q update) > tmp/update.log")) {
+    write("Failed to update CVS module %O in %O.\n", cvs_module, getcwd());
+    exit(1);
+  }
+
+  latest_checkin = (int)Stdio.read_file(checkin_state_file);
+
+  if(Stdio.read_file("tmp/update.log") != "") {
+    debug("Something changed: \n%s", Stdio.read_file("tmp/update.log"));
+    latest_checkin = time();
+    Stdio.write_file(checkin_state_file, sprintf("%d\n", latest_checkin));
+  }
+  else {
+    debug("Nothing changed\n");
+  }
+
+  // Handle a missing checkin_state_file file.  This should only happen
+  // the first time server.pike is run.
+  if (latest_checkin == 0) {
+    debug("No checkin timestamp found.  Assuming something changed.\n");
+    latest_checkin = time();
+    Stdio.write_file(checkin_state_file, sprintf("%d\n", latest_checkin));
+  }
+
+  return latest_checkin;
 }
 
 string make_build_low() {
-  if(Process.system("cvs "+repository+" co "+cvs_module)) {
-    write("Failed to check out from CVS module %O to %O.\n", cvs_module, getcwd());
-    return 0;
-  }
-
   object now = Calendar.now()->set_timezone("UTC");
   string name = sprintf("%s-%s-%s", project,
 			now->format_ymd_short(),
@@ -110,6 +142,8 @@ void check_settings() {
       exit(1);
     }
     cd(work_dir);
+    mkdir("tmp");		// Ignore errors. It should normally exist.
+    mkdir("state");		// Ignore errors. It should normally exist.
     // FIXME: Check write privileges.
   }
 
@@ -301,7 +335,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.20 2002/08/13 10:04:43 mani Exp $\n";
+"$Id: server.pike,v 1.21 2002/08/13 10:10:46 ceder Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
