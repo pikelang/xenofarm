@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.2 2002/05/03 20:37:08 mani Exp $
+// $Id: server.pike,v 1.3 2002/05/03 20:45:58 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -19,7 +19,7 @@ string project;
 string web_dir;
 string repository;
 
-
+int(0..1) verbose;
 int latest_build;
 
 int get_latest_build() {
@@ -98,6 +98,7 @@ int main(int num, array(string) args) {
     ({ "poll",      Getopt.HAS_ARG, "--poll"         }),
     ({ "webdir",    Getopt.HAS_ARG, "--web-dir"      }),
     ({ "repository",Getopt.HAS_ARG, "--repository"   }),
+    ({ "verbose",   Getopt.NO_ARG,  "--verbose"      }),
   }) ),array opt)
     {
       switch(opt[0])
@@ -129,6 +130,9 @@ int main(int num, array(string) args) {
       case "repository":
 	repository = opt[1];
 	break;
+
+      case "verbose":
+	verbose = 1;
       }
     }
 
@@ -144,12 +148,15 @@ int main(int num, array(string) args) {
   int next_build;
 
   while(1) {
+    if(verbose) werror("Sleep %d seconds...\n", real_checkin_poll);
     sleep(real_checkin_poll);
     real_checkin_poll = checkin_poll;
 
     // Is there a queued build?
     if(next_build) {
+      if(verbose) werror("There is a new build scheduled.\n");
       if(next_build<time()) {
+	if(verbose) werror("Making new build.\n");
 	make_build();
 	latest_build = get_latest_build();
 	next_build = 0;
@@ -158,10 +165,13 @@ int main(int num, array(string) args) {
     }
 
     // Enforce build distances
-    if(time()-latest_build < min_build_distance)
+    if(time()-latest_build < min_build_distance) {
+      if(verbose) werror("Enforce build distances\n");
       continue;
+    }
 
     int new_checkin = get_latest_checkin();
+    if(verbose) werror("Latest checkin %d seconds ago.\n", time()-new_checkin);
     if(new_checkin>latest_build)
       next_build = new_checkin+checkin_latency;
 
