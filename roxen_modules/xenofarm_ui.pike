@@ -4,11 +4,11 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.29 2002/12/02 03:28:33 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.30 2002/12/02 22:34:02 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
-constant module_doc  = "...";
+constant module_doc  = "Module for visualization of Xenofarm build results.";
 constant module_unique = 1;
 
 static class DatabaseVar
@@ -30,7 +30,7 @@ void create()
 			   "for all build and result data."));
 
   defvar("results", 10, "Number of results", TYPE_INT,
-	 "The maximum number of results" );
+	 "The maximum number of results stored in the internal cache." );
 
   defvar("latency", 60, "Overview update latency", TYPE_INT,
 	 "The number of seconds between successive updates of the "
@@ -281,14 +281,14 @@ static class Project {
     if(sizeof(builds))
       latest_build = builds[0]->build_datetime;
 
-    array new = xfdb->query("SELECT id,name FROM task WHERE id > " +
-			    sizeof(tasks));
+    array new = xfdb->query("SELECT id,name,parent FROM task ORDER BY parent");
 
-    if(sizeof(tasks)==0)
-      tasks = mkmapping( (array(int))new->id, new->name );
-    else
-      foreach(new, mapping res)
+    if(sizeof(tasks)!=sizeof(new)) 
+      foreach(new, mapping res) {
+	if((int)res->parent)
+	  res->name = tasks[ (int)res->parent ] + "-" + res->name;
 	tasks[ (int)res->id ] = res->name;
+      }
 
     new = xfdb->query("SELECT id,time,export FROM build WHERE time > %d"
 			    " ORDER BY time DESC LIMIT %d", latest_build,
