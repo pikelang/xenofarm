@@ -109,10 +109,10 @@ def format_time(t=None):
 
 def latest_content(systems, tasks):
     ctr = {
-        'green': 0,
-        'yellow': 0,
-        'red': 0,
-        'white': 0,
+        'PASS': 0,
+        'WARN': 0,
+        'FAIL': 0,
+        'NONE': 0,
         }
     lastbuild = None
     lastplat = None
@@ -171,7 +171,7 @@ def result_row(bs, tasks, leftanchor, leftlabel,
     res.append("  <tr>")
     res.append(leftanchor(bs, leftlabel(bs)))
 
-    row_status = "white"
+    row_status = "NONE"
 
     cursor = _DB.cursor()
     cursor.execute("select task, status, warnings"
@@ -187,23 +187,23 @@ def result_row(bs, tasks, leftanchor, leftlabel,
     for (task, taskname) in tasks:
         logtypes = ["log"]
         if not m.has_key(task):
-            color = "white"
+            color = "NONE"
         else:
             (status, warnings) = m[task]
             if status == "FAIL":
-                color = "red"
+                color = "FAIL"
                 logtypes.insert(0, "warn")
                 logtypes.insert(0, "fail")
-                row_status = "red"
+                row_status = "FAIL"
             elif status == "WARN":
-                color = "yellow"
+                color = "WARN"
                 logtypes.insert(0, "warn")
-                if row_status == "green" or row_status == "white":
-                    row_status = "yellow"
+                if row_status == "PASS" or row_status == "NONE":
+                    row_status = "WARN"
             elif status == "PASS":
-                color = "green"
-                if row_status == "white":
-                    row_status = "green"
+                color = "PASS"
+                if row_status == "NONE":
+                    row_status = "PASS"
 
         astart = ""
         aend = ""
@@ -218,14 +218,16 @@ def result_row(bs, tasks, leftanchor, leftlabel,
                     taskname, link)
                 aend = '</a>'
                 break
-        if astart != "" or color != "white":
-            res.append('    <th>%s<img border=0 src="%s%s.gif">%s</th>' % (
-                astart, updatehtml_cfg.button_url_prefix, color, aend))
+        if astart != "" or color != "NONE":
+            res.append('    <th>%s<img border=0 src="%s%s%s">%s</th>' % (
+                astart, updatehtml_cfg.button_url_prefix,
+                color, updatehtml_cfg.button_ext, aend))
         else:
             res.append('    <th>&nbsp;</th>')
 
-    res.append('    <th><img border=0 src="%s%s.gif"></th>' % (
-        updatehtml_cfg.button_url_prefix, row_status))
+    res.append('    <th><img border=0 src="%s%s%s"></th>' % (
+        updatehtml_cfg.button_url_prefix, row_status,
+        updatehtml_cfg.button_ext))
 
     if rightanchor != None:
         res.append(rightanchor(bs, rightlabel(bs)))
@@ -242,6 +244,7 @@ def update_latest():
     m["project"] = updatehtml_cfg.projectname
     m["now"] = format_time()
     m["button_url_prefix"] = updatehtml_cfg.button_url_prefix
+    m["button_ext"] = updatehtml_cfg.button_ext
     m["heading"] = latest_heading_row(tasks)
     m["content"] = tbl
 
@@ -257,12 +260,7 @@ class task_result:
         self.time_spent = time_spent
 
     def color(self):
-        if self.status == "PASS":
-            return "green"
-        if self.status == "WARN":
-            return "yellow"
-        if self.status == "FAIL":
-            return "red"
+        return self.status
 
 
 def get_task_results(buildid, systemid):
@@ -326,6 +324,7 @@ def mkindex(buildid, systemid, force = 0):
     m["project"] = updatehtml_cfg.projectname
     m["now"] = format_time()
     m["button_url_prefix"] = updatehtml_cfg.button_url_prefix
+    m["button_ext"] = updatehtml_cfg.button_ext
     m["result_overview_url"] = updatehtml_cfg.result_overview_url
 
     m["buildid"] = buildid
@@ -351,25 +350,23 @@ def mkindex(buildid, systemid, force = 0):
     tasks = get_task_results(buildid, systemid)
 
     # Count tasks.
-    green = 0
-    yellow = 0
-    red = 0
+    m["PASS"] = 0
+    m["WARN"] = 0
+    m["FAIL"] = 0
     for t in tasks:
         if t.status == "PASS":
-            green += 1
+            m["PASS"] += 1
         if t.status == "WARN":
-            yellow += 1
+            m["WARN"] += 1
         if t.status == "FAIL":
-            red += 1
-    m["green"] = green
-    m["yellow"] = yellow
-    m["red"] = red
+            m["FAIL"] += 1
 
     # Emit task info.
     tl = []
     for t in tasks:
-        tl.append('<p><img border=0 src="%s%s.gif"> ' % (
-            updatehtml_cfg.button_url_prefix, t.color()))
+        tl.append('<p><img border=0 src="%s%s%s"> ' % (
+            updatehtml_cfg.button_url_prefix, t.color(),
+            updatehtml_cfg.button_ext))
         tl.append(t.name)
         tl.append(" %d seconds" % t.time_spent)
         if t.warnings > 0:
@@ -387,8 +384,9 @@ def mkindex(buildid, systemid, force = 0):
     for (t, ) in get_all_task_names():
         fn = t + "log.txt"
         if files_left.has_key(fn):
-            notdone.append('<p><img border=0 src="%swhite.gif"> ' % (
-                updatehtml_cfg.button_url_prefix))
+            notdone.append('<p><img border=0 src="%sNONE%s"> ' % (
+                updatehtml_cfg.button_url_prefix,
+                updatehtml_cfg.button_ext))
             notdone.append(t)
             notdone.append(' not done:<pre>')
             notdone.append(open(os.path.join(dirname, fn), "r").read())
@@ -446,16 +444,17 @@ def mk_build_overview(buildid):
     m["project"] = updatehtml_cfg.projectname
     m["now"] = format_time()
     m["button_url_prefix"] = updatehtml_cfg.button_url_prefix
+    m["button_ext"] = updatehtml_cfg.button_ext
     m["result_overview_url"] = updatehtml_cfg.result_overview_url
 
     m["buildid"] = buildid
     m["buildtime"] = format_time(buildtime)
 
     ctr = {
-        'green': 0,
-        'yellow': 0,
-        'red': 0,
-        'white': 0,
+        'PASS': 0,
+        'WARN': 0,
+        'FAIL': 0,
+        'NONE': 0,
         }
 
     res = []
@@ -513,6 +512,7 @@ def mk_system_overview(systemid):
     m["project"] = updatehtml_cfg.projectname
     m["now"] = format_time()
     m["button_url_prefix"] = updatehtml_cfg.button_url_prefix
+    m["button_ext"] = updatehtml_cfg.button_ext
     m["result_overview_url"] = updatehtml_cfg.result_overview_url
 
     m["systemid"] = systemid
@@ -522,10 +522,10 @@ def mk_system_overview(systemid):
     m["testname"] = sysinfo.testname or "default"
 
     ctr = {
-        'green': 0,
-        'yellow': 0,
-        'red': 0,
-        'white': 0,
+        'PASS': 0,
+        'WARN': 0,
+        'FAIL': 0,
+        'NONE': 0,
         }
 
     res = []

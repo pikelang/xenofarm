@@ -709,17 +709,21 @@ You need to set the following variables in updatehtml.cfg:
   button_url_prefix
       You need to provide four icons:
 
-        green.gif       # OK.
-        yellow.gif      # OK, but with warnings.
-        red.gif         # Failure.
-        white.gif       # Task not done.
+        PASS.gif        # OK. Typically a green dot.
+        WARN.gif        # OK, but with warnings. Typically a yellow dot.
+        FAIL.gif        # Failure. Typically a red dot.
+        NONE.gif        # Task not done. Typically a white dot.
 
       You can use the icons found in the icons/ subdirectory, or
       create your own icons. The button_url_prefix will be prepended
       to the above names to generate the URL that is used to fetch the
       icons. No slash will be inserted, so if your icons are named
-      "foo-green.gif", "foo-yellow.gif", et c, your prefix should end
+      "foo-PASS.gif", "foo-WARN.gif", et c, your prefix should end
       in "/foo-".
+
+  button_ext
+      The extension used for the four icons, such as ".gif" or
+      ".png".
 
   dbname
       The name of the MySQL database that holds the information for

@@ -13,16 +13,16 @@ obsolete.
 <h1>Summary</h1>
 <table border=1>
   <tr>
-    <th><img border=0 src="%(button_url_prefix)sgreen.gif"><br>(OK)</th>
-    <th><img border=0 src="%(button_url_prefix)syellow.gif"><br>(Warning)</th>
-    <th><img border=0 src="%(button_url_prefix)sred.gif"><br>(Failure)</th>
-    <th><img border=0 src="%(button_url_prefix)swhite.gif"><br>(not tested)</th>
+    <th><img border=0 src="%(button_url_prefix)sPASS%(button_ext)s"><br>(OK)</th>
+    <th><img border=0 src="%(button_url_prefix)sWARN%(button_ext)s"><br>(Warning)</th>
+    <th><img border=0 src="%(button_url_prefix)sFAIL%(button_ext)s"><br>(Failure)</th>
+    <th><img border=0 src="%(button_url_prefix)sNONE%(button_ext)s"><br>(not tested)</th>
   </tr>
   <tr>
-    <td>%(green)s</td>
-    <td>%(yellow)s</td>
-    <td>%(red)s</td>
-    <td>%(white)s</td>
+    <td>%(PASS)s</td>
+    <td>%(WARN)s</td>
+    <td>%(FAIL)s</td>
+    <td>%(NONE)s</td>
   </tr>
 </table>
 
@@ -75,14 +75,14 @@ RESULT_PAGE = """<html>
     <td>
       <table border=1>
         <tr>
-          <th><img border=0 src="%(button_url_prefix)sgreen.gif"><br>(OK)</th>
-          <th><img border=0 src="%(button_url_prefix)syellow.gif"><br>(Warning)</th>
-          <th><img border=0 src="%(button_url_prefix)sred.gif"><br>(Failure)</th>
+          <th><img border=0 src="%(button_url_prefix)sPASS%(button_ext)s"><br>(OK)</th>
+          <th><img border=0 src="%(button_url_prefix)sWARN%(button_ext)s"><br>(Warning)</th>
+          <th><img border=0 src="%(button_url_prefix)sFAIL%(button_ext)s"><br>(Failure)</th>
         </tr>
         <tr>
-          <td>%(green)s</td>
-          <td>%(yellow)s</td>
-          <td>%(red)s</td>
+          <td>%(PASS)s</td>
+          <td>%(WARN)s</td>
+          <td>%(FAIL)s</td>
         </tr>
       </table>
     </td>
@@ -135,14 +135,14 @@ the test %(testname)s.
     <td>
       <table border=1>
         <tr>
-          <th><img border=0 src="%(button_url_prefix)sgreen.gif"><br>(OK)</th>
-          <th><img border=0 src="%(button_url_prefix)syellow.gif"><br>(Warning)</th>
-          <th><img border=0 src="%(button_url_prefix)sred.gif"><br>(Failure)</th>
+          <th><img border=0 src="%(button_url_prefix)sPASS%(button_ext)s"><br>(OK)</th>
+          <th><img border=0 src="%(button_url_prefix)sWARN%(button_ext)s"><br>(Warning)</th>
+          <th><img border=0 src="%(button_url_prefix)sFAIL%(button_ext)s"><br>(Failure)</th>
         </tr>
         <tr>
-          <td>%(green)s</td>
-          <td>%(yellow)s</td>
-          <td>%(red)s</td>
+          <td>%(PASS)s</td>
+          <td>%(WARN)s</td>
+          <td>%(FAIL)s</td>
         </tr>
       </table>
     </td>
@@ -187,14 +187,14 @@ This page collects all the results collected for build %(buildid)s.
     <td>
       <table border=1>
         <tr>
-          <th><img border=0 src="%(button_url_prefix)sgreen.gif"><br>(OK)</th>
-          <th><img border=0 src="%(button_url_prefix)syellow.gif"><br>(Warning)</th>
-          <th><img border=0 src="%(button_url_prefix)sred.gif"><br>(Failure)</th>
+          <th><img border=0 src="%(button_url_prefix)sPASS%(button_ext)s"><br>(OK)</th>
+          <th><img border=0 src="%(button_url_prefix)sWARN%(button_ext)s"><br>(Warning)</th>
+          <th><img border=0 src="%(button_url_prefix)sFAIL%(button_ext)s"><br>(Failure)</th>
         </tr>
         <tr>
-          <td>%(green)s</td>
-          <td>%(yellow)s</td>
-          <td>%(red)s</td>
+          <td>%(PASS)s</td>
+          <td>%(WARN)s</td>
+          <td>%(FAIL)s</td>
         </tr>
       </table>
     </td>

@@ -15,6 +15,7 @@ unpacked_results_url = "http://www.lysator.liu.se/xenofarm/lyskom-server/files"
 result_overview_url = "http://www.lysator.liu.se/~ceder/xeno/"
 # Formerly: "buttonurl" and "fullbuttonurl"
 button_url_prefix = "http://www.lysator.liu.se/~ceder/xeno/pcl-"
+button_ext = ".gif"
 
 dbname = "lyskom_server_xenofarm"
 dbuser = "ceder"
