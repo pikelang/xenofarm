@@ -15,7 +15,7 @@ Contents
   7. The Result Parser
     7.1. Format of a Result Package
     7.2. Invoking the Generic Result Parser
-  8. The Result Interface using xenofarm_ui.pike
+  8. The Result Interface using Roxen WebServer
   9. The Result Interface using updatehtml
     9.1 Configuring updatehtml
  10. Garbage Collection
@@ -317,8 +317,7 @@ packages will be created. This must be accessible by a web server.
 
   $ mkdir -p /some/path/pythonexport
 
-You also need a work directory for the generic server script. It must
-be located on the same partition as the web export directory. You must
+You also need a work directory for the generic server script and to
 perform an initial checkout of the Python sources inside the work
 directory, like this:
 
@@ -644,12 +643,275 @@ Arguments:
       mandatory.
 
 
-8. The Result Interface using xenofarm_ui.pike
+8. The Result Interface using Roxen WebServer
 
-There are two competing ways to display the result in a web browser.
-This chapter will maybe someday explain how the Roxen module works.
+If you are running a Roxen WebServer you can use the Xenofarm UI
+module to get dynamically generated result pages. The module keeps
+data structures representing the build results in memory and updates
+them from the database at configurable intervals, to make a good
+combination of speed of presentation and freshness of data. These data
+structures are then available through a collection of RXML tags and
+plugins so that the result pages can be highly customized. If you are
+interested in static pages instead, skip to the "The Result Interface
+using updatehtml" chapter.
 
-TBD
+
+8.1. RXML Tag documentation
+
+<xf-update/> or <xf-update></xf-update>
+
+  Updates the cached result table from the database. The tag works as
+  a mutex if used as a container tag. Then the contents of the tag
+  will not change during output.
+
+  Attributes
+    db=database URL
+
+      The database that contains the Xenofarm result table. Defaults
+      to the database set in as default database in the administration
+      interface. The selected database will propagate automatically to
+      all other xf-tags inside the xf-update tag, unless the tags has
+      db attribute of their own.
+
+  Entities
+    &_.updated;
+
+      Returns the time when the cahed table was updated, eg.
+      "2002-08-30 11:26:01".
+
+Emit plugin xf-build
+
+  Lists all the builds that is in the result table, which size is
+  limited by the "Number of results" setting in the administration
+  interface. A sum of the number of non-failing results for each task
+  is available in an entity with the task name. E.g. the number of
+  returned, non-failing results for build/compile is available in
+  &_.build-compile;.
+
+  Attributes
+    db=database URL
+
+      The database that contains the Xenofarm result table. Defaults
+      to the database set in the containing xf-update tag or, if such
+      tag is missing, the default database in the administration
+      interface.
+
+  Entities
+    &_.id;
+
+      The numeric id of the client.
+
+    &_.last-time;
+
+      The timestamp of the previous build.
+
+    &_.source;
+
+      The result from the source package creation. Can assume one of
+      the values "FAIL", "WARN" and "PASS".
+
+    &_.summary;
+
+      The overall assessment of how well the build went, ie. a min()
+      function of all the plupps in this build. If one plupp is red
+      the summary is red. Can assume one of the values "NONE", "FAIL",
+      "WARN" and "PASS".
+
+    &_.time;
+
+      The time stamp of the build.
+
+Emit plugin xf-machine
+
+  Lists all the clients that are visible on the result table.
+
+  Attributes
+    db=database URL
+
+      The database that contains the Xenofarm result table. Defaults
+      to the database set in the containing xf-update tag or, if such
+      tag is missing, the default database in the administration
+      interface.
+
+    recency=int
+
+      If set, any machine with no returned result within the given
+      number of builds will be removed from the emit result.
+
+    id=int
+
+      If set, the emit will only return information about the machine
+      with this id. Any recency attribute will be ignored.
+
+  Entities
+    &_.id;
+
+      The numeric id of the client.
+
+    &_.machine;
+
+      The machine name of the client. Typically what uname -m would
+      return.
+
+    &_.name;
+
+      The node name of the client. Typically what uname -n would
+      return.
+
+    &_.platform;
+
+      The client system string. Essentially what uname -a would
+      return. If the test is other than the default test, its name is
+      appended to this string.
+
+    &_.release;
+
+      The release of the client OS. Typically what uname -r would
+      return.
+
+    &_.sysname;
+
+      The system name of the client. Typically what uname -s would
+      return.
+
+    &_.test;
+
+      The name of the test performed by the client.
+
+    &_.version;
+
+      The version of the client OS. Typically what uname -v would
+      return.
+
+Emit plugin xf-result
+
+  Lists the results that maches the given search criterions. At least
+  one of the attributes build and machine must be given.
+
+  Attributes
+    db=database URL
+
+      The database that contains the Xenofarm result table. Defaults
+      to the database set in the containing xf-update tag or, if such
+      tag is missing, the default database in the administration
+      interface.
+
+    build=int
+
+      The numerical id of a build.
+
+    machine=int
+
+      The numberical id of a machine.
+
+  Entities
+    &_.build;
+
+      The id of the build.
+
+    &_.status;
+
+      The result status of the build on the current system. Can be any
+      of "NONE", "FAIL", "WARN" and "PASS".
+
+    &_.system;
+
+      The id of the system.
+
+    &_.time;
+
+      The time stamp of the build.
+
+    &_.timespan;
+
+      The time it took to complete the build on the client.
+
+    &_.warnings;
+
+      The number of warnings counted in the result build log.
+
+<xf-details></xf-details>
+
+  Displays detailed information about a specific build. Either the
+  attribute id or the attribute build and client must be present.
+
+  Attributes
+    db=database URL
+
+      The database that contains the Xenofarm result table. Defaults
+      to the database set in the containing xf-update tag or, if such
+      tag is missing, the default database in the administration
+      interface.
+
+    id
+
+      An identification of the build in the form build_client, e.g.
+      107_22.
+
+    build=int
+
+      Which build to show details for. Must be used together with the
+      attribute client.
+
+    client=int
+
+      Which client to show details for. Must be used together with the
+      attribute build.
+
+  Entities
+    &_.build_id
+
+      The numerical build id.
+
+    &_.machine;
+
+      The node name of the client machine.
+
+    &_.machine_id
+
+      The numerical machine id.
+
+    &_.platform
+
+      The system on the client machine. Resembles 'uname -s -r -m'.
+
+    &_.result
+
+      The status of the build, e.g. 'failed'.
+
+    &_.time
+
+      The time spent during build.
+
+    &_.warnings
+
+      The number of warnings detected during build.
+
+<xf-files/>
+
+  Lists files in subdirectories named as build_client. It does not
+  recurse and list files in deeper directories.
+
+  Attributes
+    id
+
+      An identification of the build in the form build_client, e.g.
+      107_22.
+
+    build=int
+
+      Which build to list files for. Must be used together with the
+      attribute client.
+
+    client=int
+
+      Which client to list files for. Must be used together with the
+      attribute build.
+
+    dir=path
+
+      The "root" directory where the subdirectories are stored. This
+      attribute is required.
 
 
 9. The Result Interface using updatehtml
