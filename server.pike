@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.35 2002/11/18 22:07:04 mani Exp $
+// $Id: server.pike,v 1.36 2002/11/23 18:15:51 jhs Exp $
 
 Sql.Sql xfdb;
 
@@ -381,6 +381,7 @@ int main(int num, array(string) args)
     debug("No previous builds found.\n");
 
   int sleep_for;
+  int(0..1) sit_quietly;
   while(1)
   {
     int now = Calendar.now()->unix_time();
@@ -391,11 +392,14 @@ int main(int num, array(string) args)
       sleep_for = min_build_distance - delta;
       debug("Enforcing minimum build distance. Quarantine left: %s.\n",
 	    fmt_time(sleep_for));
+      sit_quietly = 0;
     }
-    else
+    else // After the next commit + inactivity cycle it's time for a new build
     {
       int latest_checkin = get_latest_checkin();
-      debug("Latest checkin was %s ago.\n", fmt_time(now - latest_checkin));
+
+      if(!sit_quietly)
+	debug("Latest checkin was %s ago.\n", fmt_time(now - latest_checkin));
       if(latest_checkin > latest_build)
       {
 	if(latest_checkin + checkin_latency <= now)
@@ -410,17 +414,23 @@ int main(int num, array(string) args)
 	  debug("A new build is scheduled to run in %s.\n",
 		fmt_time(sleep_for));
 	}
-      } else
+	sit_quietly = 0;
+      }
+      else // Polling for the first post-build-quarantine commit
+      {
+	sit_quietly = 1; // until something happens in the repository
 	sleep_for = checkin_poll; // poll frequency
+      }
     }
 
-    debug("Sleeping for %d seconds...\n", sleep_for);
+    if(!sit_quietly)
+      debug("Sleeping for %d seconds...\n", sleep_for);
     sleep(sleep_for);
   }
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.35 2002/11/18 22:07:04 mani Exp $\n";
+"$Id: server.pike,v 1.36 2002/11/23 18:15:51 jhs Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
