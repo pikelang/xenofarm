@@ -441,7 +441,7 @@ machineid.txt
                instance as specified in config/contact.txt>
 
   New identifiers might be added in new versions of the client.
-  Unknown identifiers should not course a fatal error in the
+  Unknown identifiers should not cause a fatal error in the
   result parser. They are available in the result mapping in the
   result_parser.pike program as any other identifier-value pair.
 
