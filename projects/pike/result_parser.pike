@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.17 2002/11/30 03:35:46 mani Exp $
+// $Id: result_parser.pike,v 1.18 2002/11/30 19:06:24 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -95,8 +95,7 @@ void parse_log(string fn, mapping res)
   }
 }
 
-void count_warnings(string fn, mapping res) {
-  ::count_warnings(fn, res);
+int count_warnings(string fn) {
 
   // Highlight warnings.
   if(file_stat("compilelog.txt")) {
@@ -125,4 +124,6 @@ void count_warnings(string fn, mapping res) {
 			lines*"\n"+"\n<a name='bottom'></a></pre>\n"))
       rm("makelog.txt");
   }
+
+  return ::count_warnings(fn);
 }

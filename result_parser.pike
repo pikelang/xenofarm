@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.32 2002/11/30 05:29:47 mani Exp $
+// $Id: result_parser.pike,v 1.33 2002/11/30 19:05:45 mani Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -239,12 +239,12 @@ void parse_log(string fn, mapping res) {
 //! warning is a line that contains the string "warning" or "(w)" (in
 //! any case) and does not match any of the globs listed in the array
 //! ignored_warnings.
-void count_warnings(string fn, mapping res) {
+int count_warnings(string fn) {
   Stdio.FILE file;
   catch {
     file = Stdio.FILE(fn);
   };
-  if(!file) return;
+  if(!file) return 0;
 
   int warnings;
  newline:
@@ -256,7 +256,7 @@ void count_warnings(string fn, mapping res) {
 	warnings++;
     }
   }
-  res->warnings = warnings;
+  return warnings;
 }
 
 //! Calculates the sorting order of a new task.
@@ -395,7 +395,10 @@ mapping low_process_package() {
 
   if(!result->status) {
     parse_log(main_log_file, result);
-    count_warnings(compilation_log_file, result);
+    foreach(result->tasks, array x) {
+      if(x[0]=="build/compile")
+	x[3] = count_warnings(compilation_log_file);
+    }
   }
 
   if(!dry_run)
@@ -626,7 +629,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.32 2002/11/30 05:29:47 mani Exp $\n";
+"$Id: result_parser.pike,v 1.33 2002/11/30 19:05:45 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
