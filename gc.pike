@@ -1,7 +1,7 @@
 
 // Xenofarm Garbage Collect
 // By Martin Nilsson
-// $Id: gc.pike,v 1.4 2002/08/30 00:24:54 mani Exp $
+// $Id: gc.pike,v 1.5 2002/08/30 01:36:43 mani Exp $
 
 string out_dir;
 string result_dir;
@@ -83,39 +83,39 @@ void check_settings() {
 int main(int n, array(string) args) {
 
   foreach(Getopt.find_all_options(args, ({
-    ({ "out_dir",   Getopt.HAS_ARG, "--out-dir"        }),
-    ({ "result_dir",Getopt.HAS_ARG, "--result-dir"     }),
-    ({ "poll",      Getopt.HAS_ARG, "--poll"           }),
     ({ "dists",     Getopt.HAS_ARG, "--dists-left"     }),
-    ({ "results",   Getopt.HAS_ARG, "--results-left"   }),
     ({ "help",      Getopt.NO_ARG,  "--help"           }),
+    ({ "out_dir",   Getopt.HAS_ARG, "--out-dir"        }),
+    ({ "poll",      Getopt.HAS_ARG, "--poll"           }),
+    ({ "result_dir",Getopt.HAS_ARG, "--result-dir"     }),
+    ({ "results",   Getopt.HAS_ARG, "--results-left"   }),
   }) ),array opt)
     {
       switch(opt[0])
       {
-      case "out_dir":
-	out_dir = opt[1];
+      case "dists":
+	dists_left = (int)opt[1];
 	break;
 
-      case "result_dir":
-	result_dir = opt[1];
+      case "help":
+	write(prog_doc);
+	return 0;
+
+      case "out_dir":
+	out_dir = opt[1];
 	break;
 
       case "poll":
 	gc_poll = (int)opt[1];
 	break;
 
-      case "dists":
-	dists_left = (int)opt[1];
+      case "result_dir":
+	result_dir = opt[1];
 	break;
 
       case "results":
 	results_left = (int)opt[1];
 	break;
-
-      case "help":
-	write(prog_doc);
-	return 0;
       }
     }
 
@@ -131,10 +131,10 @@ int main(int n, array(string) args) {
 }
 
 constant prog_doc = #"
---out-dir
---result-dir
---poll
 --dists-left
---results-left
 --help
+--out-dir
+--poll
+--result-dir
+--results-left
 ";
