@@ -46,7 +46,7 @@ inspired by) Tinderbox, a similar system used by the Mozilla
 development team. Xenofarm still sticks to the basic AutoBuild
 concept, but was redesigned to get rid of the few annoying flaws and
 shortcomings of its predecessor. Most notably the system components
-has been more loosly coupled and the system should scale to X
+has been more loosely coupled and the system should scale to X
 different clients performing Y different projects for Z different
 servers.
 
@@ -259,7 +259,7 @@ Arguments:
 
   --force
       Make a new build and exit, regardless if there has been a new
-      chekin or if we are within the min-distance quarantine or
+      checkin or if we are within the min-distance quarantine or
       checkin latency.
 
   --help
@@ -326,8 +326,8 @@ You also need a web export directory (more about this below).
 Finally, you need to create a database. Assuming that the user "linus"
 will do the database maintenance and run server.pike and
 result_parser.pike, that the Roxen modules will run as user "www" and
-that there is a mysql user root that is priviliged to grant others
-priviliges. Under these conditions these commands will set up the
+that there is a mysql user root that is privileged to grant others
+privileges. Under these conditions these commands will set up the
 privileges properly for a database called "python_xenofarm":
 
   $ mysql -u root -p
@@ -385,8 +385,8 @@ files between systems.
 
 The reason to put more than one file in the outgoing directory is to
 enable more redirects than just the "latest" one. It might be
-interesting to export the most successfull one, eg. the one with the
-highest number of successfull builds, as a service for people not
+interesting to export the most successful one, eg. the one with the
+highest number of successful builds, as a service for people not
 interested in the build project, but in the source code itself. In
 this way Xenofarm might act as an automatic QA for people who wants an
 almost CVS-fresh version and still minimizing the risks of upgrading.
@@ -452,7 +452,7 @@ xenofarmclient.txt
 machineid.txt
   This file contains a number of values on the form "identifier:
   value" that identifies the build machine and it's
-  enviroment. Currently it contains the following pairs:
+  environment. Currently it contains the following pairs:
 
      sysname: <output from "uname -s">
      release: <output from "uname -r">
@@ -520,7 +520,7 @@ a new script is found does the following:
  8. Deletes the uploaded package.
 
 The heuristics for calculating the overall result in step 4 is as
-follows: If the task "build" doesn't pass, the the result failed. If
+follows: If the task "build" doesn't pass, the result failed. If
 everything passed, the result passed. Otherwise the build is in the
 state "WARN".
 
@@ -562,7 +562,7 @@ mainlog.txt
   Where "version" is the version of the log file format, which
   currently is "2". The token "task" is the name of the task or group
   of tasks performed. Note that all tasks at the same level and within
-  the same supertask must have uniqe names. "warnings" is a numeric
+  the same supertask must have unique names. "warnings" is a numeric
   value of the number of warnings encountered. "timestamp" is the
   output from the date command in the "C" locale.
 
@@ -616,7 +616,7 @@ Arguments:
       Send messages about everything that happens to stdout.
 
   --web-dir=<path>
-      Where the contents of the result files chould be copied to. This
+      Where the contents of the result files should be copied to. This
       argument is mandatory, unless --dry-run has been issued.
 
   --work-dir=<path>
@@ -663,7 +663,7 @@ Arguments:
       The directory where the outgoing build packages resides.
 
   --poll=<seconds>
-      The number of secods to sleep between every sweep. Defaults to
+      The number of seconds to sleep between every sweep. Defaults to
       two hours.
 
   --result-dir=<path>

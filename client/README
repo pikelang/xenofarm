@@ -91,15 +91,15 @@ This configuration file has precedence over <original.cfg> and will not
 inherit any setting from that file.
 
 BUGS: Multiple adjacent spaces in a <test commands> will be merged into
-      one space. Commands like `make CC="/odd/p    ath/cc" will therefor
+      one space. Commands like `make CC="/odd/p    ath/cc" will thus
       fail.
 
 Since version 3 of the config format one can optionally add one or
-more "enviroment:" lines before the "test:" statements. The lines
-should contain one or more varable assignments on standard sh format.
-These variables will be exported to all test enviroments. Example:
+more "environment:" lines before the "test:" statements. The lines
+should contain one or more variable assignments on standard sh format.
+These variables will be exported to all test environments. Example:
 
-enviroment:       CC=gcc MAKE=gmake
+environment:       CC=gcc MAKE=gmake
 
 Each client installation also has a config/contact.txt that should
 list a contact address for the person responsible for that particular
