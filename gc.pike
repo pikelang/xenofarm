@@ -1,14 +1,18 @@
 
 // Xenofarm Garbage Collect
 // By Martin Nilsson
-// $Id: gc.pike,v 1.2 2002/08/15 00:49:05 mani Exp $
+// $Id: gc.pike,v 1.3 2002/08/20 17:31:56 mani Exp $
 
 string out_dir = "/home/nilsson/xenofarm/out/";
 string result_dir = "/home/nilsson/html/xenofarm_results/";
 
 int gc_poll = 60*60*2;
 int dists_left = 1;
-int results_left = 10;
+int results_left = 11;
+
+void debug(string msg, mixed ... args) {
+  write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
+}
 
 void clean_out_dir(string dir, int save) {
 
@@ -22,9 +26,9 @@ void clean_out_dir(string dir, int save) {
 
   foreach(files, string file)
     if(!rm(combine_path(dir,file)))
-      write("Could not delete %s.\n", combine_path(dir,file));
+      debug("Could not delete %s.\n", combine_path(dir,file));
     else
-      werror("Removed file %s\n", combine_path(dir,file));
+      debug("Removed file %s\n", combine_path(dir,file));
 }
 
 void clean_res_dir(string dir, int save) {
@@ -46,9 +50,9 @@ void clean_res_dir(string dir, int save) {
     sscanf(file, "%d_", b);
     if( builds[b] ) {
       if( !Stdio.recursive_rm(combine_path(dir,file)) )
-	werror("Cuild not delete %s.\n", combine_path(dir,file));
+	debug("Cuild not delete %s.\n", combine_path(dir,file));
       else
-	werror("Removed directory %s\n", combine_path(dir,file));
+	debug("Removed directory %s\n", combine_path(dir,file));
     }
   }
 
@@ -96,7 +100,7 @@ int main(int n, array(string) args) {
   while(1) {
     clean_out_dir(out_dir, dists_left);
     clean_res_dir(result_dir, results_left);
-    write("Waiting...\n");
+    debug("Waiting...\n");
     sleep(gc_poll);
   }
 
