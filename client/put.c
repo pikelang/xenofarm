@@ -15,7 +15,7 @@
 #endif
 void syntax( char * cmd )
 {
-  printf( "Syntax: %s [--help] [--version] [url] < file\n", cmd );
+  printf( "Syntax: %s [--help] [--version] <url> < <file>\n", cmd );
   exit(1);
 }
 
@@ -290,7 +290,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.8 2002/08/25 22:09:25 ceder Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.9 2002/08/29 08:49:15 zino Exp $" );
       exit(0);
     }
     if( (st.st_mode & S_IFMT) != S_IFREG )
