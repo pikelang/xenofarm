@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.9 2002/07/31 22:25:20 mani Exp $
+// $Id: result_parser.pike,v 1.10 2002/08/14 18:47:52 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -22,7 +22,6 @@ string work_dir = "/tmp/xtmp/";
 string web_dir = "/home/nilsson/html/xenofarm_results/";
 
 string build_id_file = "exportstamp.txt";
-string machine_id_file = "machineid.txt";
 string main_log_file = "xenofarmlog.txt";
 string compilation_log_file = "makelog.txt";
 
@@ -67,6 +66,18 @@ void parse_build_id(string fn, mapping res) {
 
 void parse_log(string fn, mapping res) {
   ::parse_log(fn, res);
+
+  // We sometimes get empty _core-files.
+  Stdio.Stat st = file_stat("_core.txt");
+  if(st && !st->size)
+    rm("_core.txt");
+
+  // We don't consider verify passed if there was a leak.
+  string log = Stdio.read_file("verifylog.txt");
+  if(log && has_value(log, "=LEAK=")) {
+    res->status="built";
+    return;
+  }
 
   if(res->status=="built") {
     res->status="exported";
