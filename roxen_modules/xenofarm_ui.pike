@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.13 2002/08/14 19:33:12 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.14 2002/08/14 20:05:22 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -305,7 +305,7 @@ class TagXF_Update {
 	RXML.run_error("Couldn't connect to SQL server" +
 		       (error ? ": " + error[0] : "") + "\n");
       if(!xflock++)
-	update_builds(xfdb);
+	CACHE(update_builds(xfdb));
       vars->updated = fmt_time(next_update);
     }
 
@@ -321,7 +321,9 @@ class TagEmitXF_Machine {
   constant name = "emit";
   constant plugin_name = "xf-machine";
 
-  array(mapping) get_dataset(mapping m, RequestID id) {
+  array(mapping) get_dataset(mapping m, RequestID id)
+  {
+    NOCACHE():
     return machine_entities;
   }
 }
@@ -331,7 +333,9 @@ class TagEmitXF_Build {
   constant name = "emit";
   constant plugin_name = "xf-build";
 
-  array(mapping) get_dataset(mapping m, RequestID id) {
+  array(mapping) get_dataset(mapping m, RequestID id)
+  {
+    NOCACHE():
     return builds->get_build_entities();
   }
 }
@@ -341,7 +345,9 @@ class TagEmitXF_Result {
   constant name = "emit";
   constant plugin_name = "xf-result";
 
-  array(mapping) get_dataset(mapping m, RequestID id) {
+  array(mapping) get_dataset(mapping m, RequestID id)
+  {
+    NOCACHE():
     if(!m->build) RXML.parse_error("No build attribute.\n");
     return builds[search(build_indices, (int)m->build)]->
       get_result_entities();
@@ -356,8 +362,9 @@ class TagXF_Details {
     inherit RXML.Frame;
     mapping vars;
 
-    array do_enter() {
-
+    array do_enter()
+    {
+      NOCACHE():
       int build, client;
       if(args->id) {
 	if( sscanf(args->id, "%d_%d", build, client)!=2 )
