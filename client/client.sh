@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.10 2002/07/18 01:10:20 mani Exp $
+# $Id: client.sh,v 1.11 2002/07/29 17:27:13 mani Exp $
 # License: GPL
 #
 # Requirements:
@@ -73,29 +73,29 @@ check_delay() {
 #         delay_minute=`echo $delay | awk -F: '{ print $2 }'"`
 #         if [ $hour -gt $old_hour ]; then  #Pre midnight
 #             if [ `echo $hour - $old_hour | bc` -gt $delay_hour ] ; then
-#                 /bin/true
+#                 true
 #             else if [ `echo $hour - $old_hour | bc` -eq $delay_hour ] ; then
 #                 if [ `echo $minute - $old_minute | bc` -gt $delay_minute ];then
-#                     /bin/true
+#                     true
 #                 fi
 #             else
-#                 /bin/false
+#                 false
 #             fi
 #         else if [ $hour -eq $old_hour ]; then  # Might be other day
 #             if [ $minute -gt $old_minute ] &&  # It wasn't
 #                [ `echo $minute - $old_minute | bc` -gt $delay_minute ] &&
 #                [ $delay_hour -eq 0 ] ; then
-#                 /bin/true
+#                 true
 #             else if [ $minute -lt $old_minute ]
-#                 /bin/false
+#                 false
 #             fi
 #         fi
 #     else
 #         echo "'NOTE: ../last_$target' does not exists."
-#         /bin/true
+#         true
 #     fi
     #FIXME: Just build always for now...
-    /bin/true 
+    true
 }
 
 clean_exit() {
