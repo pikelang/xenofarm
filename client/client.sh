@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.24 2002/08/25 15:49:25 zino Exp $
+# $Id: client.sh,v 1.25 2002/08/25 17:47:31 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -45,7 +45,7 @@
 # 10: wget not found
 # 11: gzip not found
 #
-# 13: Reserved for internal usage.
+# 13-25: Reserved for internal usage.
 
 #FIXME: Error codes are often caught in subshells
 #FIXME: use logger to put stuff in the syslog if available
@@ -149,6 +149,11 @@ wget_exit() {
     clean_exit 5 
 }
 
+mkdir_exit() {
+    echo "Project FATAL: Uunable to create a fresh build directory. Skipping to the next project." 1>&2
+    exit 14
+}
+
 is_newer() {
     test "X`\ls -t \"$1\" \"$2\" | head -1`" = X"$1"
 }
@@ -241,7 +246,7 @@ basedir="`pwd`"
 grep -v \# $configfile | ( while 
     last=$?
     if [ X"$last" != X0 ] ; then
-        echo "Project $project failed with exit code $last";
+        echo "Project $project failed with exit code $last" 1>&2
     fi
 
     read project ; do
@@ -281,10 +286,7 @@ grep -v \# $configfile | ( while
         # the first one is downloaded. (Yes, this long text is necessary.)
         touch localtime_lastdl
      fi || wget_exit
-     if [ ! `rm -rf buildtmp && mkdir buildtmp` ] ; then
-        echo "FATAL: unable to create a fresh build directory. Skipping to the next project." 1>&2
-        exit 13
-     fi
+     rm -rf buildtmp && mkdir buildtmp || mkdir_exit
      cd buildtmp &&
      for target in `echo $targets` ; do
         if [ \! -f "../last_$target" ] ||
