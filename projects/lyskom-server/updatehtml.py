@@ -361,7 +361,7 @@ def mk_all_index():
     rows = cursor.fetchall()
     cursor.close()
     for (buildid, systemid) in rows:
-        if mkindex(buildid, systemid, 1):
+        if mkindex(buildid, systemid, 0):
             print "Generated index for", buildid, systemid
 
 init()
