@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.66 2002/12/06 18:34:46 zino Exp $
+# $Id: client.sh,v 1.67 2002/12/10 03:29:44 mani Exp $
 # Distribution version: 1.1
 # License: GPL
 #
@@ -67,7 +67,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.66 2002/12/06 18:34:46 zino Exp $
+	echo \$Id: client.sh,v 1.67 2002/12/10 03:29:44 mani Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -406,7 +406,7 @@ run_test() {
                 if [ X"$environment" != X ] ; then
                     export environment
                     #NOTE: This is unconfortably complex and
-                    # unreadable, but it's done in the sh -c enviroment
+                    # unreadable, but it's done in the sh -c environment
                     # to avoid local environment pollution. That might
                     # not be a concern as this is currently run in a
                     # subshell, but the subshell levels are not stable
