@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.31 2002/12/03 16:22:27 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.32 2002/12/05 12:42:18 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -427,7 +427,7 @@ class TagEmitXF_Machine {
       foreach(sort(indices(p->machines)), int machine)
       {
 	array status = p->builds->get_result_entities( machine )->status;
-	if(sizeof(status[..maxcols-1] - ({ "white" })))
+	if(sizeof(status[..maxcols-1] - ({ "NONE" })))
 	  result += ({ p->get_machine_entities_for(machine) });
       }
       return result;
