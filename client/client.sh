@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.72 2003/01/22 23:14:32 zino Exp $
+# $Id: client.sh,v 1.73 2003/05/20 12:48:33 mani Exp $
 # Distribution version: 1.2
 # License: GPL
 #
@@ -53,7 +53,7 @@ parse_args() {
 
 Start it with cron or with the "start"-script.
 
-If you encounter problems see the .BREADMEB. for requirements and help.
+If you encounter problems, see the .BREADMEB. for requirements and help.
 
    .BArguments:B.
 
@@ -67,7 +67,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.72 2003/01/22 23:14:32 zino Exp $
+	echo \$Id: client.sh,v 1.73 2003/05/20 12:48:33 mani Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -464,7 +464,7 @@ run_test() {
     if [ X"$last" != X0 ] ; then
         echo "Project \"$project\" failed with exit code $last" >&2
         # 14-30: Reserved for internal usage.
-        # 14: Unable to create biuld directory.
+        # 14: Unable to create build directory.
         # 15: Unknown config format.
         # 16: Unknown parameter in config file.
         # 17: Unable to decompress project snapshot.
@@ -523,7 +523,7 @@ setup_put() {
             mkdir bin 2>/dev/null
             mv put $putname
         fi
-        rm lock.tmp
+        releaselock
     fi
 }
 
