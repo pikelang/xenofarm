@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.40 2002/09/02 12:47:27 mani Exp $
+# $Id: client.sh,v 1.41 2002/09/03 07:31:25 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -65,7 +65,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.40 2002/09/02 12:47:27 mani Exp $
+	echo \$Id: client.sh,v 1.41 2002/09/03 07:31:25 zino Exp $
 	exit 0
   ;;
   *)
@@ -416,7 +416,7 @@ run_test() {
                 echo "  Sending results for \"$project\": \"$test\"."
                 $basedir/$putname "$puturl" \
                     < "$resultdir/xenofarm_result.tar.gz" || put_exit
-                cd "$dir/buildtmp"
+                cd "$basedir/$dir/buildtmp"
             else
                 echo " NOTE: Build delay for \"$project\" not passed. Skipping."
             fi
