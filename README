@@ -15,9 +15,11 @@ Contents
   7. The Result Parser
     7.1. Format of a Result Package
     7.2. Invoking the Generic Result Parser
-  8. The Result Interface
-  9. Garbage Collection
- 10. Creating your own Project
+  8. The Result Interface using xenofarm_ui.pike
+  9. The Result Interface using updatehtml.py
+    9.1 Configuring updatehtml.py
+ 10. Garbage Collection
+ 11. Creating your own Project
 
 
 1. This is Xenofarm
@@ -631,12 +633,152 @@ Arguments:
       mandatory.
 
 
-8. The Result Interface
+8. The Result Interface using xenofarm_ui.pike
+
+There are two competing ways to display the result in a web browser.
+This chapter will maybe someday explain how the Roxen module works.
 
 TBD
 
 
-9. Garbage Collection
+9. The Result Interface using updatehtml.py
+
+As an alternative to the Roxen module, you can generate static HTML
+files that can be served using any web server, or even looked at in
+the file system.
+
+To do this, you must first create an updatehtml_cfg.py file. This is
+a configuration file with simple variable assignments. It is actually
+written in the Python language, but you don't need to know Python to
+edit the file. projects/lyskom-server/updatehtml_cfg.py contains a
+sample file that you can start to edit. See the next section.
+
+If you want to do minor changes to the HTML code, you can copy and
+edit the updatehtml_templates.py file.
+
+Once you are done, you can run the updatehtml.py script like this,
+assuming that your configuration files are located in
+projects/something, and that that is your current working directory:
+
+  $ PYTHONPATH=.:../lyskom-server ../lyskom-server/updatehtml.py
+
+This will create index.html files for all the unpacked build results
+that don't already have an index.html file. It will also generate
+overview files for those builds and systems that are affected by the
+builds.
+
+You can use the "--force" argument to regenerate all files. This is
+useful if you have changed a configuration parameter, or if you
+upgrade the version of updatehtml.py.
+
+
+9.1 Configuring updatehtml.py
+
+You need to set the following variables in updatehtml.cfg:
+
+  unpacked_results_dir
+      A full path to the directory that hold the unpacked result
+      files. This is the same as the --web-dir argument of the result
+      parser. updatehtml.py will create an "index.html" file inside
+      each result directory, so write permission is needed.
+
+  unpacked_results_url
+      A full URL prefix that corresponds to the above directory.
+
+  result_overview_dir
+      A full path to the directory where the static HTML files will be
+      created. This can be set to the same as unpacked_results_dir,
+      but it can also be set to something else. The following files
+      will be created:
+
+        latest.html
+            Overview of the latest results from each system.
+
+        build-%d.html
+            Overview of all results from build %d.
+
+        sys-%d.html
+            Overview of all results computed by system %d.
+
+        index.html
+            Total overview. (Not yet implemented).
+
+  result_overview_url
+      A full URL prefix that corresponds to the output directory.
+
+  button_url_prefix
+      You need to provide four icons:
+
+        green.gif       # OK.
+        yellow.gif      # OK, but with warnings.
+        red.gif         # Failure.
+        white.gif       # Task not done.
+
+      You can use the icons found in the icons/ subdirectory, or
+      create your own icons. The button_url_prefix will be prepended
+      to the above names to generate the URL that is used to fetch the
+      icons. No slash will be inserted, so if your icons are named
+      "foo-green.gif", "foo-yellow.gif", et c, your prefix should end
+      in "/foo-".
+
+  dbname
+      The name of the MySQL database that holds the information for
+      this project.
+
+  dbuser
+      The MySQL user name that should be used when accessing the
+      database.
+
+  dbhost
+      The host where the database exists.
+
+  dbpwdfile
+      The file that contains the password needed to access the MySQL
+      database. The file should contain the password and (optionally)
+      a trailing newline.
+
+  projectname
+      The name of this project. The name will be included on all the
+      generated HTML files.
+
+  files_per_task
+      On the detailed result pages, updatehtml.py attempts to group
+      files to the task they correspond to. If a task is named FOO,
+      files in the result package named FOOlog.txt, FOOwarn.txt and
+      FOOfail.txt will automatically be listed under the task
+      heading. Using this variable, you can define additional file
+      names that should belong to a particular task. Example:
+
+        files_per_task = {
+            "check": ["check.txt"],
+            "configure": ["configlog.txt", "configcache.txt"],
+        }
+
+      This is a Python dictionary, with a task name as key, and a list
+      of file names as the value.
+
+      If you don't want to use this feature, put this in the config
+      file:
+
+        files_per_task = { }
+
+  hidden_files
+      This is a list of files that should not be included on the
+      detailed result pages. Example:
+
+        hidden_files = [
+            "index.html",
+            "buildid.txt",
+            ]
+
+      It makes sense to exclude index.html, since that is the file
+      that the listing appears on. The buildid.txt file typically
+      only contains the build number, and that number is printed
+      inline on the index.html page, so it makes sense to omit that
+      file as well.
+
+
+10. Garbage Collection
 
 When running a Xenofarm server some files are not removed from the
 system. All the build packages produced by the server program as well
@@ -681,7 +823,7 @@ Arguments:
       garbage collector has made a sweep. Defaults to 11.
 
 
-10. Creating your own Project
+11. Creating your own Project
 
 Here is a checklist of the things you must do to set up a new
 project. If you use a non-standard server.pike or result_parser.pike,
@@ -691,7 +833,7 @@ this checklist may be incorrect.
     Script", but don't run server.pike just yet.
 
  2. Make sure the resulting build package can produce a result
-    package.  See "7.1. Format of a Result Package".
+    package. See "7.1. Format of a Result Package".
 
  3. Run server.pike with the --force option:
 
@@ -699,17 +841,32 @@ this checklist may be incorrect.
 
     A build package should be created.
 
- 4. Set up the Roxen module xenofarm_fs.pike.  See "4. The Web
+ 4. Set up the Roxen module xenofarm_fs.pike. See "4. The Web
     Export".
 
- 5. Create a config file for the client.  See "4. Configuring the
+ 5. Create a config file for the client. See "4. Configuring the
     client." in client/README.
 
- 6. Run the client:
+ 6. Run the client on as many different systems as you can:
 
-	./client.sh
+        ./client.sh
 
     It should download the build package, build it, and upload the
     resulting result package.
 
- 7. FIXME: TBD: How to process the result package.
+ 7. Run the result parser:
+
+      $ pike result_parser.pike --verbose <options as in 7.2>
+
+    This will unpack the result packages and enter information into
+    the database.
+
+ 8. Use either (or both!) of the available result interfaces to make
+    the results visible on the web. See "8. The Result Interface
+    using xenofarm_ui.pike" and "9. The Result Interface using
+    updatehtml.py".
+
+ 9. Now that you have seen that everything works, you can start
+    server.pike without the --force option. It will continue to run,
+    and create build packages whenever the source code is updated.
+    You should run client.sh from cron on the clients.
