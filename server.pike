@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.7 2002/05/15 01:10:21 mani Exp $
+// $Id: server.pike,v 1.8 2002/05/15 09:41:21 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -228,6 +228,7 @@ int main(int num, array(string) args) {
     if(time()-latest_build < min_build_distance) {
       if(verbose) werror("Enforce build distances. Quarantine left %s.\n",
 			 fmt_time(min_build_distance-(time()-latest_build)));
+      real_checkin_poll = min_build_distance - (time()-latest_build);
       continue;
     }
 
@@ -250,6 +251,6 @@ int main(int num, array(string) args) {
   return 1;
 }
 
-constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.7 2002/05/15 01:10:21 mani Exp $\n";
+constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.8 2002/05/15 09:41:21 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
