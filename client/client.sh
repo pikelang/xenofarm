@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.70 2003/01/18 21:08:42 zino Exp $
+# $Id: client.sh,v 1.71 2003/01/18 23:23:32 zino Exp $
 # Distribution version: 1.1
 # License: GPL
 #
@@ -67,7 +67,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.70 2003/01/18 21:08:42 zino Exp $
+	echo \$Id: client.sh,v 1.71 2003/01/18 23:23:32 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -361,6 +361,11 @@ check_test_environment() {
 
 #Run _one_ test
 run_test() {
+    if [ -f dont_run ]; then
+	echo "FATAL: dont_run file found. Doing that." 1>&2
+	exit 5
+    fi
+
     check_test_environment
 
 
