@@ -1,0 +1,14 @@
+
+# This line is needed on some machines.
+@SET_MAKE@
+
+LIBS=@LIBS@ $(EXTRALIBS)
+CC=@CC@
+
+all: put
+
+put: put.o
+	$(CC) -o put put.o $(LIBS)
+
+clean:
+	rm -f put put.o
