@@ -1,6 +1,6 @@
 // Xenofarm Python Garbage collector
 
-inherit "../../gc_latest_by_system.pike";
+inherit "../../../gc_latest_by_system.pike";
 
 string out_dir     = "/lysator/www/projects/xenofarm/python/export";  
 string result_dir  = "/lysator/www/projects/xenofarm/python/files";
