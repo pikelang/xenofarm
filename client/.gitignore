@@ -1,9 +1,10 @@
 /*.pid
-/pike
+/Makefile
 /bin
-/debug.log
 /config.cache
 /config.log
 /config.status
-/Makefile
+/debug.log
+/lyskom-server
+/pike
 /put
