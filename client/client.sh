@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.39 2002/09/02 11:39:47 zino Exp $
+# $Id: client.sh,v 1.40 2002/09/02 12:47:27 mani Exp $
 # License: GPL
 #
 # Requirements:
@@ -65,7 +65,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.39 2002/09/02 11:39:47 zino Exp $
+	echo \$Id: client.sh,v 1.40 2002/09/02 12:47:27 mani Exp $
 	exit 0
   ;;
   *)
@@ -143,7 +143,7 @@ mkdir_exit() {
 }
 
 is_newer() {
-    test "X`\ls -t \"$1\" \"$2\" | head -1`" = X"$1"
+    test "X`\ls -t \"$1\" \"$2\" 2>/dev/null | head -1`" = X"$1"
 }
 
 get_email() {
@@ -389,7 +389,7 @@ run_test() {
                 rm -rf "$resultdir" && mkdir "$resultdir" || exit 19
 
                 cp buildid.txt "$resultdir" || exit 20
-                $command >"$resultdir/xenofarmclient.txt" 2>&1;
+                sh -c "$command" >"$resultdir/xenofarmclient.txt" 2>&1;
                 #FIXME: Full disk inside this if will be bad
                 if [ -f xenofarm_result.tar.gz ] ; then
                     mv xenofarm_result.tar.gz "$resultdir"
