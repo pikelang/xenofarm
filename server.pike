@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.32 2002/11/03 04:04:28 jhs Exp $
+// $Id: server.pike,v 1.33 2002/11/15 16:45:12 jhs Exp $
 
 Sql.Sql xfdb;
 
@@ -268,8 +268,6 @@ void check_settings() {
     exit(1);
   }
 
-  if(repository)
-    repository = "-d "+repository;
   // FIXME: Check CVSROOT?
 
   if(!project) {
@@ -404,10 +402,10 @@ int main(int num, array(string) args)
       debug("Latest checkin was %s ago.\n", fmt_time(now - latest_checkin));
       if(latest_checkin > latest_build)
       {
-	if(latest_checkin + checkin_latency < now)
+	if(latest_checkin + checkin_latency <= now)
 	{
 	  sleep_for = min_build_distance;
-	  make_build(now);
+	  make_build(latest_checkin);
 	  latest_build = get_latest_build();
 	}
 	else // Enforce minimum time of inactivity after a commit
@@ -426,7 +424,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.32 2002/11/03 04:04:28 jhs Exp $\n";
+"$Id: server.pike,v 1.33 2002/11/15 16:45:12 jhs Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
