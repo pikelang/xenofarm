@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.25 2002/11/15 18:34:24 jhs Exp $
+// $Id: server.pike,v 1.26 2002/11/18 22:11:58 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -24,10 +24,12 @@ string project = "pike7.3";
 #ifdef NILSSON
 string web_dir = "/home/nilsson/xenofarm/projects/pike/out/";
 string work_dir = "/home/nilsson/xenofarm/projects/pike/out_work/";
+constant result_dir = "/home/nilsson/html/xenofarm/";
 string repository = ":ext:nilsson@pike.ida.liu.se:/pike/data/cvsroot";
 #else
 string web_dir = "/pike/data/pikefarm/out/";
 string work_dir = "/pike/data/pikefarm/out_work/";
+constant result_dir = "/pike/home/manual/web/pikefarm/";
 string repository = "/pike/data/cvsroot";
 #endif
 string cvs_module = "(ignored)"; // Not used.
@@ -72,7 +74,19 @@ int get_latest_checkin()
   return 0;
 }
 
-string make_build_low(int latest_checkin)
+string make_build_low(int t) {
+  string ret = make_build_low_low(t);
+  array res = xfdb->query("SELECT id FROM build WHERE time=%d", t);
+  if(!sizeof(res)) return ret;
+
+  string target_dir = result_dir + res[0]->id;
+  mkdir(target_dir);
+  mv(work_dir+"Pike/"+pike_version+"/export_result.txt",
+     target_dir+"/export_result.txt");
+  return ret;
+}
+
+string make_build_low_low(int latest_checkin)
 {
   cd(work_dir);
   Stdio.recursive_rm("Pike");
@@ -100,7 +114,6 @@ string make_build_low(int latest_checkin)
     return 0;
   }
 
-  latest_build = latest_checkin;
   xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'yes')",
 	      latest_checkin, project);
 
@@ -108,7 +121,7 @@ string make_build_low(int latest_checkin)
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.25 2002/11/15 18:34:24 jhs Exp $\n";
+"$Id: server.pike,v 1.26 2002/11/18 22:11:58 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Project defaults to pike7.3.
