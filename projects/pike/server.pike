@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.32 2002/12/13 16:22:26 mani Exp $
+// $Id: server.pike,v 1.33 2003/07/11 15:59:27 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -13,9 +13,6 @@ inherit "../../server.pike";
 
 // Set default values to variables, so that we don't have to remember
 // to give them when starting the program unless we really want to.
-#ifdef NILSSON
-Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
-#endif /* NILSSON */
 
 string pike_version;
 
@@ -29,13 +26,14 @@ void create() {
   FIX(work_dir);
   FIX(result_dir);
   project += this_object()->pike_version;
+  client = PikeRepositoryClient();
 }
 
 string project = "pike";
 #ifdef NILSSON
 string web_dir = "/home/nilsson/xenofarm/projects/pike/out/";
 string work_dir = "/home/nilsson/xenofarm/projects/pike/out_work/";
-sring result_dir = "/home/nilsson/html/xenofarm/";
+string result_dir = "/home/nilsson/html/xenofarm/";
 string repository = ":ext:nilsson@pike.ida.liu.se:/pike/data/cvsroot";
 #else
 string web_dir = "/pike/data/pikefarm/out/";
@@ -47,6 +45,16 @@ string cvs_module = "(ignored)"; // Not used.
 
 constant latest_pike_checkin = "";
 
+// Overload and disable the base clients
+class CVSClient {
+  constant arguments = "";
+  void create() { error("Not allowed repository method for Pike.\n"); }
+}
+class StarTeam {
+  constant arguments = "";
+  void create() { error("Not allowed repository method for Pike.\n"); }
+}
+
 string make_export_name(int latest_checkin)
 {
   Calendar.TimeRange o = Calendar.ISO_UTC.Second(latest_checkin);
@@ -54,34 +62,75 @@ string make_export_name(int latest_checkin)
 		 o->format_ymd_short(), o->format_tod_short());
 }
 
-int get_latest_checkin()
-{
-  string timestamp;
-  array err = catch {
-    timestamp = Protocols.HTTP.get_url_data(latest_pike_checkin);
-  };
+class PikeRepositoryClient {
+  inherit RepositoryClient;
 
-  if(err) {
-    write(describe_backtrace(err));
+  void parse_arguments(array(string) args) { }
+  string module() { return pike_version; }
+  string name() { return "PikeRepository"; }
+
+  int get_latest_checkin() {
+    string timestamp;
+    array err = catch {
+      timestamp = Protocols.HTTP.get_url_data(latest_pike_checkin);
+    };
+
+    if(err) {
+      write(describe_backtrace(err));
+      return 0;
+    }
+
+    err = catch {
+      int ts = Calendar.ISO_UTC.dwim_time(timestamp)->unix_time();
+      return ts;
+    };
+
+    if(err)
+      write(describe_backtrace(err));
     return 0;
   }
 
-  err = catch {
-    int ts = Calendar.ISO_UTC.dwim_time(timestamp)->unix_time();
-    return ts;
-  };
+  string last_name;
+  void update_source(int latest_checkin) {
+    cd(work_dir);
+    Stdio.recursive_rm("Pike");
 
-  if(err)
-    write(describe_backtrace(err));
-  return 0;
+    Calendar.TimeRange at = Calendar.ISO_UTC.Second(latest_checkin);
+    object checkout =
+      Process.create_process(({ "cvs", "-Q", "-d", repository, "co", "-D",
+				at->set_timezone("localtime")->format_time(),
+				"Pike/" + pike_version }));
+    if(checkout->wait())
+      return 0; // something went wrong
+
+    string name = make_export_name(latest_checkin);
+    cd("Pike/"+pike_version);
+    if(Process.system("make xenofarm_export "
+#ifndef NILSSON
+		      "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\" "
+#endif
+		      "EXPORTARGS=\"--timestamp=" + latest_checkin + "\"") ||
+       !file_stat(name) ) {
+      if(!file_stat(name))
+	write("Could not find %O from %O.\n", name, getcwd());
+      persistent_query("INSERT INTO build (time, export) VALUES (%d,'FAIL')",
+		       latest_checkin);
+      return 0;
+    }
+
+    persistent_query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
+		     latest_checkin);
+
+    last_name = name;
+  }
 }
 
+
 string make_build_low(int t) {
-  string ret = make_build_low_low(t);
   array res = persistent_query("SELECT id FROM build WHERE time=%d", t);
   if(!sizeof(res)) {
     debug("Id not found with time as key. Something is broken.\n");
-    return ret;
+    return client->last_name;
   }
 
   debug("Build id is %O\n", res[0]->id);
@@ -92,45 +141,11 @@ string make_build_low(int t) {
     debug("Failed to move %O to %O.\n",
 	  work_dir+"Pike/"+pike_version+"/export_result.txt",
 	  target_dir+"/export_result.txt");
-  return ret;
-}
-
-string make_build_low_low(int latest_checkin)
-{
-  cd(work_dir);
-  Stdio.recursive_rm("Pike");
-
-  Calendar.TimeRange at = Calendar.ISO_UTC.Second(latest_checkin);
-  object checkout =
-    Process.create_process(({ "cvs", "-Q", "-d", repository, "co", "-D",
-			      at->set_timezone("localtime")->format_time(),
-			      "Pike/" + pike_version }));
-  if(checkout->wait())
-    return 0; // something went wrong
-
-  string name = make_export_name(latest_checkin);
-  cd("Pike/"+pike_version);
-  if(Process.system("make xenofarm_export "
-#ifndef NILSSON
-    		    "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\" "
-#endif
-		    "EXPORTARGS=\"--timestamp=" + latest_checkin + "\"") ||
-     !file_stat(name) ) {
-    if(!file_stat(name))
-       write("Could not find %O from %O.\n", name, getcwd());
-    persistent_query("INSERT INTO build (time, export) VALUES (%d,'FAIL')",
-		     latest_checkin);
-    return 0;
-  }
-
-  persistent_query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
-		   latest_checkin);
-
-  return name;
+  return client->last_name;
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.32 2002/12/13 16:22:26 mani Exp $\n";
+"$Id: server.pike,v 1.33 2003/07/11 15:59:27 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Possible arguments:
