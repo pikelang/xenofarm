@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.13 2002/09/19 22:47:59 mani Exp $
+// $Id: result_parser.pike,v 1.14 2002/10/09 01:32:58 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -72,7 +72,7 @@ void parse_log(string fn, mapping res) {
 
   // We don't consider verify passed if there was a leak.
   string log = Stdio.read_file("verifylog.txt");
-  if(log && has_value(log, "=LEAK=")) {
+  if(log && has_value(log, "==LEAK==")) {
     res->status="built";
     return;
   }
