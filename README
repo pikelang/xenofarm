@@ -1,0 +1,75 @@
+
+Contents
+
+ 1. This is Xenofarm.
+ 2. The Grand Design of Everything
+ 3. The Server Script
+ 4. The Web Export
+ 5. The Compilation Client
+ 6. The Web Import
+ 7. The Result Processor
+ 8. The Result Interface
+
+
+1. This is Xenofarm.
+
+The Xenofarm project is a rather small project, if measured in code. This is because the
+wonders of modern computer engineering lets us resue components to build advanced
+applications with ease, letting us programmers focus on important tasks as design and
+quality. Did you buy that? Well, normally the world isn't as perfect as we like it to be,
+but in this case it is, since Xenofarm is just some glue components holding together
+other components.
+
+The goal of Xenofarm is to aid programmers who want's to build extremely platform
+independent applications. Most programmers would say, "If I want to do something
+platform independent I use Pike/Python/Perl/Java/LOGO", but there are still some guys
+struggling to get these programming languages to work on all strange OS on all strange
+platforms. It is for them (us) this tool is built. It is used on IDA and Lysator on
+Linköping University to maintain the quality of the programming languages Pike and
+Python.
+
+From a historical point of view Xenofarm is a complete rewrite of the automated build
+and regression test tool of the Pike programming language. It was called AutoBuild and
+was done by Martin Nilsson and Johan Schön at Roxen Internet Software. AutoBuild was
+in turn derived from Tinderbox. When the maintainance responsibility for Pike moved
+from Roxen Internet Software to Linköping University Martin Nilsson wrote Xenofarm to
+better suit the new environment (and to fix quite a few annoying things...).
+
+
+2. The Grand Design of Everything
+
+The basic idea with Xenofarm is to help developers solve bugs, as compared with the
+Mozilla projects Tinderbox where the goal is to find the bugs as quickly as possible.
+We believe that it is better to get "the full picture" of what is broken, and as much
+information as possible, before starting to fix the code. There are essentially three
+ways that differs between Tinderbox and Xenofarm in this aspect;
+
+ 1. Xenofarm synchronizes its build on all platforms. It creates a source package that
+    is distributed to all clients and the build result is presented as a group. It is
+    then easy to see if e.g. all Sparc computers failed or all Solaris computers failed,
+    which eases the bug hunt.
+
+ 2. Xenofarm applies CVS checkout latencies, to try to minimize mid-checkin breaks. The
+    latency is currently based on a simple threashold value, but a more advanced solution
+    is in the works.
+
+ 3. "All" relevant information is collected from the build machines to the front end. This
+    enables people with no login access to the computers to help in the bug hunt.
+
+Another design goal with Xenofarm was to scale better than AutoBuild did; In terms of
+number of clients, in terms of number of projects, in terms of number of source locations
+and in terms of distance. Conceptually the system has a number of source package producers
+and a number of compilation clients. Every compilation client then decides which packages
+they want to "subscribe" to. The workflow is as follows:
+
+ 1. Some trigger mechanism signals that it is time to make a new build. The trigger is
+    typically a CVS check in.
+ 2. The server script creates a new source package and exports it through a web server.
+ 3. The client polls the web server and finds a new package, which it downloads.
+ 4. The client builds/tests/whatever the package and uploads the result to a web server,
+    typically the same web server.
+ 5. A result processor takes the uploaded result and derives interesting facts, which it
+    stores in a database. The result files are moved into an exported web directory.
+ 6. The result summary and all the exported files can be viewed from a web interface.
+
+
