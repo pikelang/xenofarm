@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.4 2002/07/16 12:29:14 mani Exp $
+// $Id: result_parser.pike,v 1.5 2002/07/19 15:22:06 mani Exp $
 
 inherit "result_parser.pike";
 
@@ -29,13 +29,17 @@ string compilation_log_file = "makelog.txt";
 multiset(string) ignored_warnings = (<
   "configure: warning: found bash as /*.",
   "configure: warning: defaulting to --with-poll since the os is *.",
-  "checking for irritating if-if-else-else warnings... no (good)",
+  "checking for irritating if-if-else-else warnings... * (good)",
   "configure: warning: no login-related functions",
   "configure: warning: defaulting to unsigned int.",
   >);
 
 void parse_build_id(string fn, mapping res) {
   string file = Stdio.read_file(fn);
+  if(!file) {
+    file = Stdio.read_file("export.stamp");
+    res->status = "failed";
+  }
   if(!file || !sizeof(file)) return;
 
   int year;
