@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.30 2002/08/29 22:24:02 zino Exp $
+# $Id: client.sh,v 1.31 2002/08/30 11:50:47 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -64,7 +64,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.30 2002/08/29 22:24:02 zino Exp $
+	echo \$Id: client.sh,v 1.31 2002/08/30 11:50:47 zino Exp $
 	exit 0
   ;;
   *)
@@ -140,7 +140,7 @@ get_email() {
         
             echo "Please type in an email address where the project maintainer can reach you:"
             read email
-            if [ X$email != X ] ; then
+            if [ X"$email" != X ] ; then
                 echo "contact: $email" > config/contact.txt
                 happy="yes"
             fi
