@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.60 2002/10/10 22:22:00 ceder Exp $
+# $Id: client.sh,v 1.61 2002/10/23 21:34:43 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -66,7 +66,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.60 2002/10/10 22:22:00 ceder Exp $
+	echo \$Id: client.sh,v 1.61 2002/10/23 21:34:43 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -199,7 +199,7 @@ longest_nodename() {
 
     #To dangerous to fiddle with hostname switches if we are root.
     if kill -0 1 2>/dev/null; then
-        echo "VARNING: You are running client.sh as root. Don't do that!" >&2
+        echo "WARNING: You are running client.sh as root. Don't do that!" >&2
     else if hostname --fqdn >/dev/null 2>&1; then
         cur_node=`hostname --fqdn`
     else
@@ -267,9 +267,9 @@ releaselock() {
     gotlock="false"
 }
 
-#Called to prepare the project build enviroment. Not reapeated for each id.
+#Called to prepare the project build environment. Not reapeated for each id.
 prepare_project() {
-    echo " First test in this project. Preparing build enviroment."
+    echo " First test in this project. Preparing build environment."
     dir="$dir/$node/"
     if [ ! -d "$dir" ]; then
         pmkdir "$dir"
@@ -347,7 +347,7 @@ make_machineid() {
        cat "$basedir/$config_dir/contact.txt" >> machineid.txt
 }
 
-check_test_enviroment() {
+check_test_environment() {
     if [ X"$configformat" = X ] || [ X"$project" = X ] || 
        [ X"$dir" = X ] || [ X"$geturl" = X ] || 
        [ X"$puturl" = X ] ; then
@@ -358,14 +358,18 @@ check_test_enviroment() {
 
 #Run _one_ test
 run_test() {
-    check_test_enviroment
+    check_test_environment
+
 
     echo "Building project \"$project\" from $geturl."
+    if [ X"$environment" != X ] ; then
+        echo " Environment: \"$environment\"."
+    fi    
     if [ X"$first_project_run" = Xtrue ] ; then
         prepare_project
     fi
     echo " Running test \"$test\" in $dir."
-    
+
     #Check for earlier results and try to send them
     put_resume
 
@@ -397,7 +401,19 @@ run_test() {
                 rm -rf "$resultdir" && mkdir "$resultdir" || exit 19
 
                 cp buildid.txt "$resultdir" || exit 20
-                sh -c "$command" >"$resultdir/xenofarmclient.txt" 2>&1;
+                if [ X"$environment" != X ] ; then
+                    export environment
+                    #NOTE: This is unconfortably complex and
+                    # unreadable, but it's done in the sh -c enviroment
+                    # to avoid local environment pollution. That might
+                    # not be a concern as this is currently run in a
+                    # subshell, but the subshell levels are not stable
+                    # yet so this prevents nasty surprises for now.
+                    sh -c "for a in \$environment; do if [ X\`echo \$a\` != X\`echo \$a|sed s/=//\` ]; then eval \$environment export \`echo \$a | awk -F= '{print \$1}'\`; fi; done && $command" \
+                        > "$resultdir/xenofarmclient.txt" 2>&1;
+                else
+                    sh -c "$command"  > "$resultdir/xenofarmclient.txt" 2>&1;
+                fi
                 #FIXME: Full disk inside this if will be bad
                 if [ -f xenofarm_result.tar.gz ] ; then
                     mv xenofarm_result.tar.gz "$resultdir"
@@ -582,7 +598,7 @@ for projectconfig in $config_dir/*.cfg; do
         arguments=`chomp_ends "$arguments"`
         case $type in
         configformat)
-            if [ X"$arguments" != X2 ] ; then
+            if [ X"$arguments" != X2 -a X"$arguments" != X3 ] ; then
                 echo "Unknown configformat $arguments in $projectconfig" >&2
                 exit 15
             fi
@@ -598,6 +614,14 @@ for projectconfig in $config_dir/*.cfg; do
             puturl=$arguments   ;;
         mindelay)
             delay=$arguments    ;;
+        environment)
+            if [ $configformat = 2 ] ; then
+                echo "environment: not supported in config format v2."
+                exit 16;
+            else
+                environment="$environment $arguments"
+            fi
+            ;;
         test-$node)
             if [ X$running_default_tests = X -o \
                  X$running_default_tests = Xfalse ] ; then
@@ -638,7 +662,7 @@ for projectconfig in $config_dir/*.cfg; do
     done
     #On to the next project
     configformat="" ; project="" ; dir=""
-    geturl=""       ; puturl=""  ; delay=""
+    geturl=""       ; puturl=""  ; delay="" ; environment=""
 )
 done
 

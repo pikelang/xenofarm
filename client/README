@@ -60,7 +60,7 @@ not be considered by the client. The file itself consists of a list of
 configuration name/value bindings separated by a colon. A
 configuration file must have these configurations:
 
-configformat:     2
+configformat:     3
 project:          <Project name>
 projectdir:       <Project test directory relative to cwd. Avoid spaces>
 snapshoturl:      <URL to GET the snapshot from>
@@ -93,6 +93,13 @@ over <original.cfg> and will not inherit any setting from that file.
 BUGS: Multiple adjacent spaces in a <test commands> will be merged into
       one space. Commands like `make CC="/odd/p    ath/cc" will therefor
       fail.
+
+Since version 3 of the config format one can optionally add one or
+more "enviroment:" lines before the "test:" statements. The lines
+should contain one or more varable assignments on standard sh
+format. These variables will be exported to all test enviroments. Example:
+
+enviroment:       CC=gcc MAKE=gmake
 
 Each client installation also has a config/contact.txt that should
 list a contact address for the person responsible for that particular
