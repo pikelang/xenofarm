@@ -7,7 +7,7 @@
 </else>
 </define>
 
-<define container="header" scope="pagetag">
+<define container="header">
 <html>
 <head time="&roxen.time;">
 <title>Xenofarm</title>
@@ -30,6 +30,7 @@ tt {font-size: 12px; font-weight: none}
 <menuitem href="changes.xml">Latest changes</menuitem>
 <menuitem href="download.xml">Download</menuitem>
 <menuitem href="installs.xml">Installations</menuitem>
+<menuitem href="contact.xml">Contact</menuitem>
 </td><td>
 <contents/>
 </td>
