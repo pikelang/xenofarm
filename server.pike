@@ -1,7 +1,8 @@
+#! /usr/bin/env pike
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.13 2002/08/09 15:04:16 mani Exp $
+// $Id: server.pike,v 1.14 2002/08/09 16:05:58 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -294,7 +295,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.13 2002/08/09 15:04:16 mani Exp $\n";
+"$Id: server.pike,v 1.14 2002/08/09 16:05:58 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
