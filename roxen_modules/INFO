@@ -1,0 +1,5 @@
+<name>Xenofarm modules</name>
+<doc>
+  Modules to distribute packages and collect answers from build clients as
+  well as displaying the result.
+</doc>
