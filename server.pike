@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.26 2002/09/02 13:23:07 mani Exp $
+// $Id: server.pike,v 1.27 2002/09/03 21:40:49 ceder Exp $
 
 Sql.Sql xfdb;
 
@@ -112,7 +112,7 @@ int get_latest_checkin() {
   array(string)|string log = Stdio.read_file("tmp/update.log");
   log = filter(log/"\n", lambda(string row) { return !has_prefix(row, "? "); });
   if( sizeof(log)>1 ) {
-    debug("Something changed: \n%s", log);
+    debug("Something changed: \n  %s\n", log * "\n  ");
     latest_checkin = time();
     Stdio.write_file(checkin_state_file, latest_checkin+"\n");
   }
@@ -436,7 +436,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.26 2002/09/02 13:23:07 mani Exp $\n";
+"$Id: server.pike,v 1.27 2002/09/03 21:40:49 ceder Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
