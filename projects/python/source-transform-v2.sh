@@ -14,14 +14,103 @@ gzip dist/python.tar
 
 echo $stamp > dist/buildid.txt
 
-cat <<'EOF' > dist/Makefile
-xenofarm:
-	rm -f xenofarm_result.tar xenofarm_result.tar.gz
-	mkdir r
-	./create-response.sh > r/shlog.txt 2>&1
-	(cd r && tar cf - *) > xenofarm_result.tar
-	gzip -9 xenofarm_result.tar
+cat <<'EOF' > dist/xenofarm.sh
+rm -f xenofarm_result.tar xenofarm_result.tar.gz
+mkdir r
+./create-response.sh > r/shlog.txt 2>&1
+(cd r && tar cf - *) > xenofarm_result.tar
+gzip -9 xenofarm_result.tar
 EOF
+
+chmod +x dist/xenofarm.sh
+
+cat <<'EOF' > dist/killer.sh
+#!/bin/sh
+
+da_pid=$1     # The one to kill
+grace=$2      # Time before killing spree
+
+if [ -z "$da_pid" ]; then echo "No owner pid supplied." ; exit 1 ; fi
+if [ -z "$grace" ]; then echo "No grace period supplied." ; exit 1 ; fi
+
+tmppids="/tmp/create_response_pids-$da_pid"
+tmppslist="/tmp/xenofarm_ps-$da_pid"
+
+# Now we wait...
+sleep $grace
+
+# Function to recurse through parent pids to find all children of da_pid
+add_children_ef()
+{
+    while read user pid parent rest; do
+        if test "$parent" = "$1"; then
+            echo "$pid [$user $pid $parent $rest]" >> $tmppids
+            add_children_ef $pid
+        fi
+    done < $tmppslist
+}
+
+add_children_alx()
+{
+    while read flags user pid parent rest; do
+        if test "$parent" = "$1"; then
+            echo "$pid [$flags $user $pid $parent $rest]" >> $tmppids
+            add_children_alx $pid
+        fi
+    done < $tmppslist
+}
+
+# Detect type of ps
+detect_ps()
+{
+    ps -ef > $tmppslist 2>&1
+    if test "$?" = "0" ; then
+        ps_style="ps -ef"
+        parse_ps="ef"
+    else
+        ps algx > $tmppslist 2>&1
+        if test "$?" = "0" ; then
+            ps_style="ps algx"
+            parse_ps="alx"
+        else
+            ps alx > $tmppslist 2>&1
+            if test "$?" = "0" ; then
+                ps_style="ps alx"
+                parse_ps="alx"
+            else
+                echo "Don't know your brand of ps"
+                exit 1
+            fi
+        fi
+    fi
+}
+
+# Remove any old pid lists
+[ -r $tmppids ] && rm $tmppids
+
+# get process list, and store pid of ps, which won't be around during killing
+detect_ps
+$ps_style > $tmppslist &
+ps_pid=$!
+wait $ps_pid
+
+add_children_$parse_ps $da_pid
+
+# Murder away, McManus!
+while read pid rest; do
+    if test "$pid" != "$$" && test "$pid" != "$ps_pid"; then
+        kill -9 $pid
+    fi
+done < $tmppids
+
+#(echo "Killer triggered. Killing pids:"; cat $tmppids) | mail $MAILFOO
+rm $tmppids
+
+# Don't forget to kill top process!
+kill -9 $da_pid
+EOF
+
+chmod +x dist/killer.sh
 
 cat <<'EOF' > dist/create-response.sh
 #!/bin/sh
@@ -79,6 +168,7 @@ dotask() {
 	        then
 	            status="${task}-failed"
 	        fi
+            return 1
         fi
     else
 	    echo status $status makes it impossible to perform this step > \
@@ -91,6 +181,8 @@ dotask() {
 status=good
 
 echo "FORMAT 2" >> r/mainlog.txt
+env > r/environ.txt
+cp buildid.txt r/buildid.txt
 
 dotask 1 "unzip" "gzip -d python.tar.gz"
 dotask 1 "unpack" "tar xf python.tar"
@@ -117,16 +209,20 @@ do_twisted() {
     status="good"
 }
 
+# Start a watchdog on this process and its parents
+./killer.sh $$ 20000 &
+killer_pid=$!
+
 dogroup 1 "python"    "do_python"
 dogroup 0 "crypto"    "do_crypto"
 dogroup 0 "twisted"   "do_twisted"
 
+# Stop killer
+kill -9 $killer_pid
+
 log BEGIN makeresp
 
 cp $BASE/dist/src/pyconfig.h r/
-env > r/environ.txt
-
-cp buildid.txt r/buildid.txt
 
 log PASS
 echo END >> r/mainlog.txt
