@@ -10,15 +10,16 @@ select b2.build, b1.filename, b1.revision, b2.revision
 from files as b1, files as b2
 where b1.build = b2.build - 1
 and b1.filename = b2.filename
-and b1.revision != b2.revision
-order by b2.build desc, b2.filename;
+and b1.revision != b2.revision;
 EOF
 mysql --batch \
     -D argouml_xenofarm \
     -u linus -p`cat /home/linus/.argouml_xenofarm_mysql_password` |
 sed -e '1d' |
+sort -k 1,1nr -k 2 |
 /sw/local/bin/awk -F'	' '
 BEGIN {
+    then = systime();
     print "<TITLE>Xenofarm diffs between builds</TITLE>";
     print "<H1>Xenofarm diffs between builds</H1>";
     print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
@@ -44,6 +45,7 @@ END {
     print "</PRE>";
     print "</TD></TR>";
     print "</TABLE>";
+    print "Statistics:", NR, "lines took", systime() - then, "seconds.";
 }' url=$viewcvsurl |
 cat > $output.new
 mv $output.new $output
