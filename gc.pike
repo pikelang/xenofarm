@@ -1,10 +1,14 @@
 
 // Xenofarm Garbage Collect
 // By Martin Nilsson
-// $Id: gc.pike,v 1.1 2002/08/05 01:04:02 mani Exp $
+// $Id: gc.pike,v 1.2 2002/08/15 00:49:05 mani Exp $
 
 string out_dir = "/home/nilsson/xenofarm/out/";
 string result_dir = "/home/nilsson/html/xenofarm_results/";
+
+int gc_poll = 60*60*2;
+int dists_left = 1;
+int results_left = 10;
 
 void clean_out_dir(string dir, int save) {
 
@@ -50,13 +54,59 @@ void clean_res_dir(string dir, int save) {
 
 }
 
+int main(int n, array(string) args) {
 
-int main() {
+  foreach(Getopt.find_all_options(args, ({
+    ({ "out_dir",   Getopt.HAS_ARG, "--out-dir"        }),
+    ({ "result_dir",Getopt.HAS_ARG, "--result-dir"     }),
+    ({ "poll",      Getopt.HAS_ARG, "--poll"           }),
+    ({ "dists",     Getopt.HAS_ARG, "--dists-left"     }),
+    ({ "results",   Getopt.HAS_ARG, "--results-left"   }),
+    ({ "help",      Getopt.NO_ARG,  "--help"           }),
+  }) ),array opt)
+    {
+      switch(opt[0])
+      {
+      case "out_dir":
+	out_dir = opt[1];
+	break;
+
+      case "result_dir":
+	result_dir = opt[1];
+	break;
+
+      case "poll":
+	gc_poll = (int)opt[1];
+	break;
+
+      case "dists":
+	dists_left = (int)opt[1];
+	break;
+
+      case "results":
+	results_left = (int)opt[1];
+	break;
+
+      case "help":
+	write(prog_doc);
+	return 0;
+      }
+    }
 
   while(1) {
-    clean_out_dir(out_dir, 1);
-    clean_res_dir(result_dir, 10);
-    sleep(60*60*2);
+    clean_out_dir(out_dir, dists_left);
+    clean_res_dir(result_dir, results_left);
+    write("Waiting...\n");
+    sleep(gc_poll);
   }
 
 }
+
+constant prog_doc = #"
+--out-dir
+--result-dir
+--poll
+--dists-left
+--results-left
+--help
+";
