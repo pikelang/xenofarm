@@ -1,9 +1,9 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.17 2003/06/24 14:08:53 mani Exp $
+// $Id: pike_client.pike,v 1.18 2003/06/27 15:04:23 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
-// Synchronized with client.sh 1.72.
+// Synchronized with client.sh 1.73.
 
 #define DEBUG
 #ifdef DEBUG
@@ -171,8 +171,23 @@ void tar_dir(Stdio.File out, void|string avoid) {
     head += zero_pad("",100); // linkname
     head += "ustar\0"; // magic
     head += "00"; // version
-    head += zero_pad("xenofarm", 32); // uname
-    head += zero_pad("xenofarm", 32); // gname
+
+    // uname
+#if constant(getpwuid)
+    if(getpwuid(st->uid))
+      head += zero_pad(getpwuid(st->uid)[0], 32);
+    else
+#endif
+      head += zero_pad("xenofarm", 32);
+
+    // gname
+#if constant(getgrgid)
+    if(getgrgid(st->gid))
+      head += zero_pad(getgrgid(st->gid)[0], 32);
+    else
+#endif
+      head += zero_pad("xenofarm", 32);
+
     head += zero_pad("", 8); // devmajor
     head += zero_pad("", 8); // devminor
     head += zero_pad("", 155); // prefix
@@ -187,6 +202,7 @@ void tar_dir(Stdio.File out, void|string avoid) {
     out->write("\0"*( 512-(512+st->size)%512 )); // Pad content to blocksize
   }
   out->write("\0"*512); // End of Archive
+  out->write("\0"*( 10240-(10240+out->tell())%10240 )); // Pad to 10240 blocks
 }
 
 //! Uncompresses the gz file @[path_a] into the file @[path_b].
@@ -563,7 +579,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.17 2003/06/24 14:08:53 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.18 2003/06/27 15:04:23 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -621,7 +637,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.17 2003/06/24 14:08:53 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.18 2003/06/27 15:04:23 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
