@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.18 2002/08/30 00:00:26 mani Exp $
+// $Id: result_parser.pike,v 1.19 2002/08/30 10:13:50 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -119,17 +119,17 @@ void count_warnings(string fn, mapping res) {
 }
 
 void store_result(mapping res) {
-  if(!res->host || !res->platform)
+  if(!res->nodename || !res->platform)
     return;
 
   array qres = xfdb->query("SELECT id FROM system WHERE name=%s && platform=%s",
-			   res->host, res->platform);
+			   res->nodename, res->platform);
 
   if(sizeof(qres))
     res->system = (int)qres[0]->id;
   else {
     xfdb->query("INSERT INTO system (name, platform) VALUES (%s,%s)",
-		res->host, res->platform);
+		res->nodename, res->platform);
     res->system = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
 
@@ -148,11 +148,11 @@ mapping low_process_package() {
   }
 
   parse_machine_id(machine_id_file, result);
-  if(!result->host || !result->platform) {
+  if(!result->nodename || !result->platform) {
     write("Failed to parse machine id.\n");
     return result;
   }
-  debug("Build: %O Host: %O Platform: %O\n", result->build, result->host, result->platform);
+  debug("Build: %O Host: %O Platform: %O\n", result->build, result->nodename, result->platform);
 
   if(!result->status) {
     parse_log(main_log_file, result);
@@ -199,7 +199,14 @@ void process_package(string fn) {
 
   if(result->build && result->system) {
     string dest = web_dir + result->build+"_"+result->system;
+
+    if(Stdio.is_dir(dest)) {
+      debug("Result dir %O already exists.\n", dest);
+      if(!Stdio.recursive_rm(dest))
+	write("Unable to remove previous result directory.\n");
+    }
     mkdir(dest);
+
     int fail;
     foreach(get_dir("."), string f)
       if( Process.create_process( ({"mv", f, dest+"/"+f}), ([]) )->wait() )
@@ -353,7 +360,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.18 2002/08/30 00:00:26 mani Exp $\n";
+"$Id: result_parser.pike,v 1.19 2002/08/30 10:13:50 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
