@@ -572,7 +572,18 @@ mainlog.txt
   of tasks performed. Note that all tasks at the same level and within
   the same supertask must have unique names. "warnings" is a numeric
   value of the number of warnings encountered. "timestamp" is the
-  output from the date command in the "C" locale.
+  output from the date command in the "C" locale, preferably in the
+  GMT timezone. It is recommended that "timestamp" is created by
+  running
+
+    TZ=GMT LC_ALL=C date
+
+  or something equivalent.  Example output:
+
+    Sat Jan 18 22:26:06 GMT 2003
+
+  The result parser understands several other date formats as well,
+  but this format and this time zone seems to be the most reliable.
 
 compilelog.txt
   A log of the compilation. The warning count is the number of lines
