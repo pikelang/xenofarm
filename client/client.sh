@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.42 2002/09/03 15:00:51 grubba Exp $
+# $Id: client.sh,v 1.43 2002/09/03 15:15:16 grubba Exp $
 # License: GPL
 #
 # Requirements:
@@ -65,7 +65,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.42 2002/09/03 15:00:51 grubba Exp $
+	echo \$Id: client.sh,v 1.43 2002/09/03 15:15:16 grubba Exp $
 	exit 0
   ;;
   *)
@@ -306,7 +306,7 @@ uncompress_exit() {
 
 put_exit() {
     echo "Failed to send result. Will try to resend in the next client run."
-    date=`date | sed 's/ //g' | sed 's/://g'` &&
+    date=`date | sed -e 's/ //g' -e 's/://g'` &&
     (nfpmkdir "$basedir/$dir/rescue_$test/$date") &&
     mv "$resultdir/xenofarm_result.tar.gz" \
        "$basedir/$dir/rescue_$test/$date/xenofarm_result.tar.gz"
@@ -443,7 +443,8 @@ run_test() {
 
 #Remove spaces in the beginning and end of a string.
 chomp_ends() {
-    echo $1 | sed 's/^[ ]*//' | sed 's/[ ]*$//'
+    # No need to do anything exotic, since the shell does it for us.
+    echo $1
 }
 
 #Read only the node specific configuration file if it exists.
@@ -468,7 +469,7 @@ for projectconfig in config/*.cfg; do
 
     sed -e '/^#/d' <$projectconfig | while read line; do
         type=`echo $line | awk -F: '{ print $1 }'`
-        arguments=`echo $line | sed 's/[^:]*//' | sed 's/://'`
+        arguments=`echo $line | sed -e 's/[^:]*://'`
         arguments=`chomp_ends "$arguments"`
         case $type in
         configformat)
@@ -497,7 +498,7 @@ for projectconfig in config/*.cfg; do
             fi
 
             test=`echo $arguments | awk '{ print $1 }'`
-            command=`echo $arguments | sed 's/[^ ]* //'`
+            command=`echo $arguments | sed -e 's/[^ ]* //'`
             command=`chomp_ends "$command"`
             run_test
             virgin="false"
