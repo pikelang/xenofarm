@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.30 2002/12/02 22:34:02 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.31 2002/12/03 16:22:27 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -76,12 +76,13 @@ string status()
 
   if(sizeof(projects)) {
     ret += "<table border='1'>\n"
-      "<tr><th>Database</th><th>Next update in</th>"
+      "<tr><th>Database</th><th>Next update</th>"
       "<th>New build</th><th>Last changed</th></tr>\n";
     foreach(indices(projects), string db) {
       Project p = projects[db];
+      int t = p->next_update - time();
       ret += "<tr><td>" + db + "</td><td>" +
-      (p->next_update-time()) + " s</td><td>" +
+      (t>0 ? "in " + t + " s" : "next page reload") + "</td><td>" +
 	fmt_timespan(time()-p->new_build) + " ago</td><td>" +
 	fmt_timespan(time()-p->last_changed) + " ago</td></tr>\n";
     }
@@ -92,7 +93,7 @@ string status()
 
 static string fmt_time(int t)
 {
-  return Calendar.ISO.Second(t)->format_time();
+  return Calendar.ISO_UTC.Second(t)->format_time();
 }
 
 static string fmt_timespan(int t) {
