@@ -1,21 +1,23 @@
 
 Contents
 
- 1. This is Xenofarm
- 2. The Grand Design of Everything
- 3. The Server Script
-   3.1. Obtaining the Source
-   3.2. Creating a Source Package
-   3.3. Source Package Format
-   3.4. Invoking the Generic Server Script
-   3.5. Example Setup For the Generic Server Script
- 4. The Web Export
- 5. The Compilation Client
- 6. The Web Import
- 7. The Result Parser
-   7.1. Format of a Result Package
-   7.2. Invoking the Generic Result Parser
- 8. The Result Interface
+  1. This is Xenofarm
+  2. The Grand Design of Everything
+  3. The Server Script
+    3.1. Obtaining the Source
+    3.2. Creating a Build Package
+    3.3. Build Package Format
+    3.4. Invoking the Generic Server Script
+    3.5. Example Setup For the Generic Server Script
+  4. The Web Export
+  5. The Compilation Client
+  6. The Web Import
+  7. The Result Parser
+    7.1. Format of a Result Package
+    7.2. Invoking the Generic Result Parser
+  8. The Result Interface
+  9. Garbage Collection
+ 10. Creating your own Project
 
 
 1. This is Xenofarm
@@ -40,7 +42,8 @@ automated build and regression test tool that was used by the Pike
 programming language development team between 1999 and 2002. It was
 called AutoBuild and was created by Martin Nilsson and Johan Schön at
 Roxen Internet Software. AutoBuild was in turn derived from (or rather
-inspired by) Tinderbox. Xenofarm still sticks to the basic AutoBuild
+inspired by) Tinderbox, a similar system used by the Mozilla
+development team. Xenofarm still sticks to the basic AutoBuild
 concept, but was redesigned to get rid of the few annoying flaws and
 shortcomings of its predecessor. Most notably the system components
 has been more loosly coupled and the system should scale to X
@@ -66,10 +69,11 @@ possible, before starting to fix the code. There are essentially three
 ways that differs between Tinderbox and Xenofarm in this aspect;
 
  1. Xenofarm synchronizes its build on all platforms. It creates a
-    source package that is distributed to all clients and the build
-    result is presented as a group. It is then easy to see if eg all
-    Sparc computers failed or all Solaris computers failed, which
-    eases the bug hunt.
+    build package, containing the source code and additional data
+    needed to build it, and distributes it to all clients and the
+    build result is presented as a group. It is then easy to see if
+    eg. all Sparc computers failed or all Solaris computers failed,
+    which simplifies the bug hunt.
 
  2. Xenofarm applies CVS checkout latencies, to try to minimize
     mid-checkin breaks. The latency is currently based on a simple
@@ -82,20 +86,21 @@ ways that differs between Tinderbox and Xenofarm in this aspect;
 Another design goal with Xenofarm was to scale better than AutoBuild
 did; In terms of number of clients, in terms of number of projects, in
 terms of number of source locations and in terms of distance.
-Conceptually the system has a number of source package producers and a
+Conceptually the system has a number of build package producers and a
 number of compilation clients. Every compilation client then decides
 which packages they want to "subscribe" to. The workflow is as
 follows:
 
  1. Some trigger mechanism signals that it is time to make a new
     build. The trigger is typically a CVS checkin.
- 2. The server script creates a new source package and exports it
+ 2. The server script creates a new build package and exports it
     through a web server.
  3. The client polls the web server and finds a new package, which it
     downloads.
  4. The client builds/tests/whatever the package and uploads the
-    result to a web server, typically the same web server.
- 5. A result processor takes the uploaded result and derives
+    result to a web server. Typically the same web server as it
+    downloaded the build package from.
+ 5. A result processor takes the uploaded result package and derives
     interesting facts, which it stores in a database. The result files
     are moved into an exported web directory.
  6. The result summary and all the exported files can be viewed from a
@@ -104,35 +109,35 @@ follows:
 
 3. The Server Script
 
-The server script is responsible for creating new source distributions
-when triggered, and place them in a directory where the web export
-picks it up. Since the composition of a source distribution varies a
-lot from project to project, we've taken the approach to include all
-the base functionality into one pike program file and then inherit
-that file into "project programs" that contains logic specific for
-that project. The rationale of course is that programming languages
-are better suited for this type of configurational task than any
-artificial configuration file language one might come up with.
+The server script is responsible for creating new build packages when
+triggered, and place them in a directory where the web export picks it
+up. Since the composition of a build package varies a lot from project
+to project, we've taken the approach to include all the base
+functionality into one pike program file and then inherit that file
+into "project programs" that contains logic specific for that project.
+The rationale of course is that programming languages are better
+suited for this type of configurational task than any artificial
+configuration file language one might come up with.
 
 The base program is however useful in its own to create a "generic"
-source distribution from a CVS archive. The rest of this section talks
-about the generic server script; it may not apply to derived scripts
-such as projects/pike/server.pike.
+build package from a CVS archive. The rest of this section talks about
+the generic server script; it may not apply to derived scripts such as
+projects/pike/server.pike.
 
 Before you run the base server for the first time, you must create a
 work directory for it. This directory should be located on the same
-filesystem as the web-dir. The base server will store state files
-within a subdirectory called "state", and temporary files within
-"tmp". It also requires a copy of the source; see below. It will not
-use other file names in the work directory, so you are free to use
-other files yourself.
+filesystem as the web directory (see --web-dir). The base server will
+store state files within a subdirectory called "state", and temporary
+files within "tmp". It also requires a copy of the source; see below.
+It will not use other file names in the work directory, so you are
+free to use other files yourself.
 
 
 3.1. Obtaining the Source
 
 The generic server polls the CVS repository by running "cvs -q update"
-in a working copy of the source. If anything happens, it will create
-a new source distribution.
+in a working copy of the source. If anything has been changed, it will
+create a new build package.
 
 You must perform the initial checkout manually, before running
 server.pike. The checkout must be performed in the work directory of
@@ -144,12 +149,12 @@ The name of the checked out module must match the --cvs-module
 argument you give to server.pike.
 
 
-3.2. Creating a Source Package
+3.2. Creating a Build Package
 
-The working copy of the source must be transformed to a source package
+The working copy of the source must be transformed to a build package
 that the clients can download. The input to this transformation is the
 working copy of the source. The result of the transformation should be
-a gzipped tar file with certain properties (see "Source package
+a gzipped tar file with certain properties (see "Build package
 format").
 
 The generic server has built-in support for a very simple
@@ -161,16 +166,15 @@ transformation: it simply runs
 	gzip $name.tar
 
 This only works if the working copy fulfills the requirements defined
-in "Source package format". For projects that are not adapted to
-Xenofarm, this is most often not the case. (Most GNU programs don't
-have a makefile until after you have run configure, for instance.)
+in "Build package format". For projects that are not adapted to
+Xenofarm, this is most often not the case.
 
 You can specify an external program via the --source-transform
-argument. That program will receive two arguments: the name of the
-directory that holds the working copy of the source, and the name of
-the resulting source package that it should create. The ".tar.gz"
-suffix is not included in the name argument. This small shellscript
-is equivalent to the default built-in transformation:
+argument. That program will receive three arguments: the name of the
+directory that holds the working copy of the source, the name of the
+resulting build package that it should create and the build id. The
+".tar.gz" suffix is not included in the name argument. This small
+shellscript is equivalent to the default built-in transformation:
 
     #!/bin/sh
     working=$1
@@ -183,13 +187,17 @@ is equivalent to the default built-in transformation:
     exit 0
 
 The transform script can be written in any language; you don't need to
-know Pike to write it. (If you want to use Pike, you might consider
+know Pike to write it. If you want to use Pike, you might consider
 inheriting from server.pike and writing your own transform_source()
-function. Doing so will be slightly more efficient.)
+function. Doing so will be slightly more efficient and enables you to
+directly access all variables in the server program. See
+projects/pike/server.pike for an example of how a program that
+inherits the server might look like.
 
-The script should take care not to modify anything within $working.
-If you need to create files in the distribution, do so in a copy.
-Assuming you have GNU cp, you could write a script along these lines:
+The transform script should take care not to modify anything within
+$working. If you need to create files in the distribution, do so in a
+copy. Assuming you have GNU cp, you could write a script along these
+lines:
 
     #!/bin/sh
     working=$1
@@ -210,18 +218,17 @@ Assuming you have GNU cp, you could write a script along these lines:
 
 See projects/lyskom-server/source-transform.sh for a more complex
 example of a transformation script.
-	
 
-3.3. Source Package Format
 
-The source package must:
+3.3. Build Package Format
+
+The build package must:
 
  - create a toplevel directory and unpack in it.
- - contain a Makefile in the toplevel directory.
- - create a result package when "make xyzzy" is invoked. See "The
-   Compilation Client" for the details. What target(s) to invoke
-   instead of "xyzzy" is defined in the compilaton clients'
-   configuration file.
+ - contain a buildid.txt file in the toplevel directory that
+   identifies the build. If an unmodified result parser is to be used
+   the buildid.txt file must conform to the description in section
+   7.1.
 
 
 3.4. Invoking the Generic Server Script
@@ -246,7 +253,7 @@ Arguments:
       using "--update-opts=-Pd" would also make sense.
 
   --db=<database url>
-      The database URL, eg mysql://localhost/xenofarm. This argument
+      The database URL, eg. mysql://localhost/xenofarm. This argument
       is mandatory.
 
   --force
@@ -283,7 +290,7 @@ Arguments:
       ./server.pike <args> --verbose <project> > server.log &
 
   --web-dir=<path>
-      Where the outgoing source packages should be put. This argument
+      Where the outgoing build packages should be put. This argument
       is mandatory.
 
   --work-dir=<path>
@@ -319,27 +326,26 @@ Once all this is in place, you can run the generic script like this:
 	--work-dir=/some/dir/pythonworkdir/ \
 	python
 
-The server will run forever and create new source distributions within
+The server will run forever and create new build packages within
 /some/dir/pythonworkdir/ when anything has changed.
 
 
 4. The Web Export
 
-The Xenofarm client fetches new source distributions from a specific
-web server URL. From that URL it expects to get a file named
+The Xenofarm client fetches new build packages from a specific web
+server URL. From that URL it expects to get a file named
 snapshot.tar.gz. It also expects the Last-Modified header to change to
-a later date and time when a new source distribution is made
-available.
+a later date and time when a new build package is made available.
 
 The Roxen WebServer module "Xenofarm I/O module", found in
 roxen_modules/xenofarm_fs.pike, is mounted as a file system module in
 the webservers virtual file system. By default it mounts to the path
-/xenofarm. The module will export the source distributions put in the
-path entered in "Dist search path" at the module mount point.
+/xenofarm. The module will export the build packages put in the path
+entered in "Dist search path" at the module mount point.
 
-The module expects all source distributions to be named as
+The module expects all build packages to be named as
 XXXX-YYYYMMDD-hhmmss.tar.gz, where XXXX is the name of the project,
-eg Pike7.3-20020509-203344.tar.gz. These files are directly
+eg. Pike7.3-20020509-203344.tar.gz. These files are directly
 accessible from the mountpoint, e g
 /xenofarm/Pike7.3-20020509-203344.tar.gz in this case. The latest
 version is exported through the stable URL mountpoint/latest, e g
@@ -353,7 +359,7 @@ files between systems.
 
 The reason to put more than one file in the outgoing directory is to
 enable more redirects than just the "latest" one. It might be
-interesting to export the most successfull one, eg the one with the
+interesting to export the most successfull one, eg. the one with the
 highest number of successfull builds, as a service for people not
 interested in the build project, but in the source code itself. In
 this way Xenofarm might act as an automatic QA for people who wants an
@@ -373,10 +379,10 @@ programmers in solving the problem.
 
 It is of course possible to use a less complex solution for the
 distribution. Just put the files in a normal directory, add a symlink
-from snapshot.tar.gz to the latest source distribution, and ensure
-that the webserver handles the Last-Modified correctly when you update
-your files. An even simpler solution is to just replace the
-snapshot.tar.gz every time a new build is made.
+from snapshot.tar.gz to the latest build package, and ensure that the
+webserver handles the Last-Modified correctly when you update your
+files. An even simpler solution is to just replace the snapshot.tar.gz
+every time a new build is made.
 
 
 5. The Compilation Client
@@ -385,8 +391,8 @@ The compilation client is the collective name of the software running
 on the client side, taking care of downloading, compilation, data
 gathering and result submission. The compilation client is written in
 sh scripts who mostly use standard unix components. The non-standard
-components required are wget for downloading source distributions and
-a little C utility that performs HTTP PUT, used for uploading the
+components required are wget for downloading build packages and a
+little C utility that performs HTTP PUT, used for uploading the
 result. There are two reasons for why we have taken the trouble to do
 the client in this way:
 
@@ -397,25 +403,25 @@ the client in this way:
  2. Since a lot of files in the Pike source code are generated by Pike
     scripts, it is good to ensure that the clients do not have any
     easily accessible Pike installed. This checks if any make rules in
-    the source distribution target is broken so that some files are not
+    the build package target is broken so that some files are not
     generated.
 
-We have tried to keep the interface between the distributed package
-and the client as simple as possible. The package should be a standard
-tar.gz file, which when unpacked should result in a single directory
-with all the files and subdirectories of the project in it. Once
-unpacked, the client will enter the directory and run the make target
-defined in the clients configuration file. It expects this to result
-in a result.tar.gz file. This file must be a standard tar.gz file,
-since the client may repackage the result in the future.
+We have tried to keep the interface between the build package and the
+client as simple as possible. The package should be a standard tar.gz
+file, which when unpacked should result in a single directory with all
+the files and subdirectories of the project in it. Once unpacked, the
+client will enter the directory and execute the command defined in the
+clients configuration file. It expects this to result in a
+result.tar.gz file. This file must be a standard tar.gz file, since
+the client repackages the result and inserts the file machineid.txt.
 
-If the make fails the client will create a result.tar.gz file of its
-own. It will contain at least four files:
+If the command fails the client will create a result.tar.gz file of
+its own, containing at least three files:
 
 xenofarmclient.txt
   This file contains a log of all output from running the build command
   in the package. This file should only be produced by the client script 
-  when the make target fails.
+  when the execution command fails.
 
 machineid.txt
   This file contains a number of values on the form "identifier:
@@ -468,9 +474,9 @@ a new script is found does the following:
 
  1. Unzips and untars the package into a working directory.
  2. Retrieves the build id.
- 3. Retrieves the machine id, eg the host name and uname of the
+ 3. Retrieves the machine id, eg. the host name and uname of the
     client machine.
- 4. Finds out how many of the possible steps where completed, e g
+ 4. Finds out how many of the possible steps where completed, eg.
     compilation and verification but not packaging.
  5. Counts the number of compilation warnings.
  6. Stores the results of the parsing in a database.
@@ -484,7 +490,8 @@ a new script is found does the following:
 This section documents how a result package should look like when the
 generic result_parser.pike script is used. It should be a gzipped tar
 file that contains a number of files. It should not contain any
-directory. The following files have special meaning:
+directory. The following files have special meaning in the generic
+result parser:
 
 buildid.txt
   The first line of this file should contain the build id, which is
@@ -492,8 +499,8 @@ buildid.txt
   column in the result table.
 
 machineid.txt
-  This file is always produced and included by the Xenofarm
-  client. The format od this file is described in section 6.
+  This file is always produced and included by the Xenofarm client.
+  The format of this file is described in section 6.
 
 mainlog.txt
   A log of the build process, in a special format. Each entry in the
@@ -566,3 +573,40 @@ Arguments:
 
 
 8. The Result Interface
+
+9. Garbage Collection
+
+When running a Xenofarm server some files are not removed from the
+system. All the build packages produced by the server program as well
+as all the files obtained from the result packages will remain until
+deleted. To automate the deletion of superfluous you can use the
+Garbage Collection script, gc.pike. Although it currently isn't very
+advanced, we expect it might grow complex in the future.
+
+Currently only the last build package, or last few packages, are
+spared, but if the possible extensions listed in section 4 are
+implemented several packages must be kept online. These build packages
+could potentially differ very much in age.
+
+In a similar fashion it is possible that we would like to keep more
+build results than the last few builds. The latest successful build is
+one possibility, especially if the resulting binary is included in the
+result package. The latest build result of every status, eg. one that
+failed to build, one that failed to verify etc. is another.
+
+Arguments:
+  --dists-left=<number>
+
+  --help
+      Displays a summary of the available arguments and their use.
+
+  --out-dir=<path>
+
+  --poll=<seconds>
+
+  --result-dir=<path>
+
+  --results-left=<number>
+
+
+10. Creating your own Project
