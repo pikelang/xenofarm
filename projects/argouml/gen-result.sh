@@ -63,7 +63,7 @@ NF > 3 {
         }
     }
     if (id != $1) {
-	printf "<TR><TH COLSPAN=%d>Build %s from ", 2+tasknr, $1;
+	printf "<TR><TH COLSPAN=%d>Build <A HREF=\"diffs.html#%s\">%s</A> from ", 2+tasknr, $1, $1;
 	print strftime("%a %b %d %H:%M:%S %Y", $2), "</TH></TR>";
 	id = $1;
     }

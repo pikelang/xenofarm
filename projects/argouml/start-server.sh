@@ -34,6 +34,7 @@ do
 
     # Bygg hemsidan
     ./gen-result.sh
+    ./gen-diffs.sh
 
     # Rensa bort gamla filer
     ( cd $ROOT && find files -type d -mtime +$SPARA_DAGAR -exec rm -r "{}" ";" )
