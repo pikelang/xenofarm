@@ -8,7 +8,7 @@ Contents
     3.2. Creating a Build Package
     3.3. Build Package Format
     3.4. Invoking the Generic Server Script
-    3.5. Example Setup For the Generic Server Script
+    3.5. Example Setup for the Generic Server Script
   4. The Web Export
   5. The Compilation Client
   6. The Web Import
@@ -249,8 +249,9 @@ Arguments:
       mandatory.
 
   --update-opts=<options>
-      CVS options to append to "cvs -q update". Defaults to "-d" but
-      using "--update-opts=-Pd" would also make sense.
+      CVS options to append to "cvs -q update". Defaults to "-Pd" but
+      using "--update-opts=-d" could also make sense. Giving multiple
+      --update-opts adds arguments to the command line, in that order.
 
   --db=<database url>
       The database URL, eg. mysql://localhost/xenofarm. This argument
@@ -298,7 +299,7 @@ Arguments:
       should be put. This argument is mandatory.
 
 
-3.5. Example Setup For the Generic Server Script
+3.5. Example Setup for the Generic Server Script
 
 Let's say that you want to set up a Xenofarm for Python. The first
 step is to create a work directory for the generic server script, and
