@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.48 2003/02/08 21:41:56 ceder Exp $
+// $Id: server.pike,v 1.49 2003/03/11 12:29:56 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -89,7 +89,7 @@ int get_latest_build()
 }
 
 // The get_latest_checkin function should return the (UTC) unixtime of
-// the latest checkin. This version actually returns the time we last
+// the latest check in. This version actually returns the time we last
 // detected that something has been checked in. That is good enough.
 int get_latest_checkin()
 {
@@ -131,7 +131,7 @@ int get_latest_checkin()
   // the first time server.pike is run.
   if(latest_checkin == 0)
   {
-    debug("No checkin timestamp found; assuming something changed.\n");
+    debug("No check in timestamp found; assuming something changed.\n");
     latest_checkin = now->unix_time();
     Stdio.write_file(checkin_state_file, latest_checkin + "\n");
   }
@@ -404,7 +404,7 @@ int main(int num, array(string) args)
       int latest_checkin = get_latest_checkin();
 
       if(!sit_quietly) {
-	debug("Latest checkin was %s ago.\n", fmt_time(now - latest_checkin));
+	debug("Latest check in was %s ago.\n", fmt_time(now - latest_checkin));
 	sit_quietly = 1;
       }
       if(latest_checkin > latest_build)
@@ -414,12 +414,12 @@ int main(int num, array(string) args)
 	  sleep_for = 0;
 	  int timestamp = time();
 	  if(checkin_latency) {
-	    // Put the timestamp between latest checkin and now
-	    // to avoid mid-checkins.
+	    // Put the timestamp between latest check in and now
+	    // to avoid mid check ins.
 	    timestamp = timestamp - checkin_latency + 1;
 	  }
 	  if(timestamp < latest_checkin) {
-	    debug("System time < latest checkin!\n");
+	    debug("System time < latest check in!\n");
 	    timestamp = latest_checkin;
 	  }
 	  make_build(timestamp);
@@ -450,7 +450,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.48 2003/02/08 21:41:56 ceder Exp $\n";
+"$Id: server.pike,v 1.49 2003/03/11 12:29:56 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
@@ -461,13 +461,13 @@ Possible arguments:
 --db           The database URL, e.g. mysql://localhost/xenofarm.
 --force        Make a new build and exit.
 --help         Displays this text.
---latency      The enforced latency between the latest checkin and
+--latency      The enforced latency between the latest check in and
                when the next build is run. Defaults to 300 seconds
                (5 minutes).
 --min-distance The enforced minimum distance between to builds.
                Defaults to 7200 seconds (two hours).
 --once         Run just once.
---poll         How often the CVS is queried for new checkins.
+--poll         How often the CVS is queried for new check ins.
                Defaults to every 60 seconds.
 --repository   The CVS repository the server should use.
 --transformer  Program that builds the source package (see README).

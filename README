@@ -81,7 +81,7 @@ ways that differs between Tinderbox and Xenofarm in this aspect;
     which simplifies the bug hunt.
 
  2. Xenofarm applies CVS checkout latencies, to try to minimize
-    mid-checkin breaks. The latency is currently based on a simple
+    mid-check in breaks. The latency is currently based on a simple
     threshold value, but a more advanced solution is in the works.
 
  3. "All" relevant information is collected from the build machines to
@@ -97,7 +97,7 @@ which packages they want to "subscribe" to. The workflow is as
 follows:
 
  1. Some trigger mechanism signals that it is time to make a new
-    build. The trigger is typically a CVS checkin.
+    build. The trigger is typically a CVS check in.
  2. The server script creates a new build package and exports it
     through a web server.
  3. The client polls the web server and finds a new package, which it
@@ -261,14 +261,14 @@ Arguments:
 
   --force
       Make a new build and exit, regardless if there has been a new
-      checkin or if we are within the min-distance quarantine or
-      checkin latency.
+      check in or if we are within the min-distance quarantine or
+      check in latency.
 
   --help
       Displays a summary of the available arguments and their use.
 
   --latency=<seconds>
-      The enforced latency between the latest checkin and when the
+      The enforced latency between the latest check in and when the
       next package is made. Defaults to 300 seconds (5 minutes).
 
   --min-distance=<seconds>
@@ -276,8 +276,8 @@ Arguments:
       Defaults to 7200 seconds (two hours).
 
   --poll=<seconds>
-      How often the CVS is queried for new checkins, not including the
-      time when the server is enforcing minimum build distance and
+      How often the CVS is queried for new check ins, not including
+      the time when the server is enforcing minimum build distance and
       when the server is enforcing build latency. Defaults to 60
       seconds.
 
