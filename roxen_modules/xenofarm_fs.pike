@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.8 2002/05/16 01:09:49 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.9 2002/05/16 18:18:18 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -174,7 +174,8 @@ mapping|Stdio.File find_file(string path, RequestID id) {
   }
 
   if(path=="result") {
-    string fn = resultpath + "/res" + time() + "_" + (file_counter++) + ".tar.gz";
+    file_counter = (file_counter+1)%10; // No more than 10 results at the same second...
+    string fn = resultpath + "/res" + time() + "_" + file_counter + ".tar.gz";
     Stdio.File to = Stdio.File( fn, "wct" );
 
     if(!to)
@@ -182,13 +183,15 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 
     chmod(fn, 0666);
 
+    /*
     if(id->data && sizeof(id->data)) {
       to->write(id->data);
       to->close();
       return http_string_answer("Thanks!");
     }
+    */
 
-    putting[id->fd] = id->misc->len;
+    putting[id->my_fd] = id->misc->len;
     if(id->clientprot == "HTTP/1.1")
       id->my_fd->write("HTTP/1.1 100 Continue\r\n");
 
