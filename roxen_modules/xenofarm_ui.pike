@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.40 2003/01/12 00:38:40 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.41 2003/02/21 12:05:59 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -78,14 +78,15 @@ string status()
   if(sizeof(projects)) {
     ret += "<table border='1'>\n"
       "<tr><th>Database</th><th>Next update</th>"
-      "<th>New build</th><th>Last changed</th></tr>\n";
+      "<th>New build</th><th>Last changed</th><th>info</th></tr>\n";
     foreach(indices(projects), string db) {
       Project p = projects[db];
       int t = p->next_update - time();
       ret += "<tr><td>" + db + "</td><td>" +
       (t>0 ? "in " + t + " s" : "next page reload") + "</td><td>" +
 	fmt_timespan(time()-p->new_build) + " ago</td><td>" +
-	fmt_timespan(time()-p->last_changed) + " ago</td></tr>\n";
+	fmt_timespan(time()-p->last_changed) + " ago</td>" +
+	sprintf("<td>%O</td>", p) + "</tr>\n";
     }
 
     ret += "</table>\n";
@@ -164,6 +165,7 @@ static class Build
   //! client:time
   mapping(int(0..):int(0..)) time_spent = ([]);
 
+  //! client: task: { status, time, warnings }
   mapping(int(0..):mapping(int(0..):array)) task_results = ([]);
 
   mapping(string:int(0..)) status_summary = ([]);
@@ -213,7 +215,11 @@ static class Build
       else
 	results[system] = my_min( column(data,0) );
 
-      time_spent[system] = `+( @column(data,1) );
+      time_spent[system] = 0;
+      foreach((array)project->tasks, [int no, Task task])
+	if(!task->has_parent()) // count recursive time spans once only
+	  time_spent[system] += tasks[no] && tasks[no][1];
+
       warnings[system] = `+( @column(data,2) );
     }
 
@@ -335,6 +341,8 @@ class Task (string name, int id, int sort_order) {
     children += ({ child });
     is_leaf = 0;
   }
+
+  int(0..1) has_parent() { return !!sizeof(children); }
 
   void init(void|string ppath) {
     if(ppath)
@@ -560,10 +568,33 @@ class TagEmitXF_Machine {
     }
 
     array entities = values(p->clients)->entities();
-    sort(entities->platform, entities);
+#if 1 // A "select distinct" to, e g, list all clients with unique hostnames
+    if(string order = m_delete(m, "sort"))
+    {
+      foreach(reverse(array_sscanf(order+",", "%{%[-]%s,%}")[0]),
+	      [string direction, string variable])
+      {
+	sort(entities[variable], entities);
+	if(direction == "-")
+	  entities = reverse(entities);
+      }
+    }
+    else
+      sort(entities->platform, entities);
+    if(m->distinct)
+    {
+      mapping(string:int) seen = ([]);
+      array(mapping) distinct = ({ });
+      foreach(entities, mapping e)
+	if(!seen[e[m->distinct]]++)
+	  distinct += ({ e });
+      entities = distinct;
+    }
+#endif
     return entities;
   }
 }
+
 
 class TagEmitXF_Build {
   inherit RXML.Tag;
@@ -868,6 +899,13 @@ constant tagdoc = ([
 <attr name='id' value='int'><p>
   If set, the emit will only return information about the machine with
   this id. Any recency attribute will be ignored.
+</p></attr>
+
+<attr name='distinct' value='string'><p>
+  Filters away multiple occurrences of rows sharing the named column. This can
+  be used to list all clients with unique hostnames for instance (stating the
+  value \"machine\"). The other entities are picked from the first (according
+  to the given sort order) column that had duplicates later on.
 </p></attr>
 
 </desc>", ([
