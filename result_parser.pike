@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.20 2002/08/30 14:01:16 mani Exp $
+// $Id: result_parser.pike,v 1.21 2002/09/02 13:57:14 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -32,10 +32,48 @@ int(0..1) dry_run;
 multiset(string) processed_results = (<>);
 multiset(string) ignored_warnings = (<>);
 
+
+//
+// Helper functions
+//
+
 void debug(string msg, mixed ... args) {
   if(verbose)
     write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
 }
+
+array persistent_query( string q, mixed ... args ) {
+  int(0..) try;
+  mixed err;
+  array res;
+  do {
+    try++;
+    err = catch {
+      res = xfdb->query(q, @args);
+    };
+    if(err) {
+      switch(try) {
+      case 1:
+	write("Database query failed. Continue to try...\n");
+	if(arrayp(err) && sizeof(err) && stringp(err[0]))
+	  debug("(%s)\n", err[0][..sizeof(err)-2]);
+	break;
+      case 2..5:
+	sleep(1);
+	break;
+      default:
+	sleep(60);
+	if(!try%10) debug("Continue to try... (try %d)\n", try);
+      }
+    }
+  } while(err);
+  return res;
+}
+
+
+//
+// "API" functions
+//
 
 //! Reads the contents of the build id file @[fn] and adds the number
 //! on the first line of the file to the @[res] mapping under the key
@@ -130,8 +168,8 @@ void store_result(mapping res) {
   if(!res->nodename || !res->platform)
     return;
 
-  array qres = xfdb->query("SELECT id FROM system WHERE name=%s && platform=%s",
-			   res->nodename, res->platform);
+  array qres = persistent_query("SELECT id FROM system WHERE name=%s && platform=%s",
+				res->nodename, res->platform);
 
   if(sizeof(qres))
     res->system = (int)qres[0]->id;
@@ -172,19 +210,31 @@ mapping low_process_package() {
   return result;
 }
 
+
+//
+// Main functions
+//
+
 void process_package(string fn) {
 
   // Clear working dir
   if(sizeof(get_dir("."))) {
-    Process.system("rm *");
+    Process.create_process( ({ "rm", "*" }), ([]) )->wait();
     if(sizeof(get_dir("."))) {
       write("Working dir not empty\n");
       return;
     }
   }
 
-  // FIXME: When we have .gz-support Filesystem.Tar(fn)->get_dir() would be the thing to do.
-  string content = Process.popen("tar tfz "+fn);
+  Stdio.File fo = Stdio.File();
+  object pipe = fo->pipe(Stdio.PROP_IPC);
+  if(!pipe) return;
+  Process.create_process( ({ "tar", "tfz", fn }), ([ "stdout":pipe ]) )->wait();
+  pipe->close();
+  string content = fo->read();
+  fo->close();
+  if(!content) return;
+
   if(has_value(content, "/")) {
     write("Refusing to process %O since %s contains a slash\n", fn,
 	  String.implode_nicely(filter(content/"\n", has_value, "/")) );
@@ -192,7 +242,7 @@ void process_package(string fn) {
     return;
   }
 
-  Process.system("tar xzf "+fn);
+  Process.create_process( ({ "tar", "xzf", fn }), ([]) )->wait();
   if(!sizeof(get_dir("."))) {
     write("Unable to unpack %O to %O\n", fn, getcwd());
     processed_results[fn]=1;
@@ -368,7 +418,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.20 2002/08/30 14:01:16 mani Exp $\n";
+"$Id: result_parser.pike,v 1.21 2002/09/02 13:57:14 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
