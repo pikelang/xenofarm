@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.11 2002/07/29 17:27:13 mani Exp $
+# $Id: client.sh,v 1.12 2002/07/31 22:38:51 mani Exp $
 # License: GPL
 #
 # Requirements:
@@ -13,7 +13,8 @@
 #
 # Requirements that are normally fulfilled by the UNIX system:
 # `uname -n`        should print the nodename
-# `kill -0 <pid>`   should return true if a process with that pid exists.
+# `uname -s -r -m`  should print OS and CPU info
+# `kill -0 <pid>`   should return true if a process with that pid exists
 # `LC_ALL="C" date` should return a space-separated string with where the
 #                   first substring containging colons is on the form
 #                   <hour>:<minute>.*
@@ -224,7 +225,7 @@ grep -v \# projects.conf | ( while
                 mv xenofarm_result.tar.gz "$resultdir/"
             else
                 (cd "$resultdir" &&
-                echo "unknown" > machineid.txt &&
+                uname -s -r -m > machineid.txt &&
                 echo $node >> machineid.txt &&
                 tar cvf xenofarm_result.tar RESULT export.stamp machineid.txt &&
                 gzip xenofarm_result.tar)
