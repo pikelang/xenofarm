@@ -55,7 +55,7 @@ stored in the "config" directory. Each project has it's own
 configuration file, but each configuration may contain several tests
 to be done on the same project.
 
-Configuration files' names must have the extension ".cfg" or they will
+Configuration file names must have the extension ".cfg" or they will
 not be considered by the client. The file itself consists of a list of
 configuration name/value bindings separated by a colon. A
 configuration file must have these configurations:
