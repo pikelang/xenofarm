@@ -55,15 +55,13 @@ done
 for logfile in *.log
 do
     sed "s;`pwd`;@buildroot@;g" $logfile > $logfile.txt
-    sed 's/</\\&lt/g' $logfile.txt |
-    (
-	echo '<PRE>';
-	sed 's;@buildroot@([^:]*\.java):[0-9][0-9]*:;<a href="http://argouml.tigris.org/source/browse/argouml/\1">&</a>;g';
-	echo '</PRE>';
-    ) > $logfile.html
+    echo '<PRE>' > $logfile.html
+    sed 's/</\\&lt;/g' < $logfile.txt |
+    sed 's;@buildroot@\([^:]*\.java\):;<a href="http://argouml.tigris.org/source/browse/argouml/\1">&</a>;g' >> $logfile.html
+    echo '</PRE>' >> $logfile.html
 done
 
-tar cf xenofarm_result.tar $LOG *.log.txt *.log.html
+tar cf xenofarm_result.tar buildid.txt $LOG *.log.txt *.log.html
 gzip --fast xenofarm_result.tar
 
 E1OF
