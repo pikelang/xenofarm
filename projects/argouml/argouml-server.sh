@@ -8,25 +8,6 @@ cat << \E1OF > $working/doit.sh
 # Xenofarm build script
 LOG=mainlog.txt
 
-case $1 in
---java1.2)
-    JAVA_HOME=$JAVA_HOME_1_2
-    ;;
---java1.3)
-    JAVA_HOME=$JAVA_HOME_1_3
-    ;;
---java1.4)
-    JAVA_HOME=$JAVA_HOME_1_4
-    ;;
---java1.5)
-    JAVA_HOME=$JAVA_HOME_1_5
-    ;;
-*)
-    echo Unknown argument.;
-    exit 1;
-esac
-export JAVA_HOME
-
 chmod +x tools/ant-1.4.1/bin/ant
 test -n "$JAVA_HOME" || {
     echo JAVA_HOME not set.;
@@ -52,7 +33,7 @@ while read task command
 do
     echo BEGIN $task >> $LOG
     date >> $LOG
-    logfile=$task.log.txt
+    logfile=$task.log
     if sh -c "$command" > $logfile 2>&1
     then
 	if egrep -v " TEST .* FAILED" $logfile > /dev/null
@@ -70,7 +51,19 @@ do
     date >> $LOG
 done
 
-tar cf xenofarm_result.tar $LOG *.log.txt
+# Mangle the logfiles
+for logfile in *.log
+do
+    sed "s;`pwd`;@buildroot@;g" $logfile > $logfile.txt
+    sed 's/</\\&lt/g' $logfile.txt |
+    (
+	echo '<PRE>';
+	sed 's;@buildroot@([^:]*\.java):[0-9][0-9]*:;<a href="http://argouml.tigris.org/source/browse/argouml/\1">&</a>;g';
+	echo '</PRE>';
+    ) > $logfile.html
+done
+
+tar cf xenofarm_result.tar $LOG *.log.txt *.log.html
 gzip --fast xenofarm_result.tar
 
 E1OF
