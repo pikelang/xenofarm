@@ -1,7 +1,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.3 2002/05/03 21:56:13 mani Exp $
+// $Id: server.pike,v 1.4 2002/05/11 01:27:09 jhs Exp $
 
 // The Xenofarm server program is not really intended to be run verbatim, since almost
 // all projects have their own little funny things to take care of. This is an
@@ -23,8 +23,12 @@ constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT P
                   "export ENUM('yes','no') NOT NULL DEFAULT 'yes', "
                   "documentation ENUM('yes','no') )";
 
-int get_latest_checkin() {
-  // Insert jhs mysql thing here.
+constant latest_pike73_checkin = "http://pelix.ida.liu.se/development/cvs/latest-Pike-commit";
+
+int get_latest_checkin()
+{
+  string timestamp = Protocols.HTTP.get_url_data(latest_pike73_checkin);
+  return Calendar.set_timezone("UTC")->dwim_time(timestamp)->unix_time();
 }
 
 string make_build_low() {
