@@ -1,0 +1,28 @@
+<use file="template"/>
+<page>
+
+<h2>Recent checkins to Xenofarm</h2>
+
+<set variable="var.from"><date date="" type="iso" days="-7"/></set>
+<set variable="var.to"><date date="" type="iso" days="1"/></set>
+
+<emit source="checkins" module="^xenofarm$" from="&var.from;" to="&var.to;">
+  <sscanf variables="d" scope="var" format="%s ">&_.ended;</sscanf>
+  <if variable="var.d != &var.day;"><set variable="var.day" from="var.d"/><a name="&var.d;"></a></if>
+  <h4>&_.ended; by <if variable="_.mail is *?">&_.mail;</if><else>&_.login;</else></h4>
+  <ul>
+  <emit source="checked-in-files" scope="ci">
+    <li><b><if variable="_.state = changed">
+      <emit source="js-dynamic-popup" name="layer" props="props" src="piff.xml?module=&ci.module;&amp;file=&ci.path;&amp;from=&ci.ancestor;&amp;to=&ci.revision;">
+        <a href="piff.xml?module=&ci.module;&amp;file=&ci.path;&amp;from=&ci.ancestor;&amp;to=&ci.revision;" onclick="&_.event;">&ci.module;/&ci.path;</a>
+      </emit>
+    </if><else>&ci.module;/&ci.path;</else></b>
+    &_.status:none;
+    <if variable="_.status != removed">(<a href="colorize.xml?module=&ci.module;&amp;file=&ci.path;&amp;revision=&ci.revision;">&_.lines;&nbsp;lines</a>)</if>
+    <if variable="_.branch != "><i>Branch: &_.branch;</i></if></li>
+  </emit>
+  </ul>
+  <blockquote>&_.message:none;</blockquote>
+</emit>
+<else><p>Sorry, no checkins within the last 7 days.</p></else>
+</page>
