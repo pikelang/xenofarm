@@ -19,7 +19,7 @@ do
 	--work-dir=$ROOT/work \
 	--transformer=`pwd`/argouml-server.sh \
 	--min-distance=14400 \
- 	--latency=1800 \
+	--latency=1800 \
 	--once \
 	argouml
 
