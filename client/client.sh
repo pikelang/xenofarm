@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.9 2002/07/17 16:57:40 zino Exp $
+# $Id: client.sh,v 1.10 2002/07/18 01:10:20 mani Exp $
 # License: GPL
 #
 # Requirements:
@@ -223,8 +223,10 @@ grep -v \# projects.conf | ( while
             if [ -f xenofarm_result.tar.gz ] ; then
                 mv xenofarm_result.tar.gz "$resultdir/"
             else
-                (cd "$resultdir" && 
-                tar cvf xenofarm_result.tar RESULT export.stamp &&
+                (cd "$resultdir" &&
+                echo "unknown" > machineid.txt &&
+                echo $node >> machineid.txt &&
+                tar cvf xenofarm_result.tar RESULT export.stamp machineid.txt &&
                 gzip xenofarm_result.tar)
             fi
             get_time
