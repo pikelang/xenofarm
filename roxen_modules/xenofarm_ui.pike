@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.35 2002/12/12 17:47:45 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.36 2002/12/12 18:18:12 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -484,6 +484,8 @@ class TagEmitXF_Build {
     NOCACHE();
     string db = m->db || id->misc->xenofarm_db || default_db;
     array res = get_project(db)->builds->get_build_entities();
+    for(int i=1; i<sizeof(res); i++)
+      res[i-1]["last-time"] = res[i]->time;
 
     // Optimize sorting
     if(string order=m->sort)
