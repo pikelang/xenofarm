@@ -1,6 +1,9 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.1 2003/05/01 22:03:35 mani Exp $
+// $Id: pike_client.pike,v 1.2 2003/05/14 16:47:23 mani Exp $
+//
+// A Pike implementation of client.sh, intended for Windows use.
+// Synchronized with client.sh 1.72.
 
 #define DEBUG
 #ifdef DEBUG
@@ -13,7 +16,6 @@
 
 string config_dir = "config/";
 
-string base_dir;
 mapping system;
 array(Config) configs = ({});
 
@@ -22,10 +24,27 @@ array(Config) configs = ({});
 
 //! Enhanced exit function that outputs error messages to stderr
 //! before exiting, if provided.
-void exit(int|string code, mixed ... extra) {
-  if(intp(code)) predef::exit(code);
-  werror(code, @extra);
-  predef::exit(1);
+//!
+//! @int
+//!   @value 0
+//!     Exited without errors or was stopped by a signal
+//!   @value 1
+//!     Unsupported argument
+//!   @value 2
+//!     Client already running
+//!   @value 5
+//!     dont_run file found
+//!   @value 9
+//!     Admin email not configured
+//!   @value 12
+//!     Configuration directory not found
+//!   @value 31
+//!     Error in configuration file.
+//! @endint
+void exit(int code, void|string why, mixed ... extra) {
+  if(!why) predef::exit(code);
+  werror(why, @extra);
+  predef::exit(code);
 }
 
 ADT.Stack dirs = ADT.Stack();
@@ -94,6 +113,7 @@ class Config {
   //! be provided to create better error messages.
   void create(string file, void|string filename) {
     filename = filename||"unknown file";
+    WERR("Creating config object for %s.\n", filename);
 
     foreach(file/"\n"; int line_no; string line) {
 
@@ -102,10 +122,12 @@ class Config {
 
       string key,value;
       if(sscanf(line, "%s:%*[ \t]%s", key, value)!=3)
-        exit("Error in configure file (%s), line %d.\n", filename, line_no);
+        exit(31, "Error in configure file (%s), line %d.\n",
+	     filename, line_no);
       value = String.trim_all_whites(value);
       if(value=="")
-	exit("Empty value in key %O, line %d, %s.\n", key, line_no, filename);
+	exit(31, "Empty value in key %O, line %d, %s.\n",
+	     key, line_no, filename);
 
       if( (< "project", "projectdir",
 	     "snapshoturl", "resulturl" >)[key] )
@@ -113,7 +135,7 @@ class Config {
       else
 	if( key=="test" ) {
 	  if(sscanf(value, "%s%*[ \t]%s", key, value)!=3)
-	    exit("Error in configure file (%s), line %d.\n",
+	    exit(31, "Error in configure file (%s), line %d.\n",
 		 filename, line_no);
 	  tests[key] = value;
 	}
@@ -123,15 +145,17 @@ class Config {
     // cycle.
     if(!project || !projectdir || !snapshoturl ||
        !resulturl || !sizeof(tests))
-      exit("Missing information in configure file (%s).\n", filename);
+      exit(31, "Missing information in configure file (%s).\n", filename);
 
     if(projectdir[-1]!='/') projectdir+="/";
+    projectdir += system->node + "/";
   }
 
   static int last_download;
 
   int(0..1) prepare() {
-    Stdio.mkdirhier(projectdir+system->node);
+    WERR("Preparing %s.\n", project);
+    Stdio.mkdirhier(projectdir);
     pushd(projectdir);
     int ret = low_prepare();
     popd();
@@ -160,18 +184,33 @@ class Config {
   }
 
   void run_tests() {
+    WERR("Running tests in %s.\n", project);
+    pushd(projectdir);
+    if(!file_stat("snapshot.tar")) {
+      WERR("  Unpacking snapshot (gz).\n");
+      // We could unpack the file in smaller blocks, but
+      // we need to read the entire file below when reading
+      // the tar file, so we won't save any memory in reality,
+      // only delay its allocation.
+      string file = Gz.File("snapshot.tar.gz")->read();
+      Stdio.write_file("snapshot.tar", file);
+    }
+
     foreach(tests; string name; string cmd) {
-      pushd(projectdir+name);
+      WERR("  Running test %s.\n", name);
+      Stdio.recursive_rm(name);
+      mkdir(name);
+      pushd(name);
       run_test(name, cmd);
       popd();
     }
+
+    popd();
   }
 
   void run_test(string name, string cmd) {
-    if(!file_stat("../snapshot.tar.gz")) {
-      // unpack snapshot.
-    }
 
+    Filesystem.Tar("../snapshot.tar");
     // untar here
 
     int chdir;
@@ -246,11 +285,34 @@ void destroy() {
 
 int main(int num, array(string) args) {
 
-  base_dir = getcwd();
+  // Check cwd for a "dont_run" file, in which case we'll abort.
+  if(has_value(get_dir("."), "dont_run"))
+    exit(5, "FATAL: dont_run file found. Doing that.\n");
 
-  if(config_dir[-1]!='/') config_dir+="/";
+  // We don't trap signals as client.sh do since the Windows signal
+  // system doesn't work.
+
+  // We don't update the PATH with unix-things like client.sh do.
+
+  // We don't set LC_ALL to C as client.sh do.
+
+  // Get user input.
+  foreach(Getop.find_all_options(args, ({
+    ({ "config",  Getopt.HAS_ARG, "--config-dir" }),
+    ({ "help",    Getopt.NO_ARG,  "--help"       }),
+    ({ "version", Getopt.NO_ARG,  "--version"    }),
+  }) ), array opt)
+    {
+      switch(opt[0]) {
+      case "config":
+	config_dir = opt[1];
+	if(config_dir[-1]!='/') config_dir+="/";
+	break;
+      }
+    }
+
   if(!file_stat(config_dir))
-    error("Could not open config dir %s\n", config_dir);
+    exit(12, "Could not open config dir %s\n", config_dir);
   setup_pidfile();
 
   string email = get_email();
