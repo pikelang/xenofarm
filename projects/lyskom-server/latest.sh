@@ -100,14 +100,17 @@ do
       else
 	  color=white
       fi
-      if [ -f $builddir/${task}log.txt ]
-      then
-	  astart="<a href=\"$url/${build}_$sys/${task}log.txt\">"
-	  aend="</a>"
-      else
-	  astart=
-	  aend=
-      fi
+      astart=
+      aend=
+      for link in warn log
+      do
+          if [ -f $builddir/${task}${link}.txt ]
+          then
+          	  astart="<a href=\"$url/${build}_$sys/${task}${link}.txt\">"
+          	  aend="</a>"
+		  break
+          fi
+      done
       if [ "$astart" ] || [ $color != white ]
       then
           echo "<th>$astart<img border=0 src=\"$buttonurl${color}.gif\">$aend</th>" >&7
