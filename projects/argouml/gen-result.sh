@@ -22,7 +22,7 @@ mysql --batch \
     -D argouml_xenofarm \
     -u linus -p`cat /home/linus/.argouml_xenofarm_mysql_password` |
 sed -e '1d' |
-awk -F'	' '
+/sw/local/bin/awk -F'	' '
 BEGIN { print "<H1>Build results for ArgoUML</H1>"; 
     print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
     print "<TABLE BORDER=3>";
