@@ -29,7 +29,18 @@ FIXME: wget et all.
 
 4. Configuring the client.
 
-FIXME: See the example file "projects.conf" for now.
+client.sh is configured by editing the projects.conf file. Each
+project should have seven lines on the form:
+
+Projectname
+Build directory
+URL to fetch the snapshot from
+URL to PUT the result too.
+The names of the targets that should be built.
+The minimum time between two builds of the project
+end Projectname
+
+repeat for each project that should be built.
 
 
 5.  Starting the client.
