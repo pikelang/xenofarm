@@ -31,19 +31,24 @@ BEGIN {
     print "<H1>Build results for ArgoUML</H1>";
     print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
     print "<TABLE BORDER=3>";
-    print "<TR><TH>Java</TH>";
     tasknr = 0;
     seenlong = 0;
+    linesintable = 0;
+    heading = "<TR><TH>Java</TH>";
+    print heading;
 }
+{ linesintable++; }
 NF < 3 {
     tasknr++;
     task[$1] = tasknr;
     print "<TH>" $2 "</TH>";
+    heading = heading "<TH>" $2 "</TH>";
 }
 NF > 3 && !seenlong {
     seenlong = 1;
     print "<TH>Host</TH>";
     print "</TR>";
+    heading = heading "<TH>Host</TH></TR>";
     next;
 }
 NF > 3 {
@@ -63,6 +68,12 @@ NF > 3 {
         }
     }
     if (id != $1) {
+	if (linesintable > 400)
+	{
+	    print "</TABLE><TABLE BORDER=3>";
+	    print heading;
+	    linesintable = 0;
+	}
 	printf "<TR><TH COLSPAN=%d>Build <A HREF=\"diffs.html#%s\">%s</A> from ", 2+tasknr, $1, $1;
 	print strftime("%a %b %d %H:%M:%S %Y", $2), "</TH></TR>";
 	id = $1;
