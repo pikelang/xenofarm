@@ -1,13 +1,13 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.24 2002/12/12 01:33:11 mani Exp $
+// $Id: result_parser.pike,v 1.25 2002/12/13 16:23:01 mani Exp $
 
 inherit "../../result_parser.pike";
 
 string result_dir = "/pike/data/pikefarm/in/";
 string work_dir = "/pike/data/pikefarm/in_work/";
-string web_dir = "/pike/data/pikefarm/results/pikefarm/";
+string web_dir = "/pike/data/pikefarm/results/";
 
 void create() {
   if(!this_object()->pike_version) {
@@ -98,13 +98,13 @@ void parse_log(string fn, mapping res)
     mv("_core.txt", "core.txt");
 
   if(!res->tasks) return;
-  foreach(res->tasks, [string task, string status, int time, int warnings]) {
+  foreach(res->tasks, array task) {
 
-    if(task=="post_build/verify") {
+    if(task[0]=="post_build/verify") {
       // We don't consider verify passed if there was a leak.
       string log = Stdio.read_file("verifylog.txt");
       if(log && has_value(log, "==LEAK==")) {
-	res->tasks["build/verify"][0] = "FAIL";
+	task[1] = "FAIL";
 	return;
       }
     }
