@@ -1,7 +1,7 @@
 
 // Xenofarm Garbage Collect
 // By Martin Nilsson
-// $Id: gc.pike,v 1.7 2003/10/27 16:37:08 mani Exp $
+// $Id: gc.pike,v 1.8 2004/05/03 16:00:54 mani Exp $
 
 string out_dir;
 string result_dir;
@@ -76,7 +76,7 @@ void clean_res_dir(string dir, int save_builds, int save_systems) {
     int build, system;
     if( sscanf(fn, "%d_%d", build, system)!=2 ) continue;
     if( !builds[build] ) continue;
-    if( systems[system][build] ) continue;
+    if( systems[system] && systems[system][build] ) continue;
     rm_dir(dir, fn);
   }
 
