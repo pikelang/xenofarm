@@ -26,6 +26,8 @@
 /projects/pike/server_7.4.pike foreign_ident
 /projects/pike/server_7.5.pike foreign_ident
 /projects/pike/start.sh foreign_ident
+/projects/snes9x/result_parser.pike foreign_ident
+/projects/snes9x/server.pike foreign_ident
 /result_parser.pike foreign_ident
 /roxen_modules/xenofarm_fs.pike foreign_ident
 /roxen_modules/xenofarm_ui.pike foreign_ident
