@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.16 2002/08/12 15:20:13 zino Exp $
+# $Id: client.sh,v 1.17 2002/08/14 01:02:07 ceder Exp $
 # License: GPL
 #
 # Requirements:
