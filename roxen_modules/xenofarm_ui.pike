@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.8 2002/07/29 00:54:45 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.9 2002/07/31 01:24:40 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm UI module";
@@ -130,7 +130,8 @@ static class Build {
       time_spent[system] = (int)x->time_spent;
     }
     if(changed)
-      summary = min( @ratings[values(results)[*]] );
+      summary = min( @map( values(results),
+			   lambda(string in) { return ratings[in]; } ) );
 
     // FIXME: Update documentation
 
