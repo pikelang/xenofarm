@@ -1,13 +1,62 @@
 #
-# $Id: Makefile,v 1.1 2002/12/01 15:37:40 mani Exp $
+# $Id: Makefile,v 1.2 2002/12/02 16:10:20 mani Exp $
 #
 
 USER=mani
 SERVER=proton.lysator.liu.se
-.PHONY : website
+.PHONY : website clean
 
-website: pages/web/documentation.html
-	scp pages/web/* $(USER)@$(SERVER):/lysator/www/projects/xenofarm
+website: build/web pages/web/documentation.xml \
+	 build/client.tar.gz pages/web/download.xml
+	cp pages/web/*.xml build/web
+	cp pages/web/*.gif build/web
+	cp pages/web/template build/web
+	cp build/client.tar.gz build/web
+	scp build/web/* $(USER)@$(SERVER):/lysator/www/projects/xenofarm
 
-pages/web/documentation.html: README pages/mkhtml.pike
-	pike pages/mkhtml.pike README > pages/web/documentation.xml
+pages/web/documentation.xml: build/web README pages/mkhtml.pike
+	pike pages/mkhtml.pike README > build/web/documentation.xml
+
+pages/web/download.xml: build/web pages/web/download.xml.in \
+	                build/client.tar.gz
+	pike -e 'object s=file_stat("build/client.tar.gz"); \
+	  object t=Calendar.Second(s->mtime); \
+	  string x=sprintf("%s, %s %s", String.int2size(s->size), \
+	    t->format_ymd(), t->format_tod()); \
+	  Stdio.write_file("build/web/download.xml", \
+	    replace(Stdio.read_file("pages/web/download.xml.in"), \
+	      "@info@", x));'
+
+build/client.tar.gz: build
+	@if [ -f client/Makefile ] ; then cd client; $(MAKE) spotless; \
+	  else : ; fi
+	-rm -r build/client
+	-rm build/client.tar
+	-rm build/client.tar.gz
+	cp -R client build
+	-rm build/client/config/*.cfg
+	-rm build/client/config/*~
+	-rm build/client/config/contact.txt
+	-mkdir build/client/projects
+	@for p in projects/*; do \
+	  if [ -f "$$p/README" ] ; then \
+	    mkdir "build/client/$$p"; \
+	    cp "$$p/README" "build/client/$$p"; \
+	    cp $$p/*.cfg "build/client/$$p"; \
+	  else \
+	    echo "No README found in project $$p."; \
+	  fi \
+	done
+	cd build ; tar c client > client.tar
+	cd build ; gzip -9 client.tar
+
+build:
+	-mkdir build
+
+build/web: build
+	-mkdir build/web
+
+clean:
+	-rm -r build
+	-rm pages/web/documentation.xml
+	-rm pages/web/client.tar.gz
