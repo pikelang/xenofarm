@@ -65,7 +65,7 @@ ways that differs between Tinderbox and Xenofarm in this aspect;
 
  1. Xenofarm synchronizes its build on all platforms. It creates a
     source package that is distributed to all clients and the build
-    result is presented as a group. It is then easy to see if e g all
+    result is presented as a group. It is then easy to see if eg all
     Sparc computers failed or all Solaris computers failed, which
     eases the bug hunt.
 
@@ -240,7 +240,7 @@ Arguments:
       "--update-opts=-Pd" also makes sense.
 
   --db=<database url>
-      The database URL, e g mysql://localhost/xenofarm.
+      The database URL, eg mysql://localhost/xenofarm.
 
   --force
       Make a new build and exit, regardless if there has been a new
@@ -331,7 +331,7 @@ path entered in "Dist search path" at the module mount point.
 
 The module expects all source distributions to be named as
 XXXX-YYYYMMDD-hhmmss.tar.gz, where XXXX is the name of the project,
-e g Pike7.3-20020509-203344.tar.gz. These files are directly
+eg Pike7.3-20020509-203344.tar.gz. These files are directly
 accessible from the mountpoint, e g
 /xenofarm/Pike7.3-20020509-203344.tar.gz in this case. The latest
 version is exported through the stable URL mountpoint/latest, e g
@@ -345,7 +345,7 @@ files between systems.
 
 The reason to put more than one file in the outgoing directory is to
 enable more redirects than just the "latest" one. It might be
-interesting to export the most successfull one, e g the one with the
+interesting to export the most successfull one, eg the one with the
 highest number of successfull builds, as a service for people not
 interested in the build project, but in the source code itself. In
 this way Xenofarm might act as an automatic QA for people who wants an
@@ -452,7 +452,7 @@ a new script is found does the following:
 
  1. Unzips and untars the package into a working directory.
  2. Retrieves the build id.
- 3. Retrieves the machine id, e g the host name and uname of the
+ 3. Retrieves the machine id, eg the host name and uname of the
     client machine.
  4. Finds out how many of the possible steps where completed, e g
     compilation and verification but not packaging.
