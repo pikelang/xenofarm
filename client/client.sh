@@ -4,19 +4,22 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.19 2002/08/15 23:03:00 zino Exp $
+# $Id: client.sh,v 1.20 2002/08/17 01:04:26 zino Exp $
 # License: GPL
 #
 # Requirements:
 #  gzip
-#  wget
+#  wget              Must handle -N and set the timestamp correctly.
+#                    Versions 1.6 and prior of wget are know to mangle 
+#                    the timestamps and will cause occasional missed 
+#                    builds. Versions 1.8.2 and newer are known to work.
 #
 # Requirements that are normally fulfilled by the UNIX system:
 # `uname -n`        should print the nodename
 # `uname -s -r -m`  should print OS and CPU info
 # `kill -0 <pid>`   should return true if a process with that pid exists
 # `LC_ALL="C" date` should return a space-separated string with where the
-#                   first substring containging colons is on the form
+#                   first substring containing colons is on the form
 #                   <hour>:<minute>.*
 # tar 	            must be available in the PATH
 # find              must be available in the PATH
@@ -41,7 +44,7 @@
 # 10: wget not found
 # 11: gzip not found
 
-#FIXME: Error codes are often cought in subshells
+#FIXME: Error codes are often caught in subshells
 #FIXME: use logger to put stuff in the syslog if available
 
 parse_args() {
@@ -60,7 +63,7 @@ EOF
 	exit 0
   ;;
   *)
-	echo Unsopported argument: $1 1>&2
+	echo Unsupported argument: $1 1>&2
 	echo try --help 1>&2
 	exit 1
   esac
@@ -125,11 +128,11 @@ clean_exit() {
 }
 
 sigint() {
-    echo "SIGINT recived. Cleaning up and exiting." 1>&2
+    echo "SIGINT received. Cleaning up and exiting." 1>&2
     clean_exit 0
 }
 sighup() {
-    echo "SIGHUP recived. Cleaning up and exiting for now." 1>&2
+    echo "SIGHUP received. Cleaning up and exiting for now." 1>&2
     clean_exit 0
 }
 
@@ -152,7 +155,7 @@ trap sigint 15
 
 #Add a few directories to the PATH
 PATH=$PATH:/usr/local/bin:/sw/local/bin
-#cc on UNICOS fails to build with exitic settings like LC_CTYPE=iso_8859_1
+#cc on UNICOS fails to build with exotic settings like LC_CTYPE=iso_8859_1
 LC_ALL=C
 export PATH LC_ALL
 
@@ -177,7 +180,7 @@ echo $$ > $pidfile
 
 #If we are running a sprshd build the put command should be on the local node
 if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
-    #FIXME: See if this uname location is resonable portable
+    #FIXME: See if this uname location is reasonable portable
     putname=bin/put-`/bin/uname -n`
 else
     putname=bin/put-$node
@@ -191,7 +194,6 @@ if [ ! -x $putname ] ; then
     make put
     if [ ! -x put ] ; then
         echo "FATAL: Failed to compile put." 1>&2
-        rm $pidfile
         clean_exit 3
     else
 	mkdir bin 2>/dev/null
@@ -231,15 +233,24 @@ grep -v \# projects.conf | ( while
      uncompressed=0
      NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
      #FIXME: get a tee >1 in here for better manual runs
-     wget --dot-style=binary -N "$geturl" > "wget_$target.log" 2>&1 &&
+     wget --dot-style=binary -N "$geturl" > "wget.log" 2>&1 &&
      if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         echo "NOTE: No newer snapshot for $project available."
+     else
+        # The snapshot will have a time stamp synced to the server. To
+        # compensate for drifting clocks (not time zones, that is
+        # handled my wget) on the clients we make a local stamp
+        # file. As this file is not consulted when downloading new
+        # snapshot it doesn't matter if a new snapshot is released while 
+        # the first one is downloaded. (Yes, this long text is necessary.)
+        touch localtime_lastdl
      fi || wget_exit
      rm -rf buildtmp && mkdir buildtmp && 
      cd buildtmp &&
      for target in `echo $targets` ; do
         if [ \! -f "../last_$target" ] ||
-           [ X != X`find ../snapshot.tar.gz -newer "../last_$target"` ] ; then
+           [ X != X`find ../localtime_lastdl -newer "../last_$target"` ] ; then
+        get_time
         echo $hour:$minute > "../current_$target";
         #FIXME: Check if the project configurable build delay has passed
         if `check_delay`; then
@@ -270,7 +281,6 @@ grep -v \# projects.conf | ( while
                 tar cvf xenofarm_result.tar RESULT export.stamp machineid.txt &&
                 gzip xenofarm_result.tar)
             fi
-            get_time
 	    mv "../../current_$target" "../../last_$target";
 	    echo "Sending results for $project: $target."
             $basedir/$putname "$puturl" < "$resultdir/xenofarm_result.tar.gz"
