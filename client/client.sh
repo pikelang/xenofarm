@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.23 2002/08/25 14:43:52 zino Exp $
+# $Id: client.sh,v 1.24 2002/08/25 15:49:25 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -225,17 +225,23 @@ wget --help > /dev/null 2>&1 || missing_req wget 10
 gzip --help > /dev/null 2>&1 || missing_req wget 11
 
 #Read only the node specific configuration file if it exists.
-if [ -x "projects.conf.$node" ] ; then
+if [ -f "projects.conf.$node" ] ; then
     configfile="projects.conf.$node";
+    echo "NOTE: found node specific config file: $configfile"
 else
     configfile="projects.conf";
+    if [ ! -f $configfile ] ; then
+	echo "FATAL: Config file: $configfile not found." 1>&2
+	exit 13
+    fi
 fi
 
 #Build Each project and each target in that project sequentially
 basedir="`pwd`"
 grep -v \# $configfile | ( while 
-    if [ X$? != X0 ] ; then
-        echo "Project $project failed with exit code $?";
+    last=$?
+    if [ X"$last" != X0 ] ; then
+        echo "Project $project failed with exit code $last";
     fi
 
     read project ; do
