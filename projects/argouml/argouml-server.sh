@@ -47,6 +47,7 @@ cpp	cd modules/cpp && ../../tools/ant-1.4.1/bin/ant package
 classfile	cd modules/classfile && ../../tools/ant-1.4.1/bin/ant package
 csharp	cd modules/csharp && ../../tools/ant-1.4.1/bin/ant package
 junit	cd modules/junit && ../../tools/ant-1.4.1/bin/ant package
+checkstyle	cd src_new && ../tools/ant-1.4.1/bin/ant checkstyle | sed 's/:[0-9][0-9]*: /&warning /'
 EOF
 while read task command
 do
