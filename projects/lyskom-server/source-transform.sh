@@ -75,6 +75,16 @@ pfx=`pwd`/pfx
 
 status=good
 
+case `uname -n` in
+  asmodean.lysator.liu.se)
+      # We need the new makeinfo from /sw/local/bin, 
+      # and want runtest from /sw/dejagnu.
+      PATH=/sw/local/bin:$PATH:/sw/dejagnu/bin;;
+  moghedien.lysator.liu.se)
+      # We need the new makeinfo from /sw/local/bin.
+      PATH=/sw/local/bin:$PATH;;
+esac
+
 dotask 1 "unzip" "gzip -d $BASE.tar.gz"
 dotask 1 "unpack" "tar xf $BASE.tar"
 dotask 1 "configure" "cd $BASE && ./configure -C --prefix=$pfx"
