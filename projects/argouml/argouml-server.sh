@@ -65,7 +65,10 @@ do
 done
 
 mv $LOG ../../result_default
-mv *.log ../../result_default
+for logfile in *.log
+do
+    mv $logfile ../../result_default/$logfile.txt
+done
 
 E1OF
 

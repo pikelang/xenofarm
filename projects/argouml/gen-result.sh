@@ -26,7 +26,7 @@ awk -F'	' '
 BEGIN { print "<H1>Build results for ArgoUML</H1>"; 
     print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
     print "<TABLE BORDER=3>";
-    print "<TR><TH>System</TH><TH>Result</TH><TH>Warnings</TH>";
+    print "<TR><TH>Target</TH><TH>Result</TH><TH>Warnings</TH>";
     print "<TH>Host</TH>";
     print "</TR>";
 }
@@ -37,9 +37,9 @@ BEGIN { print "<H1>Build results for ArgoUML</H1>";
     }
   print "<TR><TD>";
   printf "<A HREF=\"'$url'%d_%d\">", $1, $3;
-  print $9, $5, $6, $7, $8, "</A></TD>";
+  print $9, "</A></TD>";
   print "<TD ALIGN=CENTER>", $10, "</TD><TD ALIGN=CENTER>", $11, "</TD>";
-  print "<TD>", $4, "</TD>";
+  print "<TD>", $4, "(", $5, $6, ")", "</TD>";
   print "</TR>";
 }
 END { print "</TABLE>"; }' |
