@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.12 2002/08/14 19:31:24 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.13 2002/08/14 19:33:12 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -306,7 +306,7 @@ class TagXF_Update {
 		       (error ? ": " + error[0] : "") + "\n");
       if(!xflock++)
 	update_builds(xfdb);
-      vars->updated = fmt_time(latest_update);
+      vars->updated = fmt_time(next_update);
     }
 
     array do_return() {
