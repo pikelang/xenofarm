@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.33 2002/12/06 15:18:19 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.34 2002/12/12 17:25:11 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -86,6 +86,7 @@ string status()
 	fmt_timespan(time()-p->new_build) + " ago</td><td>" +
 	fmt_timespan(time()-p->last_changed) + " ago</td></tr>\n";
     }
+
     ret += "</table>\n";
   }
   return ret;
@@ -114,19 +115,21 @@ static string my_min(array in, string ... more) {
   if(more) in = in + more;
   if(!sizeof(in)) return "NONE";
   if(has_value(in, "FAIL")) return "FAIL";
-  if(has_value(in, "PASS")) return "PASS";
-  return "WARN";
+  if(has_value(in, "WARN")) return "WARN";
+  return "PASS";
 }
 
-static class Build {
-
+static class Build
+{
   Project project;
   int(0..) id;
   int(0..) build_datetime;
+  string export; // One of { "FAIL" "WARN" "PASS" }
 
+  // The summary of the build, min( results )
   string summary;
-  string export;
 
+  // Textual representation of build_datetime.
   string str_build_datetime;
 
   void create(int(0..) _id, int(0..) _build_datetime,
@@ -142,10 +145,13 @@ static class Build {
     str_build_datetime = fmt_time(build_datetime);
   }
 
-  string _sprintf(int t) {
-    return t=='O' && sprintf("Build(%d, %d /* %s */,\n%s      %s, %O)",
-			     id, build_datetime, str_build_datetime,
-			     export, project);
+  static string _sprintf(int t) {
+    switch(t) {
+    case 'O': return sprintf("Build(%d, %d /* %s */,\n%s      %s, %O)",
+		      id, build_datetime, str_build_datetime,
+		      export, project);
+    case 't': return "Build";
+    }
   }
 
   //! client:status
@@ -189,15 +195,20 @@ static class Build {
       mapping tasks = task_results[system];
       array status = tasks[build_task];
       array data = values(tasks);
-      if(!status)
-	results[system] = "FAIL";
-      else if(status[0]=="PASS") {
-	string status = my_min( column(data,0) );
-	if(status=="FAIL") status="WARN";
-	results[system] = status;
+
+      if(build_task) {
+	if(!status)
+	  results[system] = "FAIL";
+	else if(status[0]=="PASS") {
+	  string status = my_min( column(data,0) );
+	  if(status=="FAIL") status="WARN";
+	  results[system] = status;
+	}
+	else
+	  results[system] = status[0];
       }
       else
-	results[system] = status[0];
+	results[system] = my_min( column(data,0) );
 
       time_spent[system] = `+( @column(data,1) );
       warnings[system] = `+( @column(data,2) );
@@ -219,21 +230,21 @@ static class Build {
     ]) + status_summary;
   }
 
-  array(mapping(string:int|string))|mapping(string:int|string)
-    get_result_entities(void|int machine) {
-
-    if(!zero_type(machine))
-      return ([ "status" : results[machine]||"NONE",
-		"system" : machine,
+  array(mapping(string:int|string))
+      | mapping(string:int|string) get_result_entities(void|int client_no)
+  {
+    if(!zero_type(client_no))
+      return ([ "status" : results[client_no]||"NONE",
+		"system" : client_no,
 		"build" : id,
-		"warnings" : warnings[machine],
+		"warnings" : warnings[client_no],
 		"time" : str_build_datetime,
-		"timespan" : fmt_timespan(time_spent[machine]),
+		"timespan" : fmt_timespan(time_spent[client_no]),
       ]);
     array ret = ({});
-    foreach(sort(indices(project->machines)), int system)
-      ret += ({ ([ "status" : results[system]||"NONE",
-		   "system" : system,
+    foreach(sort(indices(project->clients)), client_no)
+      ret += ({ ([ "status" : results[client_no]||"NONE",
+		   "system" : client_no,
 		   "build" : id,
       ]) });
     return ret;
@@ -244,41 +255,81 @@ static class Build {
   }
 
   mapping(string:int|string) get_details(int client) {
-    return ([ "machine" : project->machines[client],
-	      "platform" : project->platforms[client],
-	      "result" : results[client],
+    return ([ "result" : results[client],
 	      "warnings" : warnings[client],
 	      "time" : fmt_timespan(time_spent[client]),
 	      "build_id" : (string)id,
 	      "machine_id" : (string)client,
-   ]);
+   ]) | project->clients[client]->entities();
   }
 }
 
-static class Project {
+static class ClientConfig
+{
+  //! the various info related to a particular client configuration
+  string name, sysname, release, version, machine, test;
+  int id;
 
+  void create(mapping info)
+  {
+    id = (int)info->id;
+    name = info->name;
+    test = info->testname;
+    sysname = info->sysname;
+    release = info->release;
+    version = info->version;
+    machine = info->machine;
+  }
+
+  //! render info entities for this client
+  mapping entities()
+  {
+    string platform = sysname + " " + release + " " + machine;
+    return ([ "name":name, "sysname":sysname, "release":release, "id":id,
+	      "version" : version, "machine" : machine, "test" : test,
+	      "platform" : platform + (test=="" ? "" : " " + test) ]);
+  }
+
+  string _sprintf(int type)
+  {
+    if(type=='t') return "ClientConfig";
+    return sprintf("ClientConfig(/* %s */)", name);
+  }
+}
+
+static class Project
+{
+  //! latest build first, length limited by module variable "results"
   array(Build) builds = ({});
 
-  // The build id of the corresponding build in builds.
+  //! the id of the corresponding build in @[builds]
   array build_indices = ({});
 
-  mapping(int:string) platforms = ([]);
-  mapping(int:string) machines = ([]);
-  array(mapping(string:string|int)) machine_entities = ({});
+  //! client:client configuration info
+  mapping(int(0..):ClientConfig) clients = ([]);
 
-  int new_build;
-  int last_changed;
-  int next_update;
-
+  //! task no:task name
   mapping(int:string) tasks = ([]);
+
+  int new_build; // the last time we found a new build in the database
+  int last_changed; // ditto when we noticed a change in the matrix
+  int next_update; // we won't update our state until we reach this time
+
+  string _sprintf(int t) {
+    switch(t) {
+      case 'O': return sprintf("Project(/* %d builds */)", sizeof(builds));
+      case 't': return "Project";
+    }
+  }
 
   //! Updates the module's internal state with recent activity by the
   //! packager daemons and the result parsers, as logged in the
   //! Xenofarm database of choice.
   //! @returns
   //!   The number of seconds left until the next update will happen.
-  int update_builds(Sql.Sql xfdb) {
-    // Only update internal state once a minute.
+  int update_builds(Sql.Sql xfdb)
+  {
+    // Only update internal state once a minute
     int now = time(1), latency = query("latency");
     if(next_update < now)
       next_update = time() + latency;
@@ -286,14 +337,13 @@ static class Project {
       return next_update - now;
 
     // Add new builds
-
     int latest_build;
     if(sizeof(builds))
       latest_build = builds[0]->build_datetime;
 
     array new = xfdb->query("SELECT id,name,parent FROM task ORDER BY parent");
 
-    if(sizeof(tasks)!=sizeof(new)) 
+    if(sizeof(tasks)!=sizeof(new))
       foreach(new, mapping res) {
 	if((int)res->parent)
 	  res->name = tasks[ (int)res->parent ] + "-" + res->name;
@@ -301,8 +351,8 @@ static class Project {
       }
 
     new = xfdb->query("SELECT id,time,export FROM build WHERE time > %d"
-			    " ORDER BY time DESC LIMIT %d", latest_build,
-			    query("results"));
+		      " ORDER BY time DESC LIMIT %d", latest_build,
+		      query("results"));
 
     if(sizeof(new)) {
       new_build = time();
@@ -319,51 +369,26 @@ static class Project {
     }
 
     // Update featured builds
-
     int changed = `+( 0, @builds->update_results(xfdb) );
     if(!changed)
       return latency;
     last_changed = time();
 
-    // Update list of involved machines
-
+    // Update client info about all recently involved clients
     multiset m = (multiset)Array.uniq( `+( @builds->list_machines() ) );
-
-    foreach(indices(machines), int machine)
-      if( !m[machine] ) {
-	m_delete(machines, machine);
-	m_delete(platforms, machine);
-      }
+    foreach(indices(clients), int client_no)
+      if( m[client_no] )
+	;//m[client_no] = 0; // we already have info about this client
       else
-	m[machine] = 0;
+	m_delete(clients, client_no); // don't keep the info any more
 
-    foreach(indices(m), int machine) {
-      array data = xfdb->query("SELECT name,sysname,release,version,"
-			       "machine,testname "
-			       "FROM system WHERE id=%d", machine);
-      machines[machine] = data[0]->name;
-      string u_sysname = data[0]->sysname;
-      string u_release = data[0]->release;
-      string u_version = data[0]->version;
-      string u_machine = data[0]->machine;
-
-      platforms[machine] = u_sysname + " " + u_release + " " + u_machine;
-      if(data[0]->testname!="")
-	platforms[machine] += " " + data[0]->testname;
-    }
-
-    array me = ({});
-    foreach(sort(indices(machines)), int machine)
-      me += ({ get_machine_entities_for( machine ) });
-    machine_entities = me;
+    foreach(xfdb->query("SELECT id,name,sysname,release,version,"
+			"machine,testname FROM system"/*
+			"WHERE id IN (%s)", (array(string))m * ","*/),
+	    mapping info)
+      clients[(int)info->id] = ClientConfig(info);
 
     return latency; // [until] next time, gadget...
-  }
-
-  mapping get_machine_entities_for(int machine) {
-    return ([ "id"   : machine,
-	      "name" : machines[machine],
-	      "platform" : platforms[machine] ]);
   }
 
   Build get_build(int id) {
@@ -428,21 +453,26 @@ class TagEmitXF_Machine {
   {
     NOCACHE();
     Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
-
-    // Remove machines whose last max-columns builds were all white
+    report_debug("Listing machines for %O\n", p);
+    // Remove clients whose last max-columns builds were all white
     if(int maxcols = (int)m_delete(m, "recency"))
     {
       array(mapping) result = ({});
-      foreach(sort(indices(p->machines)), int machine)
+      foreach(sort(indices(p->clients)), int client_no)
       {
-	array status = p->builds->get_result_entities( machine )->status;
+	ClientConfig c = p->clients[client_no];
+	array status = p->builds->get_result_entities( client_no )->status;
 	if(sizeof(status[..maxcols-1] - ({ "NONE" })))
-	  result += ({ p->get_machine_entities_for(machine) });
+	  result += ({ p->clients[client_no]->entities() });
       }
+      report_debug("filtered out %O from %O\n", result, p->clients);
       return result;
     }
 
-    return p->machine_entities;
+    array entities = values(p->clients)->entities();
+    sort(entities->platform, entities);
+    report_debug("all: %O\n", entities);
+    return entities;
   }
 }
 
