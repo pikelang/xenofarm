@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.37 2002/11/30 03:25:58 mani Exp $
+// $Id: server.pike,v 1.38 2002/12/01 14:13:56 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -194,11 +194,11 @@ string make_build_low(int latest_checkin)
   return name+".tar.gz";
 }
 
-void make_build(int latest_checkin)
+void make_build(int timestamp)
 {
   debug("Making new build.\n");
 
-  string build_name = make_build_low(latest_checkin);
+  string build_name = make_build_low(timestamp);
   if(!build_name) {
     write("No source distribution was created by make_build_low...\n");
     return;
@@ -398,7 +398,12 @@ int main(int num, array(string) args)
 	if(latest_checkin + checkin_latency <= now)
 	{
 	  sleep_for = min_build_distance;
-	  make_build(latest_checkin);
+	  int timestamp = time();
+	  if(timestamp < latest_checkin) {
+	    debug("System time < latest checkin!\n");
+	    timestamp = latest_checkin;
+	  }
+	  make_build(timestamp);
 	  latest_build = get_latest_build();
 	}
 	else // Enforce minimum time of inactivity after a commit
@@ -423,7 +428,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.37 2002/11/30 03:25:58 mani Exp $\n";
+"$Id: server.pike,v 1.38 2002/12/01 14:13:56 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
