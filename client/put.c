@@ -206,21 +206,21 @@ int main( int argc, char *argv[] )
   {
     perror("fstat");
     syntax(argv[0]);
-  }
+  }  
 
-  if( (st.st_mode & S_IFMT) != S_IFREG )
-  {
-    printf("Stdin is not a file\n");
-    exit(1);
-  }
-  
   for( i = 1; i<argc; i++ )
   {
     if( !strcmp( argv[i], "--help" ) )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.3 2002/07/30 18:05:48 cardeci Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.4 2002/08/02 12:43:21 zino Exp $" );
+      exit(0);
+    }
+    if( (st.st_mode & S_IFMT) != S_IFREG )
+    {
+      printf("Stdin is not a file!\n");
+      syntax( argv[0] );
       exit(1);
     }
     put_file( argv[i], st.st_size );
