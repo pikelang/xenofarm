@@ -4,13 +4,14 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.58 2002/09/26 10:48:35 grubba Exp $
+# $Id: client.sh,v 1.59 2002/09/27 07:53:39 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
 # Requirements:
 #  gzip
 #  wget              Must handle -N and set the timestamp correctly.
+#                    Must handle --referer.
 #                    Versions 1.6 and prior of wget are know to mangle 
 #                    the timestamps and will cause occasional missed 
 #                    builds. Versions 1.8.2 and newer are known to work.
@@ -65,7 +66,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.58 2002/09/26 10:48:35 grubba Exp $
+	echo \$Id: client.sh,v 1.59 2002/09/27 07:53:39 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
