@@ -1,4 +1,7 @@
+#!/sw/local/bin/python
+
 import resultparser
+import sys
 from time import time, strftime, gmtime
 
 recent_builds = """
@@ -7,6 +10,8 @@ recent_builds = """
     WHERE tr.build = b.id
  GROUP BY tr.system
 """
+
+resultparser.init(sys.argv[1])
 
 results = resultparser.ResultList(recent_builds, None)
 syslist = results.get_system_list()
@@ -36,6 +41,8 @@ print """
      step failed somehow . White dots mean this script could not parse
      the result or that the step was not executed because some step
      that it depends on failed.</p>
+  <p>To the left are summary steps; to the right are breakdowns of the 
+     activities involved in building and testing a particular package.</p>
 """ % strftime("%Y-%m-%d %H:%M %Z", gmtime())
 
 print "<table>"
@@ -46,14 +53,19 @@ for id in tasks:
     print "    <th>%s</th>" % parser.get_task_info(id)[3]
 print "  </tr>"
 
-for build in results.get_build_list():
+blist = results.get_build_list()
+blist.sort(lambda a, b: int(b[0] - a[0]))
+
+for build, time in blist:
     print "  <tr><td colspan='%i' class='build'>Build %s %s</td></tr>" % \
-          (len(tasks) + 1, build, 'foo')
+          (len(tasks) + 1, build, strftime("%Y-%m-%d %H:%M", gmtime(time)))
     for res in results.get_results_by_build(build):
         print "  <tr>"
         print "    <td>%s</td>" % syslist.get_identity(res.get_system_id())
 
         for id in tasks:
+            url = "files/%i_%i/" % (build, res.get_system_id())
+
             try:
                 task = res.get_task_by_id(id)
             except KeyError:
@@ -64,7 +76,7 @@ for build in results.get_build_list():
                 else:
                     img = "<img border=0 src='pcl-red.gif'>"
 
-            print "    <td align='center'>%s</td>" % img
+            print "    <td align='center'><a href='%s'>%s</a></td>" % (url,img)
         print "  </tr>"
 print "</table>"
 

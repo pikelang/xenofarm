@@ -1,9 +1,13 @@
 import MySQLdb
 from string import join, strip
 
-pwd = strip(open("/home/sfarmer/.xeno-mysql-pwd").readline())
-db = MySQLdb.connect(host="localhost", user="sfarmer",
-                     db="python_devel_xenofarm", passwd=pwd)
+db = None
+
+def init(dbname):
+    global db
+    pwd = strip(open("/home/sfarmer/.xeno-mysql-pwd").readline())
+    db = MySQLdb.connect(host="localhost", user="sfarmer",
+                         db=dbname, passwd=pwd)
 
 def create_qualified_name(id, tasks):
     task = tasks[id]
@@ -46,9 +50,23 @@ class TaskParser:
     def make_taskresult(self, taskid, status):
         return TaskResult(taskid, self.tasks[taskid], status)
 
+    def sort_hierarchy(self, a, b):
+        a_parent = self.tasks[a][2]
+        b_parent = self.tasks[b][2]
+
+        if a_parent == b_parent:
+            return int(self.tasks[a][1] - self.tasks[b][1])
+        else:
+            if (a_parent == 0 or b_parent == 0):
+                # Both can't be zero or above is true; cheat - one is zero
+                return int(a_parent - b_parent)
+            else:
+                # Both have (different) parent
+                return int(self.tasks[a_parent][1] - self.tasks[b_parent][1])
+
     def get_expected_task_ids(self):
         ids = self.tasks.keys()
-        ids.sort(lambda a, b: int(self.tasks[a][1] - self.tasks[b][1]))
+        ids.sort(self.sort_hierarchy)
         return ids
 
     def get_task_info(self, id):
@@ -136,8 +154,8 @@ class ResultList:
 
         for build, system, time in self.recent.fetchall():
             self.syslist.add_system(system)
-            if not build in self.buildlist:
-                self.buildlist.append(build)
+            if not [build, time] in self.buildlist:
+                self.buildlist.append([build, time])
             self.results.append(ResultSet(self.parser, build, system, time))
 
     def get_system_list(self):
