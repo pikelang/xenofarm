@@ -13,20 +13,20 @@ Contents
 
 1. This is Xenofarm.
 
-The Xenofarm project is a rather small project, if measured in
-code. This is because the wonders of modern computer engineering lets
-us reuse components to build advanced applications with ease, letting
-us programmers focus on important tasks as design and quality. Did you
+The Xenofarm project is a rather small project, if measured in code.
+This is because the wonders of modern computer engineering lets us
+reuse components to build advanced applications with ease, letting us
+programmers focus on important tasks as design and quality. Did you
 buy that? Well, normally the world isn't as perfect as we like it to
 be, but in this case it is, since Xenofarm is just some glue
 components holding together other components.
 
 The goal of Xenofarm is to aid programmers who want to build extremely
 platform independent applications. Most programmers would say, "If I
-want to do something platform independent I use Pike/Python/Perl/Java/LOGO",
-but there are still some guys struggling to get these programming languages 
-to work on all strange OS on all strange platforms. It is for them (us)
-this tool is built.
+want to do something platform independent I use
+Pike/Python/Perl/Java/LOGO", but there are still some guys struggling
+to get these programming languages to work on all strange OS on all
+strange platforms. It is for them (us) this tool is built.
 
 From a historical point of view, Xenofarm is a complete rewrite of the
 automated build and regression test tool that was used by the Pike
@@ -72,11 +72,11 @@ ways that differs between Tinderbox and Xenofarm in this aspect;
 
 Another design goal with Xenofarm was to scale better than AutoBuild
 did; In terms of number of clients, in terms of number of projects, in
-terms of number of source locations and in terms of
-distance. Conceptually the system has a number of source package
-producers and a number of compilation clients. Every compilation
-client then decides which packages they want to "subscribe" to. The
-workflow is as follows:
+terms of number of source locations and in terms of distance.
+Conceptually the system has a number of source package producers and a
+number of compilation clients. Every compilation client then decides
+which packages they want to "subscribe" to. The workflow is as
+follows:
 
  1. Some trigger mechanism signals that it is time to make a new
     build. The trigger is typically a CVS checkin.
@@ -108,17 +108,59 @@ The base program is however useful in its own to create a "generic"
 source distribution from a CVS archive.
 [FIXME Insert more information here.]
 
+The base server program is started with
+
+./server.pike <arguments> <project>
+
+where arguments are from the list below and project is the name of the
+xenofarm project. You need one server per project. Many of the
+settings have hard coded defaults, but in some cases that was not
+possible, so some arguments are mandatory. These are cvs-module, db,
+web-dir and work-dir.
+
 Arguments:
-  [FIXME Descriptions]
+  --cvs-module=<name>
+      The CVS module the server should use.
+
   --db=<database url>
-  --min-distance=<seconds>
+      The database URL, e.g. mysql://localhost/xenofarm.
+
+  --force
+      Make a new build and exit, regardless if there has been a new
+      chekin or if we are within the min-distance quarantine or
+      checkin latency.
+
   --help
+      Displays a summary of the available arguments and their use.
+
   --latency=<seconds>
+      The enforced latency between the latest checkin and when the
+      next package is made. Defaults to 300 seconds (5 minutes).
+
+  --min-distance=<seconds>
+      The enforced minimum distance in time between to builds.
+      Defaults to 7200 seconds (two hours).
+
   --poll=<seconds>
-  --web-dir=<path>
-  --repository=<name>
+      How often the CVS is queried for new checkins, not including the
+      time when the server is enforcing minimum build distance and
+      when the server is enforcing build latency. Defaults to 60
+      seconds.
+
+  --repository=<path>
+      The CVS repository the server should use. This string is given
+      as the -d argument to the CVS binary.
+
   --verbose
+      Send messages about everything that happens to stdout. It might
+      be a good idea to start the server with
+      ./server.pike <args> --verbose <project> > server.log &
+
+  --web-dir=<path>
+      Where the outgoing source packages should be put.
+
   --work-dir=<path>
+      Where temporary files should be put.
 
 
 4. The Web Export
@@ -126,7 +168,8 @@ Arguments:
 The Xenofarm client fetches new source distributions from a specific
 web server URL. From that URL it expects to get a file named
 snapshot.tar.gz. It also expects the Last-Modified header to change to
-a later date and time when a new source distribution is made available.
+a later date and time when a new source distribution is made
+available.
 
 The Roxen WebServer module "Xenofarm I/O module", found in
 roxen_modules/xenofarm_fs.pike, is mounted as a file system module in
@@ -148,11 +191,32 @@ header is derived from the file name, not the actual mtime of the
 file, so the system is robust and handles dirty hacks that move the
 files between systems.
 
+The reason to put more than one file in the outgoing directory is to
+enable more redirects than just the "latest" one. It might be
+interesting to export the most successfull one, e.g. the one with the
+highest number of successfull builds, as a service for people not
+interested in the build project, but in the source code itself. In
+this way Xenofarm might act as an automatic QA for people who wants an
+almost CVS-fresh version and still minimizing the risks of upgrading.
+
+It could also be interesting to provide a "latest interesting"
+redirect, where interesting means interesting from a debugging point
+of view. Some of the machines that participates in a Xenofarm
+"cluster" could be so slow that it might take several normal build
+cycles for them to complete one. In these cases it would be a big loss
+if these machines took the latest CVS snapshot and spent several hours
+compiling only to find a trivial typo that a faster machine detected
+in minutes. A CVS snapshot containing only failing builds is likely to
+fail on these machines as well, while on a snapshot where at least one
+machine succeeded and several failed every extra result will aid
+programmers in solving the problem.
+
 It is of course possible to use a less complex solution for the
 distribution. Just put the files in a normal directory, add a symlink
 from snapshot.tar.gz to the latest source distribution, and ensure
 that the webserver handles the Last-Modified correctly when you update
-your files.
+your files. An even simpler solution is to just replace the
+snapshot.tar.gz every time a new build is made.
 
 
 5. The Compilation Client
