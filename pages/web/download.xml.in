@@ -1,5 +1,12 @@
 <use file="template" />
 <page>
+<h2>Get a Dist</h2>
+
+<p>You can download a friendly package of the Xenofarm client from
+this very page. It was created automatically when we last updated
+this website.</p>
+<p><a href="client.tar.gz">client.tar.gz</a> (@info@)</p>
+
 <h2>Get Xenofarm from CVS</h2>
 
 <p>Get the latest version of all server software, client software and
