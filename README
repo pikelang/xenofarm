@@ -396,14 +396,15 @@ own. It will contain at least three files:
 xenofarmclient.txt
   This file contains a log of all output from running the make target
   in the package. [Currently this file is named RESULT, but that will
-  be changed in the near future.]
+  be changed in the near future.] This file should only be produced by
+  the client script when the make target fails.
 
 machineid.txt
   This file contains the output from "uname -s -r -m" followed by the
   output from "uname -n".
 
-exportstamp.txt
-  This file is a copy of the exportstamp.txt file in the package.
+buildid.txt
+  This file is a copy of the buildid.txt file in the package.
   [Currently this file is named export.stamp, but that will be changed
   in the near future.]
 
