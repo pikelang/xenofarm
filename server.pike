@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.50 2003/05/30 12:54:10 norrby Exp $
+// $Id: server.pike,v 1.51 2003/07/11 15:58:41 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -31,12 +31,28 @@ string latest_state="FAIL";
 //
 string client_type;
 class RepositoryClient {
+
+  // Returns the posix time when the latest checkin was committed.
   int get_latest_checkin();
-  void update_source();
-  string arguments();
+
+  // This method gets called when the local source tree should
+  // be updated.
+  void update_source(int timestamp);
+
+  // A string with descriptions of the special arguments this repository
+  // client accepts.
+  constant arguments = "";
+
+  // This method is called during startup and is fed the command line
+  // arguments for parsing.
   void parse_arguments(array(string));
+
+  // Should return the name of the repository module.
   string module();
+
+  // Should return the name of the repository client.
   string name();
+
   int time_of_change(array(string) log,
 		     string checkin_state_file,
 		     int latest_checkin,
@@ -67,22 +83,24 @@ class RepositoryClient {
 
 class CVSClient {
   inherit RepositoryClient; 
-  string arguments() {
-    return 
-      "\nCVS specific arguments:\n\n"
-      "--cvs-module   The CVS module the server should use.\n"
-      "--update-opts  CVS options to append to \"cvs -q update\".\n"
-      "               Default: \"-d\". \"--update-opts=-Pd\" also makes sense.\n"
-      "--repository   The CVS repository the server should use.\n";
-  }
-  void parse_arguments(array(string) args) {
-  }
+  constant arguments =
+  "\nCVS specific arguments:\n\n"
+  "--cvs-module   The CVS module the server should use.\n"
+  "--update-opts  CVS options to append to \"cvs -q update\".\n"
+  "               Default: \"-d\". \"--update-opts=-Pd\" also makes sense.\n"
+  "--repository   The CVS repository the server should use.\n";
+
+  void parse_arguments(array(string) args) { }
+
   string module() {
     return cvs_module;
   }
+
   string name() {
     return "CVS";
   }
+
+  static int latest_checkin;
 
   // The get_latest_checkin function should return the (UTC) unixtime of
   // the latest check in. This version actually returns the time we last
@@ -98,8 +116,8 @@ class CVSClient {
     debug("Running cvs update.\n");
     Calendar.TimeRange now = Calendar.Second();
     object update =
-      Process.create_process(({ "cvs", "-q", "update", "-D", now->format_time(),
-				@update_opts }),
+      Process.create_process(({ "cvs", "-q", "update", "-D",
+				now->format_time(), @update_opts }),
 			     ([ "cwd"    : cvs_module,
 				"stdout" : Stdio.File("tmp/update.log", "cwt"),
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
@@ -113,23 +131,31 @@ class CVSClient {
     array(string) log;
     log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
 		 lambda(string row) { return !has_prefix(row, "? "); });
-    return time_of_change(log, checkin_state_file, latest_checkin, now);
+    latest_checkin = time_of_change(log, checkin_state_file,
+				    latest_checkin, now);
+    return latest_checkin;
+  }
+
+  void update_source(int timestamp) {
+    if(!latest_checkin || timestamp>latest_checkin)
+      get_latest_checkin();
   }
 }
 
 class StarTeamClient {
+  inherit RepositoryClient;
+
   string st_module;
   string st_project;
   string st_pwdfile;
-  inherit RepositoryClient; 
-  string arguments() {
-    return 
-      "\nStarteam specific arguments:\n\n"
-      "--st-module    basename of dir where contents of the view folder will reside.\n"
-      "               Similar to the cvs-module option for the CVS client.\n"
-      "--st-project   username:password@host:port/project/view/folder/\n"
-      "--st-pwdfile   password filename\n";
-  }
+
+  constant arguments =
+  "\nStarteam specific arguments:\n\n"
+  "--st-module    basename of dir where contents of the view folder will reside.\n"
+  "               Similar to the cvs-module option for the CVS client.\n"
+  "--st-project   username:password@host:port/project/view/folder/\n"
+  "--st-pwdfile   password filename\n";
+
   void parse_arguments(array(string) args) {
     foreach(Getopt.find_all_options(args, ({
       ({ "st_module",   Getopt.HAS_ARG, "--st-module" }),
@@ -150,12 +176,17 @@ class StarTeamClient {
 	}
       }
   }
+
   string module() {
     return st_module;
   }
+
   string name() {
     return "StarTeam";
   }
+
+  static int latest_checkin;
+
   int get_latest_checkin() {
     //check out into work-dir/st_module
     if(!file_stat(module()) || !file_stat(module())->isdir) {
@@ -171,7 +202,8 @@ class StarTeamClient {
 				work_dir + "/" + module() }),
 			     ([ "cwd"    : module(),
 				"stdout" : Stdio.File("tmp/update.log", "cwt"),
-				"stderr" : Stdio.File("tmp/update.err", "cwt") ]));
+				"stderr" : Stdio.File("tmp/update.err", "cwt")
+			     ]));
     debug("Ran stcmd co -nologo -is -p " + st_project + " -pwdfile " +
 	  st_pwdfile  + " -fp " + work_dir + "/" + module() + "\n");
     if(update->wait())
@@ -183,8 +215,16 @@ class StarTeamClient {
     int latest_checkin = (int)Stdio.read_file(checkin_state_file);
     array(string) log;
     log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
-		 lambda(string row) {return has_suffix(row, ": checked out");});
-    return time_of_change(log, checkin_state_file, latest_checkin, now);
+		 lambda(string row) {
+		   return has_suffix(row, ": checked out");});
+    latest_checkin = time_of_change(log, checkin_state_file,
+				    latest_checkin, now);
+    return latest_checkin;
+  }
+
+  void update_source(int timestamp) {
+    if(!latest_checkin || timestamp>latest_checkin)
+      get_latest_checkin();
   }
 }
 
@@ -314,6 +354,7 @@ void make_build(int timestamp)
 {
   debug("Making new build.\n");
 
+  client->update_source(timestamp);
   string build_name = make_build_low(timestamp);
   if(!build_name) {
     write("No source distribution was created by make_build_low...\n");
@@ -442,8 +483,8 @@ int main(int num, array(string) args)
 
       case "help":
 	write(prog_doc);
-	write(CVSClient()->arguments());
-	write(StarTeamClient()->arguments());
+	foreach(glob("*Client", indices(this)), string pn)
+	  write( this[pn]->arguments );
 	write("\n");
 	return 0;
 
@@ -505,7 +546,6 @@ int main(int num, array(string) args)
 
   if(force_build)
   {
-    client->get_latest_checkin();
     make_build(time());
     exit(0);
   }
@@ -584,7 +624,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.50 2003/05/30 12:54:10 norrby Exp $\n";
+"$Id: server.pike,v 1.51 2003/07/11 15:58:41 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
