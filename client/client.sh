@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.26 2002/08/25 22:30:45 zino Exp $
+# $Id: client.sh,v 1.27 2002/08/28 12:18:38 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -61,8 +61,16 @@ Start it with cron or with the "start"-script.
 
 If you encounter problems see the .BREADMEB. for requirements and help.
 
+   .BArguments:B.
+
+      .B--helpB.:                  This information.
+      .B--versionB.:               Displays client version.
 EOF
     	tput 'rmso' 2>/dev/null
+	exit 0
+  ;;
+  '-v'|'--version')
+	echo \$Id: client.sh,v 1.27 2002/08/28 12:18:38 zino Exp $
 	exit 0
   ;;
   *)
