@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.10 2002/08/14 18:47:52 mani Exp $
+// $Id: result_parser.pike,v 1.11 2002/08/30 00:01:26 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -21,7 +21,6 @@ string result_dir = "/home/nilsson/xenofarm/in/";
 string work_dir = "/tmp/xtmp/";
 string web_dir = "/home/nilsson/html/xenofarm_results/";
 
-string build_id_file = "exportstamp.txt";
 string main_log_file = "xenofarmlog.txt";
 string compilation_log_file = "makelog.txt";
 
@@ -35,12 +34,8 @@ multiset(string) ignored_warnings = (<
 
 void parse_build_id(string fn, mapping res) {
   string file = Stdio.read_file(fn);
-  if(!file) {
-    file = Stdio.read_file("export.stamp");
-    res->status = "failed";
-  }
   if(!file || !sizeof(file)) {
-    debug("No %s nor export.stamp in result pkg.\n", fn);
+    debug("No %s in result package.\n", fn);
     return;
   }
 
