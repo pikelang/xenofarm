@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.14 2002/08/02 17:44:22 zino Exp $
+# $Id: client.sh,v 1.15 2002/08/09 23:56:25 mani Exp $
 # License: GPL
 #
 # Requirements:
@@ -20,6 +20,12 @@
 #                   <hour>:<minute>.*
 # tar 	            must be available in the PATH
 # find              must be available in the PATH
+##############################################
+# NOTE: The following changes will be committed when Pikefarm officially
+# moves to pike.ida.liu.se.
+#  - The export stamp will be renamed from export.stamp to exportstamp.txt
+#  - The xenofarm client log, which will be submitted in case of complete
+#    failure of a build, will be renamed from RESULT to xenofarmclient.txt
 ##############################################
 # See `client.sh --help` for command line options.
 #
