@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.15 2002/08/09 23:56:25 mani Exp $
+# $Id: client.sh,v 1.16 2002/08/12 15:20:13 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -165,10 +165,10 @@ pidfile="`pwd`/xenofarm-$node.pid"
 if [ -r $pidfile ]; then
     pid=`cat $pidfile`
     if `kill -0 $pid > /dev/null 2>&1`; then
-        echo "FATAL: Xenofarm client already running. pid: $pid" 1>&2
+        echo "NOTE: Xenofarm client already running. pid: $pid"
         exit 2
     else
-        echo "NOTE: Removing stale pid-file." 1>&2
+        echo "NOTE: Removing stale pid-file."
         rm -f $pidfile
     fi
 fi

@@ -75,15 +75,18 @@ Examples:
  # This entry will check for new snapshots to test once per hour, 24
  # minutes past full hour. The path to where you have your client must
  # be changed to where you have your client of course.
- 24 * * * * cd $HOME/xenofarm/client/ && ./client.sh
+ 24 * * * * cd $HOME/xenofarm/client/ && ./client.sh 1>/dev/null
  
  # This entry will check for new snapshots to test once per day, 24
  # minutes past 2 o'clock in the morning. The path to where you have
  # your client must be changed to where you have your client.
- 24 2 * * * cd $HOME/xenofarm/client/ && ./client.sh
+ 24 2 * * * cd $HOME/xenofarm/client/ && ./client.sh 1>/dev/null
 
-note: There is no problem with letting it running ofter as it will
+The "1>/dev/null" will make sure that you only get emails from the
+cron daemon when somthing goes seriously wrong. You can leave it out
+if you wish to get a complete log mailed to you every time the client
+is started.
+
+note: There is no problem with letting it running often as it will
 make sure there isn't another client already running and check if
 there is a new snapshot available before downloading anything.
-
-
