@@ -14,8 +14,8 @@ http://pike.ida.liu.se/development/pikefarm/
 
 The configuration file pike.cfg contains several different test
 targets. Comment out the tests you don't want to run, "decomment" the
-ones that you do want to run and copy the file to your Xenofarm
-clients config directory.
+ones that you do want to run and copy or symlink the file to your
+Xenofarm clients config directory.
 
 Description of the targets:
 default:  Compiled and tested as any user would do it.
