@@ -336,7 +336,7 @@ called "argouml_xenofarm":
 
 And then populate it with a few tables:
 
-  $ mysql -u linus -p < tables.sql
+  $ mysql -D argouml_xenofarm -u linus -p < tables.sql
 
 Once all this is in place, you can run the generic script like this:
 
