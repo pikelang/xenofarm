@@ -19,6 +19,7 @@ case $1 in
     echo Unknown argument.;
     exit 1;
 esac
+export JAVA_HOME
 
 chmod +x tools/ant-1.4.1/bin/ant
 test -n "$JAVA_HOME" || {
@@ -47,7 +48,11 @@ do
     date >> $LOG
     if sh -c "$command" > $task.log 2>&1
     then
-	if grep -i warning $task.log > /dev/null
+	if grep "Tests run:" $task.log | 
+	    grep -v "Failures: 0, Errors: 0," > /dev/null
+	then
+	    echo FAIL >> $LOG
+	elif grep -i warning $task.log > /dev/null
 	then
 	    echo WARN `grep -i warning $task.log | wc -l` >> $LOG
 	else
