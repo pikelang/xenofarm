@@ -2,13 +2,17 @@
 # This line is needed on some machines.
 @SET_MAKE@
 
+srcdir = @srcdir@
+VPATH = @srcdir@
+
 LIBS=@LIBS@ $(EXTRALIBS)
 CC=@CC@
+DEFINES=@DEFS@
 
 all: put
 
 put: put.o
-	$(CC) -o put put.o $(LIBS)
+	$(CC) -o put put.o $(LIBS) $(DEFINES)
 
 clean:
 	rm -f put put.o

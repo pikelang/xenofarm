@@ -3,7 +3,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
+#ifdef HAVE_STRINGS_H
 #include <strings.h>
+#endif
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -214,7 +216,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.5 2002/08/02 14:31:39 zino Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.6 2002/08/22 19:51:06 zino Exp $" );
       exit(0);
     }
     if( (st.st_mode & S_IFMT) != S_IFREG )

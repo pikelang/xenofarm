@@ -13,6 +13,9 @@ AC_CHECK_LIB(socket, socket)
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(strings.h unistd.h)
+#ifdef HAVE_STRINGS_H
+AC_DEFINE(HAVE_WORKING___FUNC__)
+#endif
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
