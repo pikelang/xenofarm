@@ -3,7 +3,7 @@
 
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.1 2002/05/03 15:46:57 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.2 2002/05/03 22:37:31 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -25,13 +25,13 @@ void create() {
 	  "The directory where results will be stored." );
 }
 
-private string mountpoint;
-private string distpath;
-private string resultpath;
-private int file_counter;
+static string mountpoint;
+static string distpath;
+static string resultpath;
+static int file_counter;
 
-private string latest;
-private int latest_timestamp;
+static string latest;
+static int latest_timestamp;
 
 void start() {
   mountpoint = query("mountpoint");
@@ -43,11 +43,25 @@ string query_location() {
   return mountpoint;
 }
 
+// XXXXXXX/snapshot.tar.gz -> XXXXXXX.tar.gz
+static string in_converter(string f) {
+  array tmp = f/"/";
+  if(tmp[-1]!="snapshot.tar.gz") return f;
+  return tmp[..sizeof(tmp)-2]*"/" + ".tar.gz";
+}
+
+// XXXXXXX.tar.gz -> XXXXXXX/snapshot.tar.gz
+static string out_converter(string f) {
+  if(!sscanf(f, "%s.tar.gz", f)) return f;
+  return f + "/snapshot.tar.gz";
+}
+
 Stat stat_file(string f, RequestID id) {
   return file_stat( distpath + f );
 }
 
 string real_file(string f, RequestID id) {
+  f = in_convert(f);
   if(stat_file(f, id))
     return distpath+f;
   return 0;
@@ -57,6 +71,8 @@ array(string) find_dir(string path, RequestID id) {
   if(path=="")
     return get_dir(distpath) +
       ({ "latest", "latest-green", "result" });
+  if( file_stat( (path/"/")[0] + ".tar.gz" ) )
+    return "snapshot.tar.gz";
   return 0;
 }
 
@@ -70,14 +86,15 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 	latest_timestamp = time();
       }
       else
-	return 404;
+	return Roxen.http_low_answer(404, "File not found.");
 
-    return Roxen.http_redirect( mountpoint+latest, id );
+    return Roxen.http_redirect( out_converter(mountpoint+latest), id );
   }
 
   if(path=="latest-green") {
+    Roxen.http_low_nswer(404, "File not found.");
     string latestg;
-    return Roxen.http_redirect( mountpoint+latestg, id );
+    return Roxen.http_redirect( out_converter(mountpoint+latestg), id );
   }
 
   if(path=="result") {
@@ -86,6 +103,6 @@ mapping|Stdio.File find_file(string path, RequestID id) {
     return ([]);
   }
 
-  return Stdio.File( distpath+f );
+  return Stdio.File( in_converter(distpath+f) );
 
 }
