@@ -39,6 +39,7 @@ do
     do
       color=white
       [ -f $builddir/$task.pass ] && color=green
+      [ -f $builddir/$task.warn ] && color=yellow
       [ -f $builddir/$task.fail ] && color=red
       echo "<td><a href=\"$url/$buildno/${task}log.txt\"><img border=0 src=\"http://130.236.214.222/pikefarm/${color}_button.gif\"></a></td>" >&7
     done
