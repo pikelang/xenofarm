@@ -1,23 +1,28 @@
 #
-# $Id: Makefile,v 1.2 2002/12/02 16:10:20 mani Exp $
+# $Id: Makefile,v 1.3 2002/12/02 19:35:32 mani Exp $
 #
 
 USER=mani
 SERVER=proton.lysator.liu.se
-.PHONY : website clean
+.PHONY : publish website clean
 
-website: build/web pages/web/documentation.xml \
-	 build/client.tar.gz pages/web/download.xml
+publish: website
+	scp build/web/* $(USER)@$(SERVER):/lysator/www/projects/xenofarm
+
+website: build/web build/web/documentation.xml \
+	 build/client.tar.gz build/web/download.xml build/web/about.xml
 	cp pages/web/*.xml build/web
 	cp pages/web/*.gif build/web
 	cp pages/web/template build/web
 	cp build/client.tar.gz build/web
-	scp build/web/* $(USER)@$(SERVER):/lysator/www/projects/xenofarm
 
-pages/web/documentation.xml: build/web README pages/mkhtml.pike
+build/web/about.xml: build/web README pages/mkhtml.pike
+	pike pages/mkhtml.pike --about README > build/web/about.xml
+
+build/web/documentation.xml: build/web README pages/mkhtml.pike
 	pike pages/mkhtml.pike README > build/web/documentation.xml
 
-pages/web/download.xml: build/web pages/web/download.xml.in \
+build/web/download.xml: build/web pages/web/download.xml.in \
 	                build/client.tar.gz
 	pike -e 'object s=file_stat("build/client.tar.gz"); \
 	  object t=Calendar.Second(s->mtime); \
