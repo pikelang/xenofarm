@@ -25,7 +25,7 @@ cat <<'EOF' > dist/Makefile
 xenofarm:
 	rm -f xenofarm_result.tar xenofarm_result.tar.gz
 	mkdir r
-	./create-response.sh > r/shlog.txt 2>&1
+	CONFIGOPTS="$(CONFIGOPTS)" MAKEOPTS="$(MAKEOPTS)" ./create-response.sh > r/shlog.txt 2>&1
 	(cd r && tar cf - *) > xenofarm_result.tar
 	gzip -9 xenofarm_result.tar
 EOF
@@ -78,8 +78,8 @@ status=good
 dotask 1 "unzip" "gzip -d $BASE.tar.gz"
 dotask 1 "unpack" "tar xf $BASE.tar"
 
-dotask 1 "configure"  "cd $BASE/dist/src  && ./configure"
-dotask 1 "make"       "cd $BASE/dist/src  && make"
+dotask 1 "configure"  "cd $BASE/dist/src  && ./configure $CONFIGOPTS"
+dotask 1 "make"       "cd $BASE/dist/src  && make $MAKEOPTS"
 dotask 1 "test"       "cd $BASE/dist/src  && make test TESTOPTS='-x test_pwd test_nis'"
 
 log Begin response assembly
