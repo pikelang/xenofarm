@@ -1,0 +1,23 @@
+<html><body bgcolor="white">
+
+<p>
+<b>Details (&form.id;)</b>
+<table border="1" cellpadding="2" cellspacing="0">
+<xf-details id="&form.id;">
+<tr><td>Machine</td><td>&_.machine;</td></tr>
+<tr><td>Platform</td><td>&_.platform;</td></tr>
+<tr><td>Result</td><td>&_.result;</td></tr>
+<tr><td>Warnings</td><td>&_.warnings;</td></tr>
+<tr><td>Time spent</td><td>&_.time;</td></tr>
+</xf-details>
+</table>
+</p>
+
+<p>
+<pre>
+<emit source="dir" directory="&form.id;">
+<a href="&form.id;/&_.name:url;">&_.name;</a></emit>
+</pre>
+</p>
+
+</body></html>

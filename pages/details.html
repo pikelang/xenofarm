@@ -1,0 +1,38 @@
+<html><body bgcolor="white">
+
+<p>
+<b>Detailed overview</b>
+<xf-update>
+<table border="1" cellspacing="0" cellpadding="2">
+
+<tr><th>Build</th>
+<emit source="xf-machine">
+<th>&_.name; (&_.platform;, &_.id;)</th>
+</emit>
+</tr>
+
+<emit source="xf-build" scope="build">
+
+<tr><td>&_.time; (&_.id;)</td>
+<emit source="xf-result" build="&_.id;">
+<td>
+
+<if variable="status == white">
+&_.status;
+</if><else>
+<a href="&build.id;_&_.system;">&_.status;</a>
+(<a href="two.html?id=&build.id;_&_.system;">status</a>)
+</else>
+
+</td>
+</emit>
+</tr>
+
+</emit>
+</table>
+
+<i>Updated &_.updated;</i>
+</xf-update>
+</p>
+
+</body></html>

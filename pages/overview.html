@@ -1,0 +1,29 @@
+<html><body bgcolor="white">
+
+<p>
+<b>Overview</b>
+<xf-update>
+<table border="1" cellspacing="0" cellpadding="2">
+
+<tr><th>Build</th><th>Src Export</th>
+<th>Results</th><th>Build</th>
+<th>Verification</th><th>Bin Export</th>
+<th>Overall Status</th><th>Documentation</th></tr>
+
+<emit source="xf-build">
+<tr><td>&_.time; (&_.id;)</td>
+    <td>&_.source;</td>
+    <td>&_.results;</td>
+    <td>&_.build;</td>
+    <td>&_.verify;</td>
+    <td>&_.export;</td>
+    <td>&_.summary;</td>
+    <td>&_.documentation;</tr>
+</emit>
+
+</table>
+<i>Updated &_.updated;</i>
+</xf-update>
+</p>
+
+</body></html>
