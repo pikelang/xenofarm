@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.21 2002/12/05 10:22:43 mani Exp $
+// $Id: result_parser.pike,v 1.22 2002/12/09 01:00:22 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -97,6 +97,7 @@ void parse_log(string fn, mapping res)
   else
     mv("_core.txt", "core.txt");
 
+  if(!res->tasks) return;
   foreach(res->tasks, [string task, string status, int time, int warnings]) {
 
     if(task=="build/verify") {
