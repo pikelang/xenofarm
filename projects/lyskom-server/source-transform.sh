@@ -79,7 +79,21 @@ dotask 1 "unzip" "gzip -d $BASE.tar.gz"
 dotask 1 "unpack" "tar xf $BASE.tar"
 dotask 1 "configure" "cd $BASE && ./configure -C --prefix=$pfx"
 dotask 1 "make" "cd $BASE && make"
-dotask 0 "check" "cd $BASE && make check"
+
+# We need "grep -f" to be able to check the documentation.
+(echo a;echo b;echo c) > input
+(echo a;echo b) > pattern
+if grep -v -f pattern input > output && test "`cat output`" = c
+then
+    dotask 0 "checkdoc" "cd $BASE/doc && make check"
+fi
+
+# We need "runtest" to be able to run the tests.
+if runtest --version
+then
+    dotask 0 "checkprg" "cd $BASE/src && make check"
+fi
+
 dotask 1 "install" "cd $BASE && make install"
 
 if [ -f r/install.pass ]
