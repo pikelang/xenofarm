@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.10 2002/05/24 22:25:56 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.11 2002/05/29 00:52:53 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -226,7 +226,7 @@ mapping|Stdio.File find_file(string path, RequestID id) {
     "type" : "application/octet-stream",
     "stat" : s,
     // Some versions of WebServer doesn't add Last-Modified on HEAD requests.
-    "extra_heads" : ([ "Last-Modified" : http_date( s[1] ) ]),
+    "extra_heads" : ([ "Last-Modified" : http_date( s[3] ) ]),
   ]);
 
 }
