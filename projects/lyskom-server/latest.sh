@@ -77,6 +77,7 @@ do
     # echo "<td>$age</td>" >&7
 
     status=white
+    logtypes=log
     for task in `cat $tmp/latest-tasks`
     do
       if [ -f $builddir/$task.fail ]
@@ -86,6 +87,7 @@ do
       elif [ -f $builddir/$task.warn ]
       then
           color=yellow
+	  logtypes="warn $logtypes"
 	  if [ $status = green ] ||  [ $status = white ]
 	  then
 	      status=yellow
@@ -102,7 +104,7 @@ do
       fi
       astart=
       aend=
-      for link in warn log
+      for link in $logtypes
       do
           if [ -f $builddir/${task}${link}.txt ]
           then
