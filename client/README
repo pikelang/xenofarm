@@ -1,0 +1,37 @@
+
+Contents
+ 
+ 1. This is the Xenofarm client
+ 2. Compiling "put"
+ 3. Other requirements
+ 4. Configuring the client
+ 5. Starting the client
+
+
+1. This is the Xenofarm client.
+
+You need to install this software on each machine you intend to attach
+to the Xenofarm as a compile and test client. To ensure that it is as
+easy as possible to set up on new and strange OSes the main part if
+the client in written in pure Posix sh, calling a few external
+binaries to handle the network communication with the Xenofarm master.
+
+
+2. Compiling "put".
+
+FIXME.
+
+
+3. Other requirements.
+
+FIXME: wget et all.
+
+
+4. Configuring the client.
+
+FIXME: See the example file "projects.conf" for now.
+
+
+5.  Starting the client.
+
+FIXME: cron.
