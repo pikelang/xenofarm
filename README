@@ -15,13 +15,13 @@ Contents
 
 The Xenofarm project is a rather small project, if measured in
 code. This is because the wonders of modern computer engineering lets
-us resue components to build advanced applications with ease, letting
+us reuse components to build advanced applications with ease, letting
 us programmers focus on important tasks as design and quality. Did you
 buy that? Well, normally the world isn't as perfect as we like it to
 be, but in this case it is, since Xenofarm is just some glue
 components holding together other components.
 
-The goal of Xenofarm is to aid programmers who want's to build
+The goal of Xenofarm is to aid programmers who wants to build
 extremely platform independent applications. Most programmers would
 say, "If I want to do something platform independent I use
 Pike/Python/Perl/Java/LOGO", but there are still some guys struggling
@@ -34,7 +34,7 @@ From a historical point of view Xenofarm is a complete rewrite of the
 automated build and regression test tool of the Pike programming
 language. It was called AutoBuild and was done by Martin Nilsson and
 Johan Schön at Roxen Internet Software. AutoBuild was in turn derived
-from (or rather inspired by) Tinderbox. When the maintainance
+from (or rather inspired by) Tinderbox. When the maintenance
 responsibility for Pike moved from Roxen Internet Software to
 Linköping University Martin Nilsson and friends wrote Xenofarm to
 better suit the new environment (and to fix quite a few annoying
@@ -64,7 +64,7 @@ ways that differs between Tinderbox and Xenofarm in this aspect;
 
  2. Xenofarm applies CVS checkout latencies, to try to minimize
     mid-checkin breaks. The latency is currently based on a simple
-    threashold value, but a more advanced solution is in the works.
+    threshold value, but a more advanced solution is in the works.
 
  3. "All" relevant information is collected from the build machines to
     the front end. This enables people with no login access to the
@@ -140,7 +140,7 @@ your files.
 
 When the client has built its result file, it is uploaded through HTTP
 PUT to a URL specified in the client configuration file. The "Xenofarm
-I/O module" is able to be in the recieving end and store the results
+I/O module" is able to be in the receiving end and store the results
 in the "Result search path" directory. The module accepts all files
 that are uploaded to "result" in its mountpoint. Given the default
 mountpoint /xenofarm, the default result URL path is /xenofarm/result.
