@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.25 2002/12/03 14:06:49 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.26 2002/12/05 19:48:35 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -17,6 +17,7 @@ stats. At <tt><i>mountpoint</i>/result</tt> this module also accepts HTTP PUTs
 of finished results. These will be named as
 res<i>&lt;timestamp&gt;</i>-<i>&lt;counter&gt;</i>.tar.gz, e g
 res1028172584_4.tar.gz. The counter wraps at 10.";
+constant module_unique = 0;
 
 void create() {
   defvar( "mountpoint", "/xenofarm/",
