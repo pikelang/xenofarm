@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.8 2003/06/12 22:08:59 mani Exp $
+// $Id: pike_client.pike,v 1.9 2003/06/15 22:57:03 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -85,9 +85,8 @@ void popd() {
 
 //! Returns the data found at @[url].
 array(string|int) web_get(string url) {
-  WERR("Fetching %s. ",url);
+  WERR("Fetching %s.\n",url);
   Protocols.HTTP.Query r = Protocols.HTTP.get_url(url);
-  WERR("done\n");
   if(r->status==200) {
     int t;
     catch {
@@ -120,11 +119,31 @@ int web_head(string url) {
   return 0;
 }
 
-string zero_pad(string in, int size) {
-  if(sizeof(in)>size) error("In-string is too big.\n");
-  return in+"\0"*sizeof(size-in);
+//! Untars the the tar file system @[fs]. @[dir] is the current
+//! working directory inside the tar file system.
+void untar_dir(object fs, string dir) {
+  WERR(".");
+  foreach(fs->get_dir(dir), string path) {
+    string fn = reverse(path/"/")[0];
+    if(fs->stat(path)->isdir()) {
+      if(!mkdir(fn))
+	exit(31, "Unable to create directory %O.\n", fn);
+      pushd(fn);
+      untar_dir(fs, path);
+      popd();
+    }
+    else
+      Stdio.write_file(fn, fs->open(path, "r")->read());
+  }
 }
 
+// Pads the string @[in] with "\0" characters to the length @[size].
+string zero_pad(string in, int size) {
+  if(sizeof(in)>size) error("In-string is too big.\n");
+  return in+"\0"*(size-sizeof(in));
+}
+
+//! Creates a tar file of the current directory and writes to @[out].
 void tar_dir(Stdio.File out) {
   foreach(get_dir("."), string fn) {
     string head = "";
@@ -315,30 +334,29 @@ class Config {
 
     foreach(tests; string name; string cmd) {
       WERR("  Running test %s.\n", name);
+
+      if(file_stat("../last_"+name)) {
+	int build_time = (int)Stdio.read_file("../last_"+name);
+	if(build_time>last_download) {
+	  WERR("  NOTE: Already built %O: %O. Skipping.\n",
+	       project, name);
+	  continue;
+	}
+      }
+
+      // WARNING: client.sh uses a HH:MM format instead.
+      Stdio.write_file("current_"+name, time()+"\n");
+
       Stdio.recursive_rm(name);
       mkdir(name);
       pushd(name);
       run_test(name, cmd);
       popd();
+
+      mv("current_"+name, "last_"+name);
     }
 
     popd();
-  }
-
-  void untar_dir(object fs, string dir) {
-    WERR(".");
-    foreach(fs->get_dir(dir), string path) {
-      string fn = reverse(path/"/")[0];
-      if(fs->stat(path)->isdir()) {
-	if(!mkdir(fn))
-	  exit(31, "Unable to create directory %O.\n", fn);
-	pushd(fn);
-	untar_dir(fs, path);
-	popd();
-      }
-      else
-	Stdio.write_file(fn, fs->open(path, "r")->read());
-    }
   }
 
   void run_test(string name, string cmd) {
@@ -358,12 +376,12 @@ class Config {
     if(!chdir) exit(31, "No directory to cd to in snapshot tar.\n");
     WERR("  Building and running test %O: %O\n", name, cmd);
 
-    string result_dir = "../../result_"+name+"/";
-    if(!Stdio.recursive_rm(result_dir) ||
-       !mkdir(result_dir))
+    string result_dir = combine_path(getcwd(), "../../result_"+name+"/");
+    !Stdio.recursive_rm(result_dir);
+    if(!mkdir(result_dir))
       exit(19, "Could not create new result directory.\n");
 
-    if(!cp("buildid.txt", result_dir))
+    if(!Stdio.cp("buildid.txt", result_dir+"/buildid.txt"))
       exit(20, "Could not copy buildid.txt to result directory.\n");
 
     Process.Process p;
@@ -373,7 +391,7 @@ class Config {
     // is done in client.sh.
     data->env = getenv();
 
-    Stdio.File log = result_dir + "xenofarmclient.txt";
+    Stdio.File log = Stdio.File(result_dir + "xenofarmclient.txt", "cwt");
     data->stdout = log;
     data->stderr = log;
 #ifdef __NT__
@@ -395,16 +413,22 @@ class Config {
       popd();
       pushd(result_dir);
       make_machineid(name, cmd);
+      Stdio.recursive_rm("repack");
+      mkdir("repack");
+      cd("repack");
+
     }
     else {
       popd();
       pushd(result_dir);
       make_machineid(name, cmd);
+      Stdio.File f = Stdio.File("xenofarm_result.tar", "cwt");
+      tar_dir(f);
+      f->close();
     }
 
+    popd();
     exit(0, "End of the world reached.\n");
-    // create resultdir
-    // run cmd
   }
 
   void debug() {
@@ -477,7 +501,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.8 2003/06/12 22:08:59 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.9 2003/06/15 22:57:03 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -533,7 +557,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.8 2003/06/12 22:08:59 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.9 2003/06/15 22:57:03 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
@@ -550,14 +574,14 @@ int main(int num, array(string) args) {
 
   // We don't set up unlimits as client.sh do, since it won't work on Windows.
 
+  setup_system_info();
+  setup_pidfile();
+
   system->email = get_email();
   WERR("Email: %s\n", system->email);
 
   // We don't check multi machine compilation setup since sprsh doesn't run
   // under Windows.
-
-  setup_system_info();
-  setup_pidfile();
 
   // We don't set putname nor compile put, since we are using an internal
   // solution. Nor do we check for the availability of wget or gzip, since
