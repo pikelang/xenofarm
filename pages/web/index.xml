@@ -1,8 +1,16 @@
 <use file="template"/>
 <header>
+
+<p>Xenofarm is a distributed system for cross platform compilation and
+verification of software components. It is primarily used to help
+achieve and maintain portable source code across hardware architechtures,
+operating system and libraries and to quickly detect and fix regression
+bugs in source code.</p>
+
 <h2>News</h2>
 
 <p>
+20021202 - Added <a href="download.xml">client package</a>.<br />
 20021130 - Added (generated) documentation.<br/>
 20021112 - Xenofarm web page, first attempt.<br/>
 </p>
