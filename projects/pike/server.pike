@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.27 2002/11/20 00:01:30 mani Exp $
+// $Id: server.pike,v 1.28 2002/11/30 03:27:11 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -15,35 +15,33 @@ inherit "../../server.pike";
 // to give them when starting the program unless we really want to.
 #ifdef NILSSON
 Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
-#else /* !NILSSON */
-Sql.Sql xfdb = Sql.Sql("mysql://rw@:/pike/sw/roxen"
-		       "/configurations/_mysql/socket/xenofarm");
 #endif /* NILSSON */
 
-string project = "pike7.3";
+string pike_version = "X";
+
+void create() {
+#define FIX(X) X += this_object()->pike_version + "/";
+  FIX(web_dir);
+  FIX(work_dir);
+  FIX(result_dir);
+  project += this_object()->pike_version;
+}
+
+string project = "pike";
 #ifdef NILSSON
 string web_dir = "/home/nilsson/xenofarm/projects/pike/out/";
 string work_dir = "/home/nilsson/xenofarm/projects/pike/out_work/";
-constant result_dir = "/home/nilsson/html/xenofarm/";
+sring result_dir = "/home/nilsson/html/xenofarm/";
 string repository = ":ext:nilsson@pike.ida.liu.se:/pike/data/cvsroot";
 #else
 string web_dir = "/pike/data/pikefarm/out/";
 string work_dir = "/pike/data/pikefarm/out_work/";
-constant result_dir = "/pike/home/manual/web/pikefarm/";
+string result_dir = "/pike/home/manual/web/pikefarm/";
 string repository = "/pike/data/cvsroot";
 #endif
 string cvs_module = "(ignored)"; // Not used.
 
-string pike_version = "7.3";
-
-// Also, our database has a few more fields than the standard definition.
-constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, "
-                  "time INT UNSIGNED NOT NULL, "
-                  "project ENUM('pike7.3') NOT NULL, "
-                  "export ENUM('yes','no') NOT NULL DEFAULT 'yes', "
-                  "documentation ENUM('yes','no') )";
-
-constant latest_pike73_checkin = "http://pike.ida.liu.se/development/cvs/latest-Pike-commit";
+constant latest_pike_checkin = "";
 
 string make_export_name(int latest_checkin)
 {
@@ -56,7 +54,7 @@ int get_latest_checkin()
 {
   string timestamp;
   array err = catch {
-    timestamp = Protocols.HTTP.get_url_data(latest_pike73_checkin);
+    timestamp = Protocols.HTTP.get_url_data(latest_pike_checkin);
   };
 
   if(err) {
@@ -113,22 +111,21 @@ string make_build_low_low(int latest_checkin)
      !file_stat(name) ) {
     if(!file_stat(name))
        write("Could not find %O from %O.\n", name, getcwd());
-    xfdb->query("INSERT INTO build (time, project, export) "
-		"VALUES (%d,%s,'no')", latest_checkin, project);
+    xfdb->query("INSERT INTO build (time export) VALUES (%d,'FAIL')",
+		latest_checkin);
     return 0;
   }
 
-  xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'yes')",
-	      latest_checkin, project);
+  xfdb->query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
+	      latest_checkin);
 
   return name;
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.27 2002/11/20 00:01:30 mani Exp $\n";
+"$Id: server.pike,v 1.28 2002/11/30 03:27:11 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
-Project defaults to pike7.3.
 Possible arguments:
 
 --db           The database URL. Defaults to
