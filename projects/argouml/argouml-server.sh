@@ -8,6 +8,18 @@ cat << \E1OF > $working/doit.sh
 # Xenofarm build script
 LOG=mainlog.txt
 
+case $1 in
+--java1.2)
+    JAVA_HOME=$JAVA_HOME_1_2
+    ;;
+--java1.3)
+    JAVA_HOME=$JAVA_HOME_1_3
+    ;;
+*)
+    echo Unknown argument.;
+    exit 1;
+esac
+
 chmod +x tools/ant-1.4.1/bin/ant
 test -n "$JAVA_HOME" || {
     echo JAVA_HOME not set.;
@@ -28,15 +40,19 @@ echo FORMAT 2 > $LOG
 cat <<EOF |
 package	cd src_new && ../tools/ant-1.4.1/bin/ant package
 tests	cd src_new && ../tools/ant-1.4.1/bin/ant tests
-prepare-docs	cd src_new && ../tools/ant-1.4.1/bin/ant prepare-docs
 EOF
 while read task command
 do
     echo BEGIN $task >> $LOG
     date >> $LOG
-    if sh -c "$command"
+    if sh -c "$command" > $task.log 2>&1
     then
-	echo PASS >> $LOG
+	if grep -i warning $task.log > /dev/null
+	then
+	    echo WARN `grep -i warning $task.log | wc -l` >> $LOG
+	else
+	    echo PASS >> $LOG
+	fi
     else
 	echo FAIL >> $LOG
     fi
@@ -44,17 +60,7 @@ do
 done
 
 mv $LOG ../../result_default
-
-# Include the result.
-cat <<EOF |
-build/tests/reports/junit/output/html test-result
-build/javadocs javadocs
-build/argouml.jar argouml.jar
-EOF
-while read file place
-do
-    test -r $file && mv $file ../../result_default/$place
-done
+mv *.log ../../result_default
 
 E1OF
 

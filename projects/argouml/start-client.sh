@@ -1,20 +1,8 @@
 #!/bin/sh
 
-test -n "$JAVA_HOME" || {
-    echo JAVA_HOME not set.;
-    exit 1;
-}
-test -d "$JAVA_HOME" || {
-    echo $JAVA_HOME is no directory.;
-    exit 1;
-}
-test -x $JAVA_HOME/bin/javac || {
-    echo $JAVA_HOME/bin/javac not executable.;
-    exit 1;
-}
+# Set JAVA_HOMEs.
+JAVA_HOME_1_2=${JAVA_HOME_1_2-/sw/jdk/jdk1.2}
+JAVA_HOME_1_3=${JAVA_HOME_1_3-/sw/jdk/j2sdk1_3_0_02}
+ANT_OPTS=${ANT_OPTS--Xmx512M}
 
-while true
-do
-    ( cd ../../client && ./client.sh --nolimit --configdir=../projects/argouml )
-    sleep 7000
-done
+cd ../../client && ./client.sh --nolimit --configdir=../projects/argouml

@@ -1,4 +1,7 @@
 #!/bin/sh
+
+# Program som startar alla serversaker (Lenin)
+
 DBURL=`cat /home/linus/.argouml_xenofarm_mysqlurl`
 ROOT=/lysator/www/projects/xenofarm/argouml
 ../../server.pike \
