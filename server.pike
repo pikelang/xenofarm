@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.33 2002/11/15 16:45:12 jhs Exp $
+// $Id: server.pike,v 1.34 2002/11/18 16:20:22 jhs Exp $
 
 Sql.Sql xfdb;
 
@@ -176,7 +176,7 @@ int(0..1) transform_source(string cvs_module, string name, string buildid) {
 string make_build_low(int latest_checkin)
 {
   int latest_build = latest_checkin;
-  object at = Calendar->set_timezone("UTC")->Second("unix", latest_build);
+  object at = Calendar.ISO_UTC.Second("unix", latest_build);
   string name = sprintf("%s-%s-%s", project,
 			at->format_ymd_short(),
 			at->format_tod_short());
@@ -424,7 +424,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.33 2002/11/15 16:45:12 jhs Exp $\n";
+"$Id: server.pike,v 1.34 2002/11/18 16:20:22 jhs Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
