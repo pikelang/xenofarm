@@ -1,5 +1,5 @@
 
-# $Id: Makefile.in,v 1.7 2002/12/06 18:32:43 zino Exp $
+# $Id: Makefile.in,v 1.8 2002/12/06 21:54:15 zino Exp $
 
 # This line is needed on some machines.
 @SET_MAKE@
@@ -31,7 +31,7 @@ pike-dist:
 	cp README client.sh put.c configure Makefile.in start \
 		disttmp/xenoclient/ && \
 	cp ../projects/pike/pike7.4.cfg disttmp/xenoclient/config/ && \
-	cp ../projects/pike/pike7.4.cfg disttmp/xenoclient/config/ && \
+	cp ../projects/pike/pike7.5.cfg disttmp/xenoclient/config/ && \
 	mkdir disttmp/xenoclient/projects &&\
 	for p in ../projects/*; do \
 	  if [ -f "$$p/README" ] ; then \
