@@ -64,7 +64,7 @@ echo FORMAT 2 > $LOG
 # Independant tasks!
 cat <<\EOF |
 package	cd src_new && ../tools/ant-1.4.1/bin/ant package
-tests	cd src_new && ../tools/ant-1.4.1/bin/ant compile-tests && JAVA_HOME=$DEPLOYMENT_JAVA_HOME ../tools/ant-1.4.1/bin/ant tests
+tests	$DOTESTS && cd src_new && ../tools/ant-1.4.1/bin/ant compile-tests && JAVA_HOME=$DEPLOYMENT_JAVA_HOME ../tools/ant-1.4.1/bin/ant tests
 php	cd modules/php && ../../tools/ant-1.4.1/bin/ant package
 cpp	cd modules/cpp && ../../tools/ant-1.4.1/bin/ant package
 classfile	cd modules/classfile && ../../tools/ant-1.4.1/bin/ant package
@@ -77,6 +77,8 @@ do
     echo BEGIN $task >> $LOG
     date >> $LOG
     logfile=$task.log
+    DOTESTS=${DOTESTS-true}
+    export DOTESTS
     if sh -xc "$command" > $logfile 2>&1
     then
 	if egrep " TEST .* FAILED" $logfile > /dev/null
