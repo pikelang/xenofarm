@@ -2,7 +2,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.17 2002/08/12 22:07:05 mani Exp $
+// $Id: server.pike,v 1.18 2002/08/12 23:16:28 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -42,7 +42,7 @@ int get_latest_checkin() {
 }
 
 string make_build_low() {
-  if(!Process.system("cvs "+repository+" co "+cvs_module)) {
+  if(Process.system("cvs "+repository+" co "+cvs_module)) {
     write("Failed to check out from CVS module %O to %O.\n", cvs_module, getcwd());
     return 0;
   }
@@ -52,12 +52,12 @@ string make_build_low() {
 			now->format_ymd_short(),
 			now->format_tod_short());
 
-  if(!Process.system("tar cf "+name+".tar "+cvs_module)) {
+  if(Process.system("tar cf "+name+".tar "+cvs_module)) {
     write("Failed to create %s.tar\n", name);
     return 0;
   }
 
-  if(!Process.system("gzip -9 "+name+".tar")) {
+  if(Process.system("gzip -9 "+name+".tar")) {
     write("Failed to compress %s.tar\n", name);
     return 0;
   }
@@ -300,7 +300,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.17 2002/08/12 22:07:05 mani Exp $\n";
+"$Id: server.pike,v 1.18 2002/08/12 23:16:28 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
