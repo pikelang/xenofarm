@@ -77,9 +77,9 @@ do
     # echo "<td>$age</td>" >&7
 
     status=white
-    logtypes=log
     for task in `cat $tmp/latest-tasks`
     do
+      logtypes=log
       if [ -f $builddir/$task.fail ]
       then
           color=red
