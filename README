@@ -34,10 +34,17 @@ From a historical point of view Xenofarm is a complete rewrite of the
 automated build and regression test tool of the Pike programming
 language. It was called AutoBuild and was done by Martin Nilsson and
 Johan Schön at Roxen Internet Software. AutoBuild was in turn derived
-from Tinderbox. When the maintainance responsibility for Pike moved
-from Roxen Internet Software to Linköping University Martin Nilsson
-wrote Xenofarm to better suit the new environment (and to fix quite a
-few annoying things...).
+from (or rather inspired by) Tinderbox. When the maintainance
+responsibility for Pike moved from Roxen Internet Software to
+Linköping University Martin Nilsson and friends wrote Xenofarm to
+better suit the new environment (and to fix quite a few annoying
+things...).
+
+SH-client by Peter Bortas
+HTTP PUT  by Per Hedbor
+The rest  by Martin Nilsson
+
+Everything is released under GNU GPL.
 
 
 2. The Grand Design of Everything
@@ -86,3 +93,44 @@ workflow is as follows:
     web interface.
 
 
+3. The Server Script
+
+The server script is responsible for creating new source distributions
+when triggered.
+
+
+4. The Web Export
+
+The Xenofarm client fetches new source distributions from a specific
+web server URL. From that URL it expects to get a file named
+snapshot.tar.gz. It also expects the Last-Modified header to change to
+a later date and time when a new source distribution is made available.
+
+The Roxen WebServer module "Xenofarm I/O module", found in
+roxen_modules/xenofarm_fs.pike, is mounted as a file system module in
+the webservers virtual file system. By default it mounts to the path
+/xenofarm. The module will export the source distributions put in the
+path entered in "Dist search path" at the module mount point.
+
+The module expects all source distributions to be named as
+XXXX-YYYMMDD-hhmmss.tar.gz, where XXXX is the name of the project,
+e.g. Pike7.3-20020509-203344.tar.gz. These files are directly
+accessible from the mountpoint, e.g.
+/xenofarm/Pike7.3-20020509-203344.tar.gz in this case. The latest
+version is exported through the stable URL mountpoint/latest, e.g.
+/xenofarm/latest in this case. This in turn returns a redirect to a
+snapshot.tar.gz in a subdirectory, named after the latest source
+distribution. In this case /xenofarm/latest would redirect to
+/xenofarm/Pike7.3-20020509-203344/snapshot.tar.gz. The Last-Modified
+header is derived from the file name, not the actual mtime of the
+file, so the system is robust and handles dirty hacks that moves the
+files between systems.
+
+It is of course possible to use a less complex solution for the
+distribution. Just put the files in a normal directory, add a symlink
+from snapshot.tar.gz to the latest source distribution, and ensure
+that the webserver handles the Last-Modified correctly when you update
+your files.
+
+
+5. The Compilation Client
