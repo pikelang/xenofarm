@@ -15,6 +15,7 @@
 /gc.pike foreign_ident
 /gc_latest_by_system.pike foreign_ident
 /projects/pike/result_parser.pike foreign_ident
+/projects/pike/result_parser_7.3.pike foreign_ident
 /projects/pike/server.pike foreign_ident
 /projects/pike/server_7.3.pike foreign_ident
 /projects/pike/start.sh foreign_ident
