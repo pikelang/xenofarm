@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.6 2003/06/06 11:18:19 mani Exp $
+// $Id: pike_client.pike,v 1.7 2003/06/06 12:25:22 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -42,6 +42,8 @@ array(Config) configs = ({});
 //!     Error in configuration file or unknown config format.
 //!   @value 16
 //!     Unknown parameter in config file.
+//!   @value 31
+//!     Other error.
 //! @endint
 void exit(int code, void|string why, mixed ... extra) {
   if(!why) predef::exit(code);
@@ -82,14 +84,20 @@ void popd() {
 }
 
 //! Returns the data found at @[url].
-string web_get(string url) {
+array(string|int) web_get(string url) {
   WERR("Fetching %s. ",url);
   Protocols.HTTP.Query r = Protocols.HTTP.get_url(url);
   WERR("done\n");
-  if(r->status==200) return r->data();
+  if(r->status==200) {
+    int t;
+    catch {
+      t=Calendar.ISO.dwim_time(r->headers["last-modified"])->unix_time();
+    };
+    return ({ r->data(), t });
+  }
   if(r->status==302 && r->headers->location)
     return web_get(r->headers->location);
-  return 0;
+  return ({ 0, 0 });
 }
 
 //! Returns the posix time when the data at @[url] was
@@ -209,6 +217,7 @@ class Config {
     projectdir += system->node + "/";
   }
 
+  static int last_serverchange;
   static int last_download;
 
   int(0..1) prepare() {
@@ -229,20 +238,28 @@ class Config {
       exit(5, "FATAL: dont_run file found. Doing that.\n");
 
     if(!last_download) {
-      Stdio.Stat st = file_stat("snapshot.tar.gz");
-      if(st)
-	last_download = st->mtime;
+      string dlfile = Stdio.read_file("localtime_lastdl");
+      if(dlfile)
+	sscanf(dlfile, "servertime:%d\nlocaltime:%d",
+	       last_serverchange, last_download);
     }
-    if(last_download && web_head(snapshoturl)<=last_download)
+    if(last_serverchange && web_head(snapshoturl)<=last_serverchange)
       return 0;
 
-    string data = web_get(snapshoturl);
+    string data;
+    int t;
+    [ data, t ] = web_get(snapshoturl);
     if(!data) {
       write("Failed to read from %s\n", snapshoturl);
       return 0;
     }
+    last_serverchange = t;
+    last_download = time();
 
     Stdio.write_file("snapshot.tar.gz", data);
+    Stdio.write_file("localtime_lastdl",
+		     "servertime:"+last_serverchange+
+		     "\nlocaltime:"+last_download+"\n");
     rm("snapshot.tar");
     foreach(get_dir("."), string fn)
       if(Stdio.is_dir(fn)) Stdio.recursive_rm(fn);
@@ -279,14 +296,28 @@ class Config {
     popd();
   }
 
-  void untar_dir() {
+  void untar_dir(object fs, string dir) {
+    WERR(".");
+    foreach(fs->get_dir(dir), string path) {
+      string fn = reverse(path/"/")[0];
+      if(fs->stat(path)->isdir()) {
+	if(!mkdir(fn))
+	  exit(31, "Unable to create directory %O.\n", fn);
+	pushd(fn);
+	untar_dir(fs, path);
+	popd();
+      }
+      else
+	Stdio.write_file(fn, fs->open(path, "r")->read());
+    }
   }
 
   void run_test(string name, string cmd) {
 
-    WERR("  Reading tar file.\n");
+    WERR("  Reading tar file.");
     object fs = Filesystem.Tar("../snapshot.tar");
-    // untar here
+    untar_dir(fs, "");
+    WERR("\n");
 
     int chdir;
     foreach(get_dir("."), string fn)
@@ -294,8 +325,9 @@ class Config {
 	chdir=1;
 	break;
       }
-    if(!chdir) exit("No directory to cd to in snapshot tar.\n");
+    if(!chdir) exit(31, "No directory to cd to in snapshot tar.\n");
 
+    exit(0, "End of the world reached.\n");
     // create resultdir
     // run cmd
   }
@@ -319,10 +351,12 @@ void read_configs() {
     // FIXME: Is this correct interpretation of get_nodeconfig()?
     string nodeconfig = config_dir + "/" + f[..sizeof(f)-5] + "." +
       system->node;
+    string config_name = f[sizeof(f)-5..]; // Remove ".cfg" from f.
     if(file_stat(nodeconfig))
-      configs += ({ Config(Stdio.read_file(nodeconfig)) });
+      configs += ({ Config(Stdio.read_file(nodeconfig), config_name) });
     else
-      configs += ({ Config(Stdio.read_file(config_dir + "/" +f)) });
+      configs += ({ Config(Stdio.read_file(config_dir + "/" +f),
+			   config_name) });
   }
 }
 
@@ -414,7 +448,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.6 2003/06/06 11:18:19 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.7 2003/06/06 12:25:22 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
@@ -452,6 +486,7 @@ int main(int num, array(string) args) {
       if(config->prepare())
 	config->run_tests();
     }
+    WERR("Sleep for 5 minutes...\n");
     sleep(5*60);
   }
 }
