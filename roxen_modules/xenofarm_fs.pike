@@ -2,8 +2,10 @@
 // Copyright 2002 Martin Nilsson
 
 inherit "module";
+inherit "roxenlib";
+#include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.2 2002/05/03 22:37:31 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.3 2002/05/11 01:59:29 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -61,7 +63,7 @@ Stat stat_file(string f, RequestID id) {
 }
 
 string real_file(string f, RequestID id) {
-  f = in_convert(f);
+  f = in_converter(f);
   if(stat_file(f, id))
     return distpath+f;
   return 0;
@@ -72,7 +74,7 @@ array(string) find_dir(string path, RequestID id) {
     return get_dir(distpath) +
       ({ "latest", "latest-green", "result" });
   if( file_stat( (path/"/")[0] + ".tar.gz" ) )
-    return "snapshot.tar.gz";
+    return ({ "snapshot.tar.gz" });
   return 0;
 }
 
@@ -80,29 +82,30 @@ mapping|Stdio.File find_file(string path, RequestID id) {
 
   if(path=="latest") {
     if(latest_timestamp+60*5 < time()) {
-      array files = sort(get_dir(mountpoint));
-      if(files) {
+      array files = sort(get_dir(distpath));
+      if(sizeof(files)) {
 	latest = files[-1];
 	latest_timestamp = time();
       }
       else
-	return Roxen.http_low_answer(404, "File not found.");
+	return http_low_answer(404, "File not found.");
+    }
 
-    return Roxen.http_redirect( out_converter(mountpoint+latest), id );
+    return http_redirect( out_converter(mountpoint+latest), id );
   }
 
   if(path=="latest-green") {
-    Roxen.http_low_nswer(404, "File not found.");
+    Roxen.http_low_answer(404, "File not found.");
     string latestg;
-    return Roxen.http_redirect( out_converter(mountpoint+latestg), id );
+    return http_redirect( out_converter(mountpoint+latestg), id );
   }
 
   if(path=="result") {
-    fn += (counter++);
-    Stdio.write_file( fn, data );
-    return ([]);
+    string data;
+    Stdio.write_file( "res" + time() + "_" + (file_counter++), data );
+    return http_string_answer("Thanks!");
   }
 
-  return Stdio.File( in_converter(distpath+f) );
+  return Stdio.File( distpath+in_converter(path) );
 
 }
