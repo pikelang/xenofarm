@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.13 2003/06/21 01:11:29 mani Exp $
+// $Id: pike_client.pike,v 1.14 2003/06/24 12:38:12 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -89,11 +89,16 @@ void popd() {
 array(string|int) web_get(string url) {
   WERR("Fetching %s.\n",url);
   Protocols.HTTP.Query r = Protocols.HTTP.get_url(url);
+  if(!r)
+    error("Failed to connect to %O.\n", url);
   if(r->status==200) {
     int t;
-    catch {
+    mixed err = catch {
       t=Calendar.ISO.dwim_time(r->headers["last-modified"])->unix_time();
     };
+    if(err)
+      werror("Failed to decode timestamp %O.\n%s\n",
+	     r->headers["last-modified"], describe_backtrace(err));
     return ({ r->data(), t });
   }
   if(r->status==302 && r->headers->location)
@@ -535,7 +540,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.13 2003/06/21 01:11:29 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.14 2003/06/24 12:38:12 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -593,7 +598,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.13 2003/06/21 01:11:29 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.14 2003/06/24 12:38:12 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
