@@ -1,0 +1,41 @@
+#!/bin/sh
+
+DELAY=600
+parse_args() {
+ while [ ! c"$1" = "c" ] ; do
+  case "$1" in
+  '-h'|'--help')
+  	sed -e "s/\\.B/`tput 'bold' 2>/dev/null`/g" -e "s/B\\./`tput 'sgr0' 2>/dev/null`/g" << EOF
+.BThis is a start-script for the Xenofarm clientB.
+
+It is normally not used, as the recommended method to start a client run is
+by scheduling it with cron.
+
+   .BArguments:B.
+
+      .B--helpB.:                  This information.
+      .B--delay=<seconds>B.:       The time between client-schedulations.
+                               Default 600s (10 minutes).
+EOF
+    	tput 'rmso' 2>/dev/null
+	exit 0	
+  ;;
+  --delay=*)
+	DELAY=`echo $1 | sed -e 's/--delay=//'`
+	shift
+  ;;
+  *)
+	echo Unsopported argument: $1
+	echo try --help
+	exit 1
+  esac
+ done
+}
+
+parse_args $@
+
+#main loop
+while : ; do
+	./client.sh >debug.log 2>&1 &
+	sleep $DELAY
+done
