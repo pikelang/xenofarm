@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.16 2002/08/14 23:33:23 mani Exp $
+// $Id: result_parser.pike,v 1.17 2002/08/15 08:16:21 ceder Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -323,7 +323,7 @@ int main(int num, array(string) args) {
   check_settings();
 
   while(1) {
-    foreach(get_dir(result_dir), string fn) {
+    foreach(filter(get_dir(result_dir), has_prefix, "res"), string fn) {
       fn = result_dir + fn;
       if(processed_results[fn]) continue;
       debug("Found new result %O\n", fn);
@@ -335,7 +335,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.16 2002/08/14 23:33:23 mani Exp $\n";
+"$Id: result_parser.pike,v 1.17 2002/08/15 08:16:21 ceder Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
