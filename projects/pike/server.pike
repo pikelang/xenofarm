@@ -1,11 +1,12 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.10 2002/05/30 14:49:38 mani Exp $
+// $Id: server.pike,v 1.11 2002/07/16 12:47:39 mani Exp $
 
-// The Xenofarm server program is not really intended to be run verbatim, since almost
-// all projects have their own little funny things to take care of. This is an
-// adaptation for the Pike programming language itself.
+// The Xenofarm server program is not really intended to be run
+// verbatim, since almost all projects have their own little funny
+// things to take care of. This is an adaptation for the Pike
+// programming language itself.
 
 inherit "server.pike";
 
@@ -73,3 +74,6 @@ string make_build_low() {
 
   return potential_build_names[0];
 }
+
+constant prog_id = "Xenofarm Pike server\n"
+"$Id: server.pike,v 1.11 2002/07/16 12:47:39 mani Exp $";
