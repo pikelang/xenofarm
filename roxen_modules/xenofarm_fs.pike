@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.11 2002/05/29 00:52:53 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.12 2002/07/25 02:18:09 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
@@ -73,10 +73,18 @@ static string out_converter(string f) {
 
 // XXXX-YYYYMMDD-hhmmss -> posix time
 static int dist_mtime(string f) {
+#if constant(Calendar_I)
+  catch {
+    if( sscanf(fn, "%*s-%s.", fn)!=2 ) return 0;
+    return Calendar.set_timezone("UTC")->parse("%d-%t", fn)->unix_time();
+  };
+  return 0;
+#else
   int Y,M,D,h,m,s;
   if( sscanf(f, "%*s-%4d%2d%2d-%2d%2d%2d", Y,M,D,h,m,s)!=7 )
     return 0;
   return mktime(s, m, h, D, M-1, Y-1900, 0, 0);
+#endif
 }
 
 
