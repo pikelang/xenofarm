@@ -1,6 +1,6 @@
 #! /bin/sh
 
-PATH=/i/autoconf/2.57/bin:/usr/local/bin:/usr/bin:/bin:/usr/ccs/bin
+PATH=/i/automake/1.7.2/bin:/i/autoconf/2.57/bin:/usr/local/bin:/usr/bin:/bin:/usr/ccs/bin
 export PATH
 
 # Don't know why gcc doesn't search /usr/local/lib by default. Using
