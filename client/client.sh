@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.20 2002/08/17 01:04:26 zino Exp $
+# $Id: client.sh,v 1.21 2002/08/17 22:58:42 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -40,6 +40,7 @@
 #  4: Unable to decompress project snapshot
 #  5: Failed to fetch project snapshot
 #  6: Recursive mkdir failed
+#  7: Remote compilation failure
 #  
 # 10: wget not found
 # 11: gzip not found
@@ -162,6 +163,17 @@ export PATH LC_ALL
 #Get user input
 parse_args $@
 
+#Make sure the remote nodes are up in a multi machine compilation setup
+if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
+    if [ X"`uname -m`" = X ] ; then
+        echo "FATAL: Unable to contact remote system using $REMOTE_METHOD."
+        exit 7
+    else if [ X"`uname -s`" = X ] ; then
+        echo "FATAL: Possible permission problem or unmounted volume on remote system."
+        exit 7
+    fi ; fi
+fi
+
 #Check and handle the pidfile for this node
 node=`uname -n`
 pidfile="`pwd`/xenofarm-$node.pid"
@@ -239,7 +251,7 @@ grep -v \# projects.conf | ( while
      else
         # The snapshot will have a time stamp synced to the server. To
         # compensate for drifting clocks (not time zones, that is
-        # handled my wget) on the clients we make a local stamp
+        # handled by wget) on the clients we make a local stamp
         # file. As this file is not consulted when downloading new
         # snapshot it doesn't matter if a new snapshot is released while 
         # the first one is downloaded. (Yes, this long text is necessary.)
