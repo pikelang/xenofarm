@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.34 2002/12/07 00:18:17 mani Exp $
+// $Id: result_parser.pike,v 1.35 2002/12/08 15:16:53 linus Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -136,6 +136,7 @@ void parse_machine_id(string fn, mapping res) {
 void parse_log(string fn, mapping res) {
   res->status = "FAIL";
   string file = Stdio.read_file(fn);
+  res->tasks=({});
   if(!file || !sizeof(file)) return;
   array lines = file/"\n";
 
@@ -145,7 +146,6 @@ void parse_log(string fn, mapping res) {
   }
 
   multiset done_tasks = (<>);
-  res->tasks=({});
 
   ADT.Stack begin = ADT.Stack();
   ADT.Stack tasks = ADT.Stack();
@@ -554,12 +554,14 @@ void check_settings(void|int(0..1) no_result_dir) {
 }
 
 int main(int num, array(string) args) {
+  int (0..1) once_only = 0;
   write(prog_id);
 
   foreach(Getopt.find_all_options(args, ({
     ({ "db",        Getopt.HAS_ARG, "--db"           }),
     ({ "dry",       Getopt.NO_ARG,  "--dry-run"      }),
     ({ "help",      Getopt.NO_ARG,  "--help"         }),
+    ({ "once",      Getopt.NO_ARG,  "--once"         }),
     ({ "poll",      Getopt.HAS_ARG, "--poll"         }),
     ({ "resultdir", Getopt.HAS_ARG, "--result-dir"   }),
     ({ "verbose",   Getopt.NO_ARG,  "--verbose"      }),
@@ -581,6 +583,9 @@ int main(int num, array(string) args) {
       case "help":
 	write(prog_doc);
 	return 0;
+
+      case "once":
+	once_only = 1;
 
       case "poll":
 	result_poll = (int)opt[1];
@@ -623,19 +628,24 @@ int main(int num, array(string) args) {
       debug("Found new result %O\n", fn);
       process_package(fn);
     }
+
+    if (once_only)
+	return 0;
+
     sleep(result_poll);
   }
 
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.34 2002/12/07 00:18:17 mani Exp $\n";
+"$Id: result_parser.pike,v 1.35 2002/12/08 15:16:53 linus Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
 --dry-run    Do not store any results or alter any files outside
              of the working directory.
 --help       Displays this text.
+--once       Run just once.
 --poll       How often the result directory is checked for new
              result files.
 --result-dir Where incoming result files are read from.

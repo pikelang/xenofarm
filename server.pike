@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.41 2002/12/05 19:46:41 mani Exp $
+// $Id: server.pike,v 1.42 2002/12/08 15:16:53 linus Exp $
 
 Sql.Sql xfdb;
 
@@ -278,6 +278,7 @@ int main(int num, array(string) args)
 {
   write(prog_id);
   int (0..1) force_build;
+  int (0..1) once_only = 0;
 
   foreach(Getopt.find_all_options(args, ({
     ({ "db",          Getopt.HAS_ARG, "--db"           }),
@@ -286,6 +287,7 @@ int main(int num, array(string) args)
     ({ "help",        Getopt.NO_ARG,  "--help"         }),
     ({ "latency",     Getopt.HAS_ARG, "--latency"      }),
     ({ "module",      Getopt.HAS_ARG, "--cvs-module"   }),
+    ({ "once",        Getopt.NO_ARG,  "--once"         }),
     ({ "poll",        Getopt.HAS_ARG, "--poll"         }),
     ({ "repository",  Getopt.HAS_ARG, "--repository"   }),
     ({ "verbose",     Getopt.NO_ARG,  "--verbose"      }),
@@ -320,6 +322,9 @@ int main(int num, array(string) args)
       case "module":
 	cvs_module = opt[1];
 	break;
+
+      case "once":
+	once_only = 1;
 
       case "poll":
 	checkin_poll = (int)opt[1];
@@ -428,6 +433,9 @@ int main(int num, array(string) args)
       }
     }
 
+    if (once_only)
+	return 0;
+
     if(!sit_quietly)
       debug("Sleeping for %d seconds...\n", sleep_for);
     sleep(sleep_for);
@@ -435,7 +443,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.41 2002/12/05 19:46:41 mani Exp $\n";
+"$Id: server.pike,v 1.42 2002/12/08 15:16:53 linus Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
@@ -451,6 +459,7 @@ Possible arguments:
                (5 minutes).
 --min-distance The enforced minimum distance between to builds.
                Defaults to 7200 seconds (two hours).
+--once         Run just once.
 --poll         How often the CVS is queried for new checkins.
                Defaults to every 60 seconds.
 --repository   The CVS repository the server should use.
