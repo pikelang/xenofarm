@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.25 2002/08/25 17:47:31 zino Exp $
+# $Id: client.sh,v 1.26 2002/08/25 22:30:45 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -140,7 +140,7 @@ sighup() {
 }
 
 missing_req() {
-    echo "$1 not found" 1>&2
+    echo "FATAL: $1 not found." 1>&2
     clean_exit $2
 }
 
@@ -236,8 +236,7 @@ if [ -f "projects.conf.$node" ] ; then
 else
     configfile="projects.conf";
     if [ ! -f $configfile ] ; then
-	echo "FATAL: Config file: $configfile not found." 1>&2
-	exit 13
+	missing_req $configfile 13
     fi
 fi
 
