@@ -2,7 +2,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.19 2002/08/13 01:06:04 ceder Exp $
+// $Id: server.pike,v 1.20 2002/08/13 10:04:43 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -254,6 +254,31 @@ int main(int num, array(string) args) {
     sleep(real_checkin_poll);
     real_checkin_poll = checkin_poll;
 
+    // Enforce build distances
+    if(time()-latest_build < min_build_distance) {
+      debug("Enforce build distances. Quarantine left %s.\n",
+	    fmt_time(min_build_distance-(time()-latest_build)));
+      real_checkin_poll = min_build_distance - (time()-latest_build);
+      continue;
+    }
+
+    // Queue a build
+    int new_checkin = get_latest_checkin();
+    if(!waitloop_state) debug("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
+    if(new_checkin>latest_build) {
+      if(new_checkin + checkin_latency < time()) {
+	next_build = time()-1;
+	debug("A new build is scheduled to run at once.\n");
+	real_checkin_poll = 0;
+      }
+      else {
+	next_build = time()+checkin_latency;
+	debug("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
+	real_checkin_poll = checkin_latency;
+	continue;
+      }
+    }
+
     // Is there a queued build?
     if(next_build) {
       if(verbose) {
@@ -268,30 +293,6 @@ int main(int num, array(string) args) {
 	latest_build = get_latest_build();
 	next_build = 0;
       }
-      continue;
-    }
-
-    // Enforce build distances
-    if(time()-latest_build < min_build_distance) {
-      debug("Enforce build distances. Quarantine left %s.\n",
-	    fmt_time(min_build_distance-(time()-latest_build)));
-      real_checkin_poll = min_build_distance - (time()-latest_build);
-      continue;
-    }
-
-    int new_checkin = get_latest_checkin();
-    if(!waitloop_state) debug("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
-    if(new_checkin>latest_build) {
-      if(new_checkin + checkin_latency < time()) {
-	next_build = time()-1;
-	debug("A new build is scheduled to run at once.\n");
-	real_checkin_poll = 0;
-      }
-      else {
-	next_build = time()+checkin_latency;
-	debug("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
-	real_checkin_poll = checkin_latency;
-      }
     }
 
   }
@@ -300,7 +301,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.19 2002/08/13 01:06:04 ceder Exp $\n";
+"$Id: server.pike,v 1.20 2002/08/13 10:04:43 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
