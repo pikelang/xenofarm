@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.14 2002/08/14 16:56:40 mani Exp $
+// $Id: result_parser.pike,v 1.15 2002/08/14 22:02:04 ceder Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -156,7 +156,16 @@ void process_package(string fn) {
     }
   }
 
-  Process.system("tar -xzf "+fn);
+  string content = Process.popen("tar tfz "+fn);
+  foreach(content / "\n", string file) {
+    if (sizeof(file / "/") > 1) {
+      write("Refusing to process %O since %O contains a slash\n", fn, file);
+      processed_results[fn]=1;
+      return;
+    }
+  }
+  
+  Process.system("tar xzf "+fn);
   if(!sizeof(get_dir("."))) {
     write("Unable to unpack %O to %O\n", fn, getcwd());
     processed_results[fn]=1;
@@ -325,7 +334,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.14 2002/08/14 16:56:40 mani Exp $\n";
+"$Id: result_parser.pike,v 1.15 2002/08/14 22:02:04 ceder Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
