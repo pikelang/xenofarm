@@ -28,6 +28,9 @@ echo FORMAT 2 > $LOG
 cat <<EOF |
 package	cd src_new && ../tools/ant-1.4.1/bin/ant package
 tests	cd src_new && ../tools/ant-1.4.1/bin/ant tests
+php	cd modules/php && ../../tools/ant-1.4.1/bin/ant package
+cpp	cd modules/cpp && ../../tools/ant-1.4.1/bin/ant package
+junit	cd modules/junit && ../../tools/ant-1.4.1/bin/ant package
 EOF
 while read task command
 do
