@@ -410,22 +410,30 @@ in a result.tar.gz file. This file must be a standard tar.gz file,
 since the client may repackage the result in the future.
 
 If the make fails the client will create a result.tar.gz file of its
-own. It will contain at least three files:
+own. It will contain at least four files:
 
 xenofarmclient.txt
-  This file contains a log of all output from running the make target
-  in the package. [Currently this file is named RESULT, but that will
-  be changed in the near future.] This file should only be produced by
-  the client script when the make target fails.
+  This file contains a log of all output from running the build command
+  in the package. This file should only be produced by the client script 
+  when the make target fails.
 
 machineid.txt
-  This file contains the output from "uname -s -r -m" followed by the
-  output from "uname -n".
+  This file contains a number of values on the form "identifier:
+  value" that identifies the build machine and it's
+  enviroment. Currently it contains the following pairs:
+     sysname: <output from "uname -s">
+     release: <output from "uname -r">
+     machine: <output from "uname -m">
+     nodename: <output from "uname -n">
+     testname: <the name of the test as specified in the config file>
+     command: <the command line for the test as specified in the config file>
+     clientversion: <the output from "client.sh --version">
+     putversion: <the output from "put --version">
+     contact: <an email address to the person maintaining the client 
+               instance as specified in config/contact.txt>
 
 buildid.txt
   This file is a copy of the buildid.txt file in the package.
-  [Currently this file is named export.stamp, but that will be changed
-  in the near future.]
 
 For more information about the compilation client, see the README in
 the client directory.
@@ -479,14 +487,13 @@ file that contains a number of files. It should not contain any
 directory. The following files have special meaning:
 
 buildid.txt
-  The first line of this file should contain the build it, which is
+  The first line of this file should contain the build id, which is
   the id column of the build table. This value is used for the build
   column in the result table.
 
 machineid.txt
-  This file should contain the output of "uname -s -r -m; uname -n".
-  The second line, the name of the computer, is used as the system
-  column in the result table.
+  This file is always produced and included by the Xenofarm
+  client. The format od this file is described in section 6.
 
 mainlog.txt
   A log of the build process, in a special format. Each entry in the
