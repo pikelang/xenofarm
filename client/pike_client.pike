@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.2 2003/05/14 16:47:23 mani Exp $
+// $Id: pike_client.pike,v 1.3 2003/05/20 11:40:14 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -38,13 +38,23 @@ array(Config) configs = ({});
 //!     Admin email not configured
 //!   @value 12
 //!     Configuration directory not found
-//!   @value 31
-//!     Error in configuration file.
+//!   @value 15
+//!     Error in configuration file or unknown config format.
 //! @endint
 void exit(int code, void|string why, mixed ... extra) {
   if(!why) predef::exit(code);
-  werror(why, @extra);
+  if(code==0)
+    write(why, @extra);
+  else
+    werror(why, @extra);
+  clean_exit(code);
   predef::exit(code);
+}
+
+//! Remove the pid file.
+void clean_exit() {
+  if(!system->node) return;
+  rm("xenofarm-"+system->node+".pid");
 }
 
 ADT.Stack dirs = ADT.Stack();
@@ -122,11 +132,11 @@ class Config {
 
       string key,value;
       if(sscanf(line, "%s:%*[ \t]%s", key, value)!=3)
-        exit(31, "Error in configure file (%s), line %d.\n",
+        exit(15, "Error in configure file (%s), line %d.\n",
 	     filename, line_no);
       value = String.trim_all_whites(value);
       if(value=="")
-	exit(31, "Empty value in key %O, line %d, %s.\n",
+	exit(15, "Empty value in key %O, line %d, %s.\n",
 	     key, line_no, filename);
 
       if( (< "project", "projectdir",
@@ -135,7 +145,7 @@ class Config {
       else
 	if( key=="test" ) {
 	  if(sscanf(value, "%s%*[ \t]%s", key, value)!=3)
-	    exit(31, "Error in configure file (%s), line %d.\n",
+	    exit(15, "Error in configure file (%s), line %d.\n",
 		 filename, line_no);
 	  tests[key] = value;
 	}
@@ -145,7 +155,7 @@ class Config {
     // cycle.
     if(!project || !projectdir || !snapshoturl ||
        !resulturl || !sizeof(tests))
-      exit(31, "Missing information in configure file (%s).\n", filename);
+      exit(15, "Missing information in configure file (%s).\n", filename);
 
     if(projectdir[-1]!='/') projectdir+="/";
     projectdir += system->node + "/";
@@ -279,8 +289,7 @@ void setup_pidfile() {
 
 //! Remove the pid file when this program object is destructed.
 void destroy() {
-  if(!system->node) return;
-  rm("xenofarm-"+system->node+".pid");
+  clean_exit();
 }
 
 int main(int num, array(string) args) {
@@ -292,15 +301,17 @@ int main(int num, array(string) args) {
   // We don't trap signals as client.sh do since the Windows signal
   // system doesn't work.
 
-  // We don't update the PATH with unix-things like client.sh do.
-
-  // We don't set LC_ALL to C as client.sh do.
+#ifndef __NT__
+  setenv("PATH", getenv("PATH")+":/usr/local/bin:/sw/local/bin");
+  setenv("LC_ALL","C");
+#endif
 
   // Get user input.
   foreach(Getop.find_all_options(args, ({
-    ({ "config",  Getopt.HAS_ARG, "--config-dir" }),
-    ({ "help",    Getopt.NO_ARG,  "--help"       }),
-    ({ "version", Getopt.NO_ARG,  "--version"    }),
+    ({ "config",  Getopt.HAS_ARG, "-c,--config-dir,--configdir"/"," }),
+    ({ "help",    Getopt.NO_ARG,  "-h,--help"/","                   }),
+    ({ "version", Getopt.NO_ARG,  "-v,--version"/","                }),
+    ({ "nolimits",Getopt.NO_ARG,  "--nolimit,--no-limit,--nolimits,--no-limits"/","  }),
   }) ), array opt)
     {
       switch(opt[0]) {
@@ -308,15 +319,37 @@ int main(int num, array(string) args) {
 	config_dir = opt[1];
 	if(config_dir[-1]!='/') config_dir+="/";
 	break;
+
+      case "help":
+	exit(0, "Xenofarm client\n\n"
+	     "If you encounter problems, see the README for requirements and help.\n\n"
+	     "    Arguments:\n\n"
+	     "      --config-dir:    Specify an alternate configuration directory.\n"
+	     "      --help:          This information.\n"
+	     "      --version:       Displays client version.\n");
+	break;
+
+      case "version":
+	exit(0, "$Id: pike_client.pike,v 1.3 2003/05/20 11:40:14 mani Exp $\nMimics client.sh revision 1.72\n");
+	break;
+
+      case "nolimits":
+	exit(1, "--no-limits not supported.\n");
+	break;
       }
     }
 
+  // FIXME: Check for unknown arguments here.
+
   if(!file_stat(config_dir))
     exit(12, "Could not open config dir %s\n", config_dir);
-  setup_pidfile();
+
+  // We don't set up unlimits as client.sh do, since it won't work on Windows.
 
   string email = get_email();
   WERR("Email: %s\n",email);
+
+  setup_pidfile();
 
   read_configs();
   while(1) {
