@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.24 2002/08/30 01:42:25 mani Exp $
+// $Id: server.pike,v 1.25 2002/09/01 22:58:38 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -34,10 +34,38 @@ void debug(string msg, mixed ... args) {
     write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
 }
 
+array persistent_query( string q, mixed ... args ) {
+  int(0..) try;
+  mixed err;
+  array res;
+  do {
+    try++;
+    err = catch {
+      res = xfdb->query(q, @args);
+    };
+    if(err) {
+      switch(try) {
+      case 1:
+	write("Database query failed. Continue to try...\n");
+	if(arrayp(err) && sizeof(err) && stringp(err[0]))
+	  debug("(%s)\n", err[0][..sizeof(err)-2]);
+	break;
+      case 2..5:
+	sleep(1);
+	break;
+      default:
+	sleep(60);
+	if(!try%10) debug("Continue to try... (try %d)\n", try);
+      }
+    }
+  } while(err);
+  return res;
+}
+
 int get_latest_build() {
-  array res = xfdb->query("SELECT MAX(time) AS latest_build FROM build WHERE project=%s",
-			  project);
-  if(!sizeof(res)) return 0;
+  array res = persistent_query("SELECT MAX(time) AS latest_build FROM build WHERE project=%s",
+			       project);
+  if(!res || !sizeof(res)) return 0;
   return (int)res[0]->latest_build;
 }
 
@@ -131,12 +159,19 @@ string make_build_low() {
   
   latest_build = now->unix_time();
 
-  xfdb->query("INSERT INTO build (time, project) VALUES (%d,%s)", 
-	      latest_build, project);
-  string buildid = xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+  persistent_query("INSERT INTO build (time, project) VALUES (%d,%s)",
+		   latest_build, project);
+
+  string buildid;
+  mixed err;
+  err = catch {
+    buildid = xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+  };
+  // FIXME: Remove build as well?
+  if(err) return 0;
 
   if (!transform_source(cvs_module, name, buildid)) {
-    xfdb->query("DELETE FROM build WHERE id = %s", buildid);
+    persistent_query("DELETE FROM build WHERE id = %s", buildid);
     return 0;
   }
 
@@ -390,7 +425,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.24 2002/08/30 01:42:25 mani Exp $\n";
+"$Id: server.pike,v 1.25 2002/09/01 22:58:38 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
