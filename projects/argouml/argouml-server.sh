@@ -79,6 +79,6 @@ cat <<\EOF > $working/EXCLUDED
 */CVS/
 */CVS
 EOF
-tar cf $name.tar -X $working/EXCLUDED $working/build $working/lib $working/modules $working/src_new $working/tests $working/tools $working/buildid.txt $working/doit.sh || exit 1
+tar cfX $name.tar $working/EXCLUDED $working/build $working/lib $working/modules $working/src_new $working/tests $working/tools $working/buildid.txt $working/doit.sh || exit 1
 gzip $name.tar || exit 1
 rm $working/buildid.txt $working/doit.sh $working/EXCLUDED

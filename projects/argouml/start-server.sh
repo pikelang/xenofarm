@@ -1,6 +1,8 @@
 #!/bin/sh
 
 # Program som startar alla serversaker (Lenin)
+PATH=/bin:/usr/bin:/sw/local/bin
+export PATH
 
 DBURL=`cat /home/linus/.argouml_xenofarm_mysqlurl`
 ROOT=/lysator/www/projects/xenofarm/argouml

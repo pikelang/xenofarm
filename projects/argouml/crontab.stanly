@@ -1,2 +1,2 @@
 # Crontab stanly
-41	1,4,7,10,13,16,19,22 * * *	cd /lysator/slaskdisk/tmp/linus/xenofarm/projects/argouml && ./start-client.sh
+41	0-6,8,10,12,14,16,18,20,22-23 * * *	cd /lysator/slaskdisk/tmp/linus/xenofarm/projects/argouml && ./start-client.sh
