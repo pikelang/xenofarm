@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.35 2002/08/31 14:42:20 zino Exp $
+# $Id: client.sh,v 1.36 2002/08/31 16:00:32 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -64,7 +64,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.35 2002/08/31 14:42:20 zino Exp $
+	echo \$Id: client.sh,v 1.36 2002/08/31 16:00:32 zino Exp $
 	exit 0
   ;;
   *)
@@ -85,7 +85,7 @@ check_delay() {
     true
 }
 
-#Make directories recursively
+#Make directories recursively.
 pmkdir() {
     while [ ! -d $1 ]; do 
 	rest=$1
@@ -94,6 +94,18 @@ pmkdir() {
 	    rest=`dirname $rest`
 	done
 	mkdir $rest/$tmp_dir || clean_exit 6
+    done
+}
+
+#FIXME: Code duplication
+nfpmkdir() {
+    while [ ! -d $1 ]; do 
+	rest=$1
+	while [ ! -d $rest ]; do
+	    tmp_dir=`basename $rest`
+	    rest=`dirname $rest`
+	done
+	mkdir $rest/$tmp_dir || exit 21
     done
 }
 
@@ -121,7 +133,7 @@ missing_req() {
 }
 
 wget_exit() {
-    cat "wget_$id.log" 1>&2
+    cat "wget_$test.log" 1>&2
     clean_exit 5 
 }
 
@@ -287,18 +299,48 @@ uncompress_exit() {
     exit 17
 }
 
+put_exit() {
+    echo "Failed to send result. Will try to resend in the next client run."
+    date=`date | sed 's/ //g' | sed 's/://g'` &&
+    (nfpmkdir "$basedir/$dir/rescue_$test/$date") &&
+    mv "$resultdir/xenofarm_result.tar.gz" \
+       "$basedir/$dir/rescue_$test/$date/xenofarm_result.tar.gz"
+    exit 8
+}
+
+put_resume() {
+    cd "$basedir/$dir"
+    ls rescue_$test/* >/dev/null 2>&1 &&
+    for x in rescue_$test/*; do
+        tmp=""
+        if [ -f $x/xenofarm_result.tar.gz ] ; then
+            echo "Resending $x/xenofarm_result.tar.gz."
+            $basedir/$putname "$puturl" \
+                < "$x/xenofarm_result.tar.gz" || tmp="fail"
+            if [ X$tmp != Xfail ] ; then
+                rm $x/xenofarm_result.tar.gz
+                rmdir $x
+            else
+                echo "Failed to resend. Will try to resend in the next client run."
+            fi
+        else
+            rmdir $x 
+        fi
+    done
+}
+
 make_machineid() {
-       echo "sysname: $unames" >  machineid.txt &&
-       echo "release: $unamer" >> machineid.txt &&
-       echo "version: $unamev" >> machineid.txt &&
-       echo "machine: $unamem" >> machineid.txt &&
+       echo "sysname: $unames"  >  machineid.txt &&
+       echo "release: $unamer"  >> machineid.txt &&
+       echo "version: $unamev"  >> machineid.txt &&
+       echo "machine: $unamem"  >> machineid.txt &&
        echo "nodename: $node"   >> machineid.txt &&
-       echo "testname: $id"     >> machineid.txt &&
+       echo "testname: $test"   >> machineid.txt &&
        echo "command: $command" >> machineid.txt &&
        echo "clientversion: `$basedir/client.sh --version`" \
-          >> machineid.txt &&
+                                >> machineid.txt &&
        echo "putversion: `$basedir/$putname --version`" \
-          >> machineid.txt &&
+                                >> machineid.txt &&
        cat "$basedir/config/contact.txt" >> machineid.txt
 }
 
@@ -308,15 +350,18 @@ run_test() {
     if [ X"$virgin" = Xtrue ] ; then
         prepare_project
     fi
-    echo " Running test \"$id\" in $dir."
+    echo " Running test \"$test\" in $dir."
     
-    (   cd "$dir"
+    #Check for earlier results and try to send them
+    put_resume
+
+    (   cd "$basedir/$dir"
         rm -rf buildtmp && mkdir buildtmp || mkdir_exit
         cd buildtmp &&
-        if [ \! -f "../last_$id" ] ||
-           is_newer ../localtime_lastdl "../last_$id" ; then
+        if [ \! -f "../last_$test" ] ||
+           is_newer ../localtime_lastdl "../last_$test" ; then
             get_time
-            echo $hour:$minute > "../current_$id";
+            echo $hour:$minute > "../current_$test";
             #FIXME: Check if the project configurable build delay has passed
             if `check_delay`; then
                 if [ $uncompressed != "true" ] ; then
@@ -334,8 +379,8 @@ run_test() {
                 tar xf ../snapshot.tar || exit 4
 
                 cd */.
-                echo "  Building and running test \"$id\": \"$command\""
-                resultdir="../../result_$id"
+                echo "  Building and running test \"$test\": \"$command\""
+                resultdir="../../result_$test"
                 rm -rf "$resultdir" && mkdir "$resultdir" || exit 19
 
                 cp buildid.txt "$resultdir" || exit 20
@@ -345,7 +390,7 @@ run_test() {
                     mv xenofarm_result.tar.gz "$resultdir"
                     (
                      cd "$resultdir" &&
-                     make_machineid
+                     make_machineid &&
                      rm -rf repack &&
                      mkdir repack &&
                      cd repack &&
@@ -362,17 +407,16 @@ run_test() {
                      gzip xenofarm_result.tar
                     )
                 fi
-                mv "../../current_$id" "../../last_$id";
-                echo "  Sending results for \"$project\": \"$id\"."
-                #FIXME: Store failed result sendings and retry every client run
-                #     possible date string: date | sed 's/ //g' | sed 's/://g'
-                $basedir/$putname "$puturl" < "$resultdir/xenofarm_result.tar.gz" || exit 8
-                cd ..
+                mv "../../current_$test" "../../last_$test";
+                echo "  Sending results for \"$project\": \"$test\"."
+                $basedir/$putname "$puturl" \
+                    < "$resultdir/xenofarm_result.tar.gz" || put_exit
+                cd "$dir/buildtmp"
             else
                 echo " NOTE: Build delay for \"$project\" not passed. Skipping."
             fi
         else
-            echo "  NOTE: Already built \"$project\": \"$id\". Skipping."
+            echo "  NOTE: Already built \"$project\": \"$test\". Skipping."
         fi
     )
     last=$?
@@ -384,7 +428,6 @@ run_test() {
             ;;
         '8')
             echo "FATAL: Failed to send result package to $puturl." 1>&2
-            echo "       Result will be lost! Skipping to the next project." 1>&2
             ;;
         '20')
             echo "FATAL: Failed to find buildid.txt in snapshot!" 1>&2
@@ -407,7 +450,7 @@ get_nodeconfig() {
     fi
 }
 
-#Build Each project and each target in that project sequentially
+#Build Each project and each test in that project sequentially
 basedir="`pwd`"
 for projectconfig in config/*.cfg; do 
 (
@@ -448,7 +491,7 @@ for projectconfig in config/*.cfg; do
                 exit 18
             fi
 
-            id=`echo $arguments | awk '{ print $1 }'`
+            test=`echo $arguments | awk '{ print $1 }'`
             command=`echo $arguments | sed 's/[^ ]* //'`
             command=`chomp_ends "$command"`
             run_test
