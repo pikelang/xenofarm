@@ -5,7 +5,7 @@ Contents
  2. Compiling "put"
  3. Other requirements
  4. Configuring the client
- 5. Starting the client
+ 5. Setting up the client
 
 1. This is the Xenofarm client.
 
@@ -25,7 +25,7 @@ outside Xenofarm.
 The Xenofarm client needs a program called put that does the job of
 returning the result from the compiled and tested project to the
 project result collector by way of HTTP PUT. The put program is a
-small C-program written specifically for the Xenofarm client in
+small program written specifically for the Xenofarm client in highly
 portable C.
 
 To compile it manually run the normal ./configure && make.
@@ -44,16 +44,16 @@ NOTE: There is a known bug in wget 1.6 and prior versions that will
       known to work. Versions between 1.6 and 1.8.2 are untested.
 
 If your system is strange (ie not Posix compliant) the commands the
-system must supply are listed in the topmost comment in
-client.sh. Check that they are available in your clients PATH.
+system must supply are listed in the topmost comment in client.sh.
+Check that they are available in your client's PATH.
 
 
 4. Configuring the client.
 
 client.sh builds and tests projects based on configuration files
-stored in the "config" directory. Each project has it's own
-configuration file, but each configuration may contain several tests
-to be done on the same project.
+stored in the "config" directory. Each project has its own configuration
+file, but each configuration may contain several tests to be done on the
+same project.
 
 Configuration file names must have the extension ".cfg" or they will
 not be considered by the client. The file itself consists of a list of
@@ -86,9 +86,9 @@ will be ignored on nodes that have one or more corresponding
 test-<nodename> directives.
 
 An alternative way of specifying node specific tests is by creating a
-separate configuration file with the filename
-<original.cfg>.<nodename>.  This configuration file has precedence
-over <original.cfg> and will not inherit any setting from that file.
+separate configuration file with the filename <original.cfg>.<nodename>.
+This configuration file has precedence over <original.cfg> and will not
+inherit any setting from that file.
 
 BUGS: Multiple adjacent spaces in a <test commands> will be merged into
       one space. Commands like `make CC="/odd/p    ath/cc" will therefor
@@ -96,8 +96,8 @@ BUGS: Multiple adjacent spaces in a <test commands> will be merged into
 
 Since version 3 of the config format one can optionally add one or
 more "enviroment:" lines before the "test:" statements. The lines
-should contain one or more varable assignments on standard sh
-format. These variables will be exported to all test enviroments. Example:
+should contain one or more varable assignments on standard sh format.
+These variables will be exported to all test enviroments. Example:
 
 enviroment:       CC=gcc MAKE=gmake
 
@@ -107,14 +107,15 @@ client installation. The client will automatically ask for an email
 address the first time it starts up.
 
 
-5.  Starting the client.
+5.  Setting up the client.
 
 To check that your client setup is working and to configure the
 contact email address run `./client.sh` once manually and make sure it
 completes properly and sends the result to the result collector.
 
 The normal way of running the Xenofarm client is to make an entry in
-the crontab. 
+the crontab. Do not write the crontab entry until after you have run
+the client successfully manually, though.
 
 Examples:
 
@@ -133,6 +134,6 @@ cron daemon when something goes seriously wrong. You can leave it out
 if you wish to get a complete log mailed to you every time the client
 is started.
 
-NOTE: There is no problem with letting it running often as it will
+NOTE: There is no problem with letting it run often, since it will
       make sure there isn't another client already running and check
       if there is a new snapshot available before downloading anything.
