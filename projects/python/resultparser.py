@@ -1,7 +1,9 @@
 import MySQLdb
-from string import join
+from string import join, strip
 
-db = MySQLdb.connect(user="root", db="python")
+pwd = strip(open("/home/sfarmer/.xeno-mysql-pwd").readline())
+db = MySQLdb.connect(host="localhost", user="sfarmer",
+                     db="python_devel_xenofarm", passwd=pwd)
 
 def create_qualified_name(id, tasks):
     task = tasks[id]
