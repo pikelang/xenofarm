@@ -452,6 +452,7 @@ machineid.txt
   This file contains a number of values on the form "identifier:
   value" that identifies the build machine and it's
   enviroment. Currently it contains the following pairs:
+
      sysname: <output from "uname -s">
      release: <output from "uname -r">
      version: <output from "uname -v">
