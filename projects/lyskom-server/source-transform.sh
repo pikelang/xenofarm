@@ -5,7 +5,7 @@ stamp=$3
 
 exec > source-transform.log 2>&1
 
-PATH=/i/autoconf/2.53/bin:$PATH
+PATH=/i/autoconf/2.56/bin:/i/automake/1.7.1/bin:$PATH
 export PATH
 
 rm -rf workdir dist
