@@ -49,92 +49,43 @@ log () {
     date >> r/mainlog.txt
 }
 
+dotask() {
+    important="$1"
+    task="$2"
+    cmd="$3"
+    if test $status = good
+    then
+	log Begin $task
+        timeecho Begin $task
+        if sh -c "$cmd" > r/${task}log.txt 2>&1
+        then
+	    touch r/$task.pass
+        else
+	    timeecho FAIL: $task
+	    touch r/$task.fail
+	    if [ $important = 1 ]
+	    then
+	        status=bad
+	    fi
+        fi
+    fi
+}
+
 pfx=`pwd`/pfx
 
 status=good
-if test $status = good
-then
-    log Begin unpack
-    timeecho unzipping source dist
-    if gzip -d $BASE.tar.gz
-    then :
-    else
-	timeecho gunzip failed
-	status=bad
-    fi
-fi
 
-if test $status = good
-then
-    timeecho untaring source dist
-    if tar xf $BASE.tar > r/untar.txt 2>&1
-    then
-	touch r/unpack.pass
-    else
-	timeecho untar failed
-	touch r/unpack.fail
-	status=bad
-    fi
-fi
+dotask 1 "unzip" "gzip -d $BASE.tar.gz"
+dotask 1 "unpack" "tar xf $BASE.tar"
+dotask 1 "configure" "cd $BASE && ./configure -C --prefix=$pfx"
+dotask 1 "make" "cd $BASE && make"
+dotask 0 "check" "cd $BASE && make check"
+dotask 1 "install" "cd $BASE && make install"
 
-if test $status = good
+if [ -f r/install.pass ]
 then
-    log Begin configure
-    timeecho running configure
-    if (cd $BASE && ./configure -C --prefix=$pfx) > r/configure.txt 2>&1
-    then
-	touch r/cfg.pass
-    else
-	timeecho configure failed
-	touch r/cfg.fail
-	status=bad
-    fi
-fi
-
-if test $status = good
-then
-    log Begin make
-    timeecho running make
-    if (cd $BASE && make) > r/make.txt 2>&1
-    then
-	touch r/make.pass 
-    else
-	timeecho make failed
-	touch r/make.fail
-	status=false
-    fi
-fi
-
-if test $status = good
-then
-    log Begin check
-    timeecho running make check
-    if (cd $BASE && make check) > r/check.txt 2>&1
-    then
-	timeecho make check ok
-	touch r/check.pass
-	# Don't fail just because "make check" fails.
-	# Continue with "make install".
-    else
-	timeecho make check failed
-	touch r/check.fail
-    fi
-fi
-
-if test $status = good
-then
-    log Begin install
-    timeecho running make install
-    if (cd $BASE && make install) > r/install.txt 2>&1
-    then
-	log Xenofarm OK
-	timeecho make install ok
-	touch r/install.pass
-	find pfx -type f -print | sort > r/installedfiles.txt
-    else
-	timeecho make install failed
-	touch r/install.fail
-    fi
+    log Xenofarm OK
+    find pfx -type f -print | sort > r/installedfiles.txt
 fi
 
 # FIXME: run distcheck.
@@ -142,8 +93,8 @@ fi
 # with the one we distributed.
 
 log Begin response assembly
-
 timeecho Collecting results
+
 cp $BASE/config.cache r/configcache.txt
 for file in $BASE/src/server/testsuite/*.log
 do
@@ -153,6 +104,10 @@ do
   fi
 done
 # find $BASE -name core -print
+env > r/environ.txt
+echo $PATH > r/path.txt
+makeinfo --version > r/makeinfo.txt
+type makeinfo >> r/makeinfo.txt 2>&1
 
 uname -s -r -m > r/machineid.txt
 uname -n >> r/machineid.txt
