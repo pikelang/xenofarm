@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.5 2002/05/12 21:14:36 mani Exp $
+// $Id: server.pike,v 1.6 2002/05/12 23:00:05 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -49,10 +49,18 @@ string make_build_low() {
 void make_build() {
 
   string build_name = make_build_low();
-  if(!build_name) return;
-
-  if(!mv(build_name, web_dir))
+  if(!build_name) {
+    werror("No source distribution was created by make_build_low...\n");
     return;
+  }
+  if(verbose) werror("The source distribution %s assembled.\n", build_name);
+
+  string fn = (build_name/"/")[-1];
+
+  if(!mv(build_name, web_dir+fn)) {
+    werror("Unable to move %s to %s.\n", build_name, web_dir+fn);
+    return;
+  }
 
   xfdb->query("INSERT INTO builds (time, project) VALUES (%d,%s)", latest_build, project);
 }
@@ -84,6 +92,8 @@ void check_settings() {
     werror("No web dir found.\n");
     exit(1);
   }
+  if(web_dir[-1]!="/")
+    web_dir += "/";
   if(!file_stat(web_dir)) {
     werror("%s does not exist.\n", web_dir);
     exit(1);
@@ -220,6 +230,6 @@ int main(int num, array(string) args) {
   return 1;
 }
 
-constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.5 2002/05/12 21:14:36 mani Exp $\n";
+constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.6 2002/05/12 23:00:05 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
