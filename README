@@ -433,15 +433,17 @@ machineid.txt
      machine: <output from "uname -m">
      nodename: <output from "uname -n">
      testname: <the name of the test as specified in the config file>
-     command: <the command line for the test as specified in the config file>
+     command: <the command line for the test as specified in the
+               config file>
      clientversion: <the output from "client.sh --version">
      putversion: <the output from "put --version">
-     contact: <an email address to the person maintaining the client 
+     contact: <an email address to the person maintaining the client
                instance as specified in config/contact.txt>
 
-  New identifiers might be added in new versions of the
-  client. Unknown identifiers should not couse a fatal error on the
-  result parser.
+  New identifiers might be added in new versions of the client.
+  Unknown identifiers should not course a fatal error in the
+  result parser. They are available in the result mapping in the
+  result_parser.pike program as any other identifier-value pair.
 
 buildid.txt
   This file is a copy of the buildid.txt file in the build package.
