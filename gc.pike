@@ -1,7 +1,7 @@
 
 // Xenofarm Garbage Collect
 // By Martin Nilsson
-// $Id: gc.pike,v 1.5 2002/08/30 01:36:43 mani Exp $
+// $Id: gc.pike,v 1.6 2002/11/19 00:33:01 mani Exp $
 
 string out_dir;
 string result_dir;
@@ -31,6 +31,13 @@ void clean_out_dir(string dir, int save) {
       debug("Removed file %s\n", combine_path(dir,file));
 }
 
+void rm_dir(string dir, string file) {
+  if( !Stdio.recursive_rm(combine_path(dir,file)) )
+    debug("Could not delete %s.\n", combine_path(dir,file));
+  else
+    debug("Removed directory %s\n", combine_path(dir,file));
+}
+
 void clean_res_dir(string dir, int save) {
 
   array files = get_dir(dir);
@@ -45,17 +52,16 @@ void clean_res_dir(string dir, int save) {
   builds = (multiset)builds;
 
   foreach(files, string file) {
-    if(!has_value(file, "_")) continue;
+    if(!has_value(file, "_")) {
+      if(file == (string)(int)file && builds[(int)file])
+	rm_dir(dir, file);
+      continue;
+    }
     int b;
     sscanf(file, "%d_", b);
-    if( builds[b] ) {
-      if( !Stdio.recursive_rm(combine_path(dir,file)) )
-	debug("Cuild not delete %s.\n", combine_path(dir,file));
-      else
-	debug("Removed directory %s\n", combine_path(dir,file));
-    }
+    if( builds[b] )
+      rm_dir(dir, file);
   }
-
 }
 
 void check_settings() {
