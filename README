@@ -151,7 +151,9 @@ format").
 The generic server has built-in support for a very simple
 transformation: it simply runs
 
+	echo $buildid > $working/buildid.txt
 	tar cf $name.tar $working
+	rm $working/buildid.txt
 	gzip $name.tar
 
 This only works if the working copy fulfills the requirements defined
@@ -169,7 +171,10 @@ is equivalent to the default built-in transformation:
     #!/bin/sh
     working=$1
     name=$2
+    buildid=$3
+    echo $buildid > $working/buildid.txt
     tar cf $name.tar $working || exit 1
+    rm $working/buildid.txt
     gzip $name.tar || exit 1
     exit 0
 
@@ -185,8 +190,10 @@ Assuming you have GNU cp, you could write a script along these lines:
     #!/bin/sh
     working=$1
     name=$2
+    buildid=$3
     rm -rf copy
     cp -a $working copy || exit 1
+    echo $buildid > copy/buildid.txt
     (cd copy && autoconf) || exit 1
     cat << EOF > copy/makefile
     xenobuild:
@@ -227,6 +234,10 @@ web-dir and work-dir.
 Arguments:
   --cvs-module=<name>
       The CVS module the server should use.
+
+  --update-opts=<options>
+      CVS options to append to "cvs -q update". Default: "-d".
+      "--update-opts=-Pd" also makes sense.
 
   --db=<database url>
       The database URL, e g mysql://localhost/xenofarm.
@@ -297,7 +308,7 @@ Once all this is in place, you can run the generic script like this:
   $ ./server.pike --db=mysql://dbuser:dbpassword@/python_xenofarm \
 	--cvs-module=python \
 	--web-dir=/some/dir/pythonexport/ \
-	--work-dir=/some/dir/pythonworkdir/ \  
+	--work-dir=/some/dir/pythonworkdir/ \
 	python
 
 The server will run forever and create new source distributions within
@@ -450,6 +461,43 @@ a new script is found does the following:
  7. Moves the log files to a directory reachable from the front end
     web server.
  8. Deletes the uploaded package.
+
+7.1. Format of a Result Package
+
+This section documents how a result package should look like when the
+generic result_parser.pike script is used. It should be a gzipped tar
+file that contains a number of files. It should not contain any
+directory. The following files have special meaning:
+
+buildid.txt
+  The first line of this file should contain the build it, which is
+  the id column of the build table. This value is used for the build
+  column in the result table.
+
+machineid.txt
+  This file should contain the output of "uname -s -r -m; uname -n".
+  The second line, the name of the computer, is used as the system
+  column in the result table.
+
+mainlog.txt
+  A log of the build process, in a special format.  Each entry in the
+  log is made up of two lines.  The first line can have two formats:
+
+    "Begin <task>", where <task> is something like "build", "check" or
+      "response assembly".
+
+    "Xenofarm OK".  If this line is present, the build will be
+      considered successful.
+
+  The second line should contain the output of "date".
+
+compilelog.txt
+  A log of the compilation.  The warning count is the number of lines
+  in this file that matches the string "warning".
+
+In addition to the above files, you may include any number of extra
+files. They will all be accessible via the web result interface, but
+the generic Xenofarm result parser will ignore them.
 
 
 8. The Result Interface
