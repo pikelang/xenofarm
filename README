@@ -4,6 +4,11 @@ Contents
  1. This is Xenofarm.
  2. The Grand Design of Everything
  3. The Server Script
+   3.1. Obtaining the Source
+   3.2. Creating a Source Package
+   3.3. Source Package Format
+   3.4. Invoking the Generic Server Script
+   3.5. Example Setup For the Generic Server Script
  4. The Web Export
  5. The Compilation Client
  6. The Web Import
@@ -98,8 +103,9 @@ follows:
 3. The Server Script
 
 The server script is responsible for creating new source distributions
-when triggered. Since the composition of a source distribution varies
-a lot from project to project, we've taken the approach to include all
+when triggered, and place them in a directory where the web export
+picks it up. Since the composition of a source distribution varies a
+lot from project to project, we've taken the approach to include all
 the base functionality into one pike program file and then inherit
 that file into "project programs" that contains logic specific for
 that project. The rationale of course is that programming languages
@@ -107,17 +113,64 @@ are better suited for this type of configurational task than any
 artificial configuration file language one might come up with.
 
 The base program is however useful in its own to create a "generic"
-source distribution from a CVS archive. Before you run the base server
-for the first time, you must create a work directory for it. This
-directory should be located on the same filesystem as the
-web-dir. Within that directory, you must check out the project source
-from CVS. When the base server runs, it expects to be able to run "cvs
--q update" in the module to update it. The base server will store
-state files within a subdirectory called "state", and temporary files
-within "tmp". It will not use other file names in the work directory.
-See below for a concrete example.
+source distribution from a CVS archive. The rest of this section talks
+about the generic server script; it may not apply to derived scripts
+such as projects/pike/server.pike.
 
-The base server program is started with
+Before you run the base server for the first time, you must create a
+work directory for it. This directory should be located on the same
+filesystem as the web-dir. The base server will store state files
+within a subdirectory called "state", and temporary files within
+"tmp". It also requires a copy of the source; see below. It will not
+use other file names in the work directory, so you are free to use
+other files yourself.
+
+3.1. Obtaining the Source
+
+The generic server polls the CVS repository by running "cvs -q update"
+in a working copy of the source. If anything happens, it will create
+a new source distribution.
+
+You must perform the initial checkout manually, before running
+server.pike. The checkout must be performed in the work directory of
+server.pike (see --work-dir). If you want to build from a branch,
+just use the "-r" option of "cvs co" to create a sticky tag in the
+working copy.
+
+The name of the checked out module must match the --cvs-module
+argument you give to server.pike.
+
+3.2. Creating a Source Package
+
+The working copy of the source must be transformed to a source package
+that the clients can download. The input to this transformation is the
+working copy of the source. The result of the transformation should be
+a gzipped tar file with certain properties (see "Source package
+format").
+
+The generic server has built-in support for a very simple
+transforamtion: it simply runs
+
+	tar cf $name.tar $working
+	gzip $name.tar
+
+This only works if the working copy fulfills the requirements defined
+in "Source package format".
+
+3.3. Source Package Format
+
+The source package must:
+
+ - must create a toplevel directory and unpack in it.
+ - contain a makefile in the toplevel directory.
+ - create a result package when "make xyzzy" is invoked.  See "The
+   Compilation Client" for the details.  What target(s) to invoke
+   instead of "xyzzy" is defined in the compilaton clients
+   configuration file.
+
+3.4. Invoking the Generic Server Script
+
+The generic server program is started with
 
 ./server.pike <arguments> <project>
 
@@ -175,7 +228,7 @@ Arguments:
       should be put.
 
 
-3.1 Example setup for the Generic Server Script
+3.5. Example Setup For the Generic Server Script
 
 Let's say that you want to set up a Xenofarm for Python.  The first
 step is to create a work directory for the generic server script, and
