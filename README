@@ -1066,7 +1066,7 @@ You need to set the following variables in updatehtml.cfg:
         files_per_task_re = {
             'ckprg': ['valgrind-[0-9]+\.log\.txt'],
             }
-        
+
   hidden_files
       This is a list of files that should not be included on the
       detailed result pages. Example:
