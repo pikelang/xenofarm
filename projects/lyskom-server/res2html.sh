@@ -1,5 +1,6 @@
 #!/bin/sh
 # Who needs a Roxen?  Who needs a database?
+# Well, to get the build time, the database is needed.  Sigh.
 build=$1
 input=/lysator/www/projects/xenofarm/lyskom-server/files
 output=/lysator/www/user-pages/ceder/xeno/
@@ -15,6 +16,9 @@ done
 tsort < $tmp/tsort.in > $tmp/tasks
 
 now=`date "+%Y-%m-%d %H:%M:%S"`
+buildtime=`mysql --batch -e 'select time from build where id='$build -D lyskom_server_xenofarm -pTnCktgAM|sed 1d`
+pretty=`pike -e 'write(Calendar.Second((int)argv[1])->format_time()+"\n");' $buildtime`
+
 
 exec 7> $output/$build.html
 cat <<EOF >&7
@@ -23,6 +27,8 @@ cat <<EOF >&7
 <h1>lyskom-server build $build Xenofarm results</h1>
 This build overview was collected $now.  Results from other
 machines may come in later.
+
+<p>Build time: $pretty 
 
 <table border="1">
 <tr>
@@ -40,9 +46,9 @@ result=0
 for buildno in `cd $input && ls -vd ${build}_*`
 do
     builddir=$input/$buildno
-    echo "<tr><th><a href=\"$url/$buildno/\">" >&7
+    echo "<tr><td><a href=\"$url/$buildno/\">" >&7
     sed -e '1s_$_<br>_' < $builddir/machineid.txt >&7
-    echo "</a></th>" >&7
+    echo "</a></td>" >&7
     status=white
     for task in `cat $tmp/tasks`
     do
@@ -67,7 +73,7 @@ do
       else
 	  color=white
       fi
-      echo "<td><a href=\"$url/$buildno/${task}log.txt\"><img border=0 src=\"http://130.236.214.222/pikefarm/${color}_button.gif\"></a></td>" >&7
+      echo "<th><a href=\"$url/$buildno/${task}log.txt\"><img border=0 src=\"http://130.236.214.222/pikefarm/${color}_button.gif\"></a></th>" >&7
     done
     echo '</tr>' >&7
     [ $status = red ]    && red=`expr $red + 1`
@@ -78,7 +84,7 @@ do
 done
 echo '</table></body></html>' >&7
 
-echo "<tr><td><a href=\"$build.html\">$now</a></td><td>$result</td><td>$green</td><td>$yellow</td><td>$red</td><td>$white</td>" > $output/$build.frag
+echo "<tr><td>$build</td><td><a href=\"$build.html\">$pretty</a></td><td>$result</td><td>$green</td><td>$yellow</td><td>$red</td><td>$white</td>" > $output/$build.frag
 
 exec 8> $output/index.html
 cat <<EOF >&8
@@ -89,7 +95,7 @@ This build overview was collected $now.
 
 <table border="1">
 <tr>
-<th>Collecttime</th><th align=right>Results</th><th align=right>Green</th><th align=right>Yellow</th><th align=right>Red</th><th align=right>White</th>
+<th>Build</th><th>Buildtime</th><th align=right>Results</th><th align=right>Green</th><th align=right>Yellow</th><th align=right>Red</th><th align=right>White</th>
 EOF
 
 for i in `ls -v -r $output/*.frag`
