@@ -13,6 +13,7 @@
 /Makefile foreign_ident
 /client/Makefile.in foreign_ident
 /client/client.sh foreign_ident
+/client/pike_client.pike foreign_ident
 /client/put.c foreign_ident
 /gc.pike foreign_ident
 /gc_latest_by_system.pike foreign_ident

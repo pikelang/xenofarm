@@ -1,0 +1,267 @@
+#! /usr/bin/env pike
+
+// $Id: pike_client.pike,v 1.1 2003/05/01 22:03:35 mani Exp $
+
+#define DEBUG
+#ifdef DEBUG
+#define WERR(X...) werror(X)
+#else
+#define WERR(X...)
+#endif
+
+// --- Global variables
+
+string config_dir = "config/";
+
+string base_dir;
+mapping system;
+array(Config) configs = ({});
+
+
+// --- Utility functions
+
+//! Enhanced exit function that outputs error messages to stderr
+//! before exiting, if provided.
+void exit(int|string code, mixed ... extra) {
+  if(intp(code)) predef::exit(code);
+  werror(code, @extra);
+  predef::exit(1);
+}
+
+ADT.Stack dirs = ADT.Stack();
+
+//! Put current work directory on a stack and change directory
+//! to @[dir].
+//! @seealso
+//!   @[popd]
+void pushd(string dir) {
+  dirs->push(getcwd());
+  if(!cd(dir)) {
+    dirs->pop();
+    error("Could not cd into %O\n", dir);
+  }
+}
+
+//! Return to the previous directory.
+//! @seealso
+//!   @[pushd]
+void popd() {
+  if(!sizeof(dirs)) error("Directory stack is empty.\n");
+  cd(dirs->pop());
+}
+
+//! Returns the data found at @[url].
+string web_get(string url) {
+  WERR("Fetching %s.\n",url);
+  Protocols.HTTP.Query r = Protocols.HTTP.get_url(url);
+  if(r->status==200) return r->data();
+  if(r->status==302 && r->headers->location)
+    return web_get(r->headers->location);
+  return 0;
+}
+
+//! Returns the posix time when the data at @[url] was
+//! last modified.
+int web_head(string url) {
+  WERR("HEAD %s.\n", url);
+  Protocols.HTTP.Query r = Protocols.HTTP.do_method("HEAD", url);
+
+  string date;
+  if(r->status==200 && (date=r->headers["last-modified"])) {
+    catch {
+      return Calendar.ISO.dwim_time(date)->unix_time();
+    };
+    write("Couldn't decode date %s.\n", date);
+    return 0;
+  }
+  if(r->status==302 && r->headers->location)
+    return web_head(r->headers->location);
+  return 0;
+}
+
+// --- Classes
+
+//! Object representing the content and state of a .cfg file.
+class Config {
+  string project;
+  string projectdir;
+  string snapshoturl;
+  string resulturl;
+  mapping(string:string) tests = ([]);
+
+  //! @[file] is the contents of the @tt{.cfg@} file the object
+  //! represents. The @[filename] of the @tt{.cfg@} file can optionally
+  //! be provided to create better error messages.
+  void create(string file, void|string filename) {
+    filename = filename||"unknown file";
+
+    foreach(file/"\n"; int line_no; string line) {
+
+      // Skip comments.
+      if(!sizeof(line) || line[0]=='#') continue;
+
+      string key,value;
+      if(sscanf(line, "%s:%*[ \t]%s", key, value)!=3)
+        exit("Error in configure file (%s), line %d.\n", filename, line_no);
+      value = String.trim_all_whites(value);
+      if(value=="")
+	exit("Empty value in key %O, line %d, %s.\n", key, line_no, filename);
+
+      if( (< "project", "projectdir",
+	     "snapshoturl", "resulturl" >)[key] )
+	this_object()[key]=value;
+      else
+	if( key=="test" ) {
+	  if(sscanf(value, "%s%*[ \t]%s", key, value)!=3)
+	    exit("Error in configure file (%s), line %d.\n",
+		 filename, line_no);
+	  tests[key] = value;
+	}
+    }
+
+    // Make sure we have all information needed to complete a build
+    // cycle.
+    if(!project || !projectdir || !snapshoturl ||
+       !resulturl || !sizeof(tests))
+      exit("Missing information in configure file (%s).\n", filename);
+
+    if(projectdir[-1]!='/') projectdir+="/";
+  }
+
+  static int last_download;
+
+  int(0..1) prepare() {
+    Stdio.mkdirhier(projectdir+system->node);
+    pushd(projectdir);
+    int ret = low_prepare();
+    popd();
+    return ret;
+  }
+
+  int(0..1) low_prepare() {
+    if(!last_download) {
+      Stdio.Stat st = file_stat("snapshot.tar.gz");
+      if(st)
+	last_download = st->mtime;
+    }
+    if(web_head(snapshoturl)<=last_download)
+      return 0;
+
+    string data = web_get(snapshoturl);
+    if(!data) {
+      write("Failed to read from %s\n", snapshoturl);
+      return 0;
+    }
+
+    Stdio.write_file("snapshot.tar.gz", data);
+    rm("snapshot.tar");
+
+    return 1;
+  }
+
+  void run_tests() {
+    foreach(tests; string name; string cmd) {
+      pushd(projectdir+name);
+      run_test(name, cmd);
+      popd();
+    }
+  }
+
+  void run_test(string name, string cmd) {
+    if(!file_stat("../snapshot.tar.gz")) {
+      // unpack snapshot.
+    }
+
+    // untar here
+
+    int chdir;
+    foreach(get_dir("."), string fn)
+      if(Stdio.is_dir(fn) && cd(fn)) {
+	chdir=1;
+	break;
+      }
+    if(!chdir) write("fail");
+
+    // create resultdir
+    // run cmd
+  }
+
+  void debug() {
+    foreach(indices(this_object()), string i)
+      write("%O:%O\n", i, this_object()[i]);
+  }
+}
+
+//! Reads all the @tt{.cfg@} files from the @[config_dir],
+//! parses its contents and adds a @[Config] object to the
+//! @[configs] array.
+void read_configs() {
+  foreach(get_dir(config_dir), string f) {
+    if(!has_suffix(f, ".cfg")) continue;
+    configs += ({ Config(Stdio.read_file(config_dir + "/" +f)) });
+  }
+}
+
+//! Reads the email, either from the @tt{contact.txt@} file in
+//! @[config_dir], or if such a file does not exists, prompt the
+//! user for an email. The above mentioned file is created and
+//! the email is stored in it.
+string get_email() {
+  string email="";
+  if( file_stat(config_dir + "contact.txt") ) {
+    email = Stdio.read_file(config_dir + "contact.txt");
+    sscanf(email, "%s\n", email);
+    return email;
+  }
+  Stdio.Readline r = Stdio.Readline();
+  write("%-=60s\n",   "Please enter a mail adress where "
+	"the project maintainer can reach you.");
+  do {
+    email = r->edit( email, "Address: ", ({ "bold" }) );
+  } while( !email || !has_value(email, "@") );
+  Stdio.write_file(config_dir + "contact.txt", email+"\n");
+  return email;
+}
+
+void setup_pidfile() {
+  system = uname();
+  // Make alias
+  system->node = system->nodename;
+  system->unames = system->sysname;
+  system->unamer = system->release;
+  system->unamem = system->machine;
+  system->unamev = system->version;
+
+  string pidf = "xenofarm-"+system->node+".pid";
+  if(file_stat(pidf))
+    error("Already running xenofarm pid %s.\n", Stdio.read_file(pidf));
+  Stdio.write_file(pidf, (string)getpid());
+}
+
+//! Remove the pid file when this program object is destructed.
+void destroy() {
+  if(!system->node) return;
+  rm("xenofarm-"+system->node+".pid");
+}
+
+int main(int num, array(string) args) {
+
+  base_dir = getcwd();
+
+  if(config_dir[-1]!='/') config_dir+="/";
+  if(!file_stat(config_dir))
+    error("Could not open config dir %s\n", config_dir);
+  setup_pidfile();
+
+  string email = get_email();
+  WERR("Email: %s\n",email);
+
+  read_configs();
+  while(1) {
+    foreach(configs, Config config) {
+      if(config->prepare())
+	config->run_tests();
+    }
+    sleep(5*60);
+  }
+}
