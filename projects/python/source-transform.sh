@@ -58,13 +58,13 @@ dotask() {
         timeecho Begin $task
         if sh -c "$cmd" > r/${task}log.txt 2>&1
         then
-	    touch r/$task.pass
+	    touch r/"$task.pass"
         else
 	    timeecho FAIL: $task
-	    touch r/$task.fail
+	    touch r/"$task.fail"
 	    if [ $important = 1 ]
 	    then
-	        status=${task}-failed
+	        status="${task}-failed"
 	    fi
         fi
     else
@@ -86,7 +86,7 @@ fi
 
 dotask 1 "configure"  "cd $BASE/dist/src  && ./configure $configure"
 dotask 1 "make"       "cd $BASE/dist/src  && make $make_all"
-dotask 1 "make test"  "cd $BASE/dist/src  && make test $make_test"
+dotask 1 "test"       "cd $BASE/dist/src  && make test $make_test"
 
 log Begin response assembly
 timeecho Collecting results
