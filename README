@@ -178,7 +178,7 @@ the webservers virtual file system. By default it mounts to the path
 path entered in "Dist search path" at the module mount point.
 
 The module expects all source distributions to be named as
-XXXX-YYYMMDD-hhmmss.tar.gz, where XXXX is the name of the project,
+XXXX-YYYYMMDD-hhmmss.tar.gz, where XXXX is the name of the project,
 e.g. Pike7.3-20020509-203344.tar.gz. These files are directly
 accessible from the mountpoint, e.g.
 /xenofarm/Pike7.3-20020509-203344.tar.gz in this case. The latest
