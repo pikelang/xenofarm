@@ -1,0 +1,76 @@
+<html>
+<head><title>Pikefarm Results</title></head>
+<body bgcolor="white">
+
+<p>
+<b>Overview</b>
+<xf-update>
+<table border="1" cellspacing="0" cellpadding="2">
+
+<tr><th>Build</th><th>Src Export</th>
+<th>Results</th><th>Build</th>
+<th>Verification</th><th>Bin Export</th>
+<th>Overall Status</th><th>Documentation</th></tr>
+
+<emit source="xf-build">
+<tr align="center"><td>&_.time; (&_.id;)</td>
+    <td><img src="pikefarm/&_.source;_button.gif" /></td>
+    <td>&_.results;</td>
+    <td>&_.build;</td>
+    <td>&_.verify;</td>
+    <td>&_.export;</td>
+    <td><img src="pikefarm/&_.summary;_button.gif" /></td>
+    <td><img src="pikefarm/&_.documentation;_button.gif" /></tr>
+</emit>
+
+</table>
+<i>Updated &_.updated;</i>
+</xf-update>
+</p>
+
+<p>
+<b>Detailed overview</b>
+<xf-update>
+<table border="0" cellspacing="0" cellpadding="2">
+
+<tr><th valign="bottom"><gtext font="roxen builtin" fontsize="14" bold="1">Build</gtext></th>
+<emit source="xf-machine">
+<set variable="var.colbg">#ffffff</set>
+<if expr="&_.counter;%2"><set variable="var.colbg">#f0f0f0</set></if>
+<th valign="bottom" bgcolor="&var.colbg;"><gtext font="roxen builtin" fontsize="14" rotate="90" bold="1">&_.name;
+(&_.platform;, &_.id;)</gtext>&nbsp;</th>
+</emit>
+</tr>
+
+<emit source="xf-build" scope="build">
+
+<set variable="var.rowbg">#ffffff</set>
+<if expr="&_.counter;%2"><set variable="var.rowbg">#f0f0f0</set></if>
+
+<tr align="center" valign="middle"><td bgcolor="&var.rowbg;"><replace from=" " to="&nbsp;">&_.time; (&_.id;)</replace></td>
+<emit source="xf-result" build="&_.id;">
+<set variable="var.colbg" from="var.rowbg"/>
+<if expr="&_.counter;%2">
+  <set variable="var.colbg">#f0f0f0</set>
+  <if variable="var.rowbg == #f0f0f0"><set variable="var.colbg">e1e1e1</set></if>
+</if>
+<td bgcolor="&var.colbg;">
+
+<if variable="status == white">
+<img src="pikefarm/&_.status;_button.gif" />
+</if><else>
+<a href="pikefarm/result.html?id=&build.id;_&_.system;"><img src="pikefarm/&_.status;_button.gif" border="0" /></a>
+</else>
+
+</td>
+</emit>
+</tr>
+
+</emit>
+</table>
+
+<i>Updated &_.updated;</i>
+</xf-update>
+</p>
+
+</body></html>
