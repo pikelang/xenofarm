@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.20 2002/09/25 15:46:53 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.21 2002/09/26 08:57:13 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -236,7 +236,7 @@ static array build_indices = ({});
 
 static mapping(int:string) platforms = ([]);
 static mapping(int:string) machines = ([]);
-static array(mapping(string:string)) machine_entities = ({});
+static array(mapping(string:string|int)) machine_entities = ({});
 
 static int next_update;
 
@@ -312,12 +312,17 @@ static int update_builds(Sql.Sql xfdb)
 
   array me = ({});
   foreach(sort(indices(machines)), int machine)
-    me += ({ ([ "id":machine,
-		"name":machines[machine],
-		"platform":platforms[machine] ]) });
+    me += ({ get_machine_entities_for( machine ) });
   machine_entities = me;
 
   return latency; // [until] next time, gadget...
+}
+
+mapping get_machine_entities_for(int machine)
+{
+  return ([ "id"   : machine,
+	    "name" : machines[machine],
+	"platform" : platforms[machine] ]);
 }
 
 //
@@ -361,6 +366,20 @@ class TagEmitXF_Machine {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
+
+    // Remove machines whose last max-columns builds were all white
+    if(int maxcols = (int)m_delete(m, "max-columns"))
+    {
+      array(mapping) result = ({});
+      foreach(sort(indices(machines)), int machine)
+      {
+	array status = builds->get_result_entities( machine )->status;
+	if(sizeof(status[..maxcols-1] - ({ "white" })))
+	  result += ({ get_machine_entities_for(machine) });
+      }
+      return result;
+    }
+
     return machine_entities;
   }
 }
@@ -416,16 +435,17 @@ class TagEmitXF_Result {
       RXML.parse_error("No build or machine attribute.\n");
 
     // Optimize sorting
-    if(string order=m->sort)
-      switch (order) {
+    string needs_reordering = m->sort;
+    if(needs_reordering)
+      switch (needs_reordering) {
       case "-id":
       case "-time":
-	res = reverse(res);
-	// fallthrough
-      case "id":
+	res = reverse(res); // fallthrough
       case "":
+      case "id":
       case "time":
 	m_delete(m, "sort");
+	needs_reordering = 0;
 	break;
       }
 
@@ -484,7 +504,7 @@ class TagXF_Files {
 	if(a[fn]->isdir) {
 	  res += map(make_result(path+fn+"/", id),
 		     lambda(string in) {
-		       return "&nbsp;" + in;
+		       return fn+"/" + in;
 		     });
 	}
       }
