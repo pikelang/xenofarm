@@ -1,7 +1,8 @@
+#! /usr/bin/env pike
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.15 2002/08/14 22:02:04 ceder Exp $
+// $Id: result_parser.pike,v 1.16 2002/08/14 23:33:23 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -156,15 +157,15 @@ void process_package(string fn) {
     }
   }
 
+  // FIXME: When we have .gz-support Filesystem.Tar(fn)->get_dir() would be the thing to do.
   string content = Process.popen("tar tfz "+fn);
-  foreach(content / "\n", string file) {
-    if (sizeof(file / "/") > 1) {
-      write("Refusing to process %O since %O contains a slash\n", fn, file);
-      processed_results[fn]=1;
-      return;
-    }
+  if(has_value(content, "/")) {
+    write("Refusing to process %O since %s contains a slash\n", fn,
+	  String.implode_nicely(filter(content/"\n", has_value, "/")) );
+    processed_results[fn]=1;
+    return;
   }
-  
+
   Process.system("tar xzf "+fn);
   if(!sizeof(get_dir("."))) {
     write("Unable to unpack %O to %O\n", fn, getcwd());
@@ -183,7 +184,7 @@ void process_package(string fn) {
     mkdir(dest);
     int fail;
     foreach(get_dir("."), string f)
-      if( Process.system(sprintf("mv %s %s", f, dest+"/"+f)) )
+      if( Process.create_process( ({"mv", f, dest+"/"+f}), ([]) )->wait() )
 	fail = 1;
     if(fail || !rm(fn) )
       write("Unable to remove %O\n", fn);
@@ -334,7 +335,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.15 2002/08/14 22:02:04 ceder Exp $\n";
+"$Id: result_parser.pike,v 1.16 2002/08/14 23:33:23 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
