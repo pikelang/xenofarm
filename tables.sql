@@ -1,7 +1,7 @@
 #
 # Database tables for Xenofarm.
 # Implemented to work with MySQL
-# $Id: tables.sql,v 1.7 2002/12/05 14:24:37 mani Exp $
+# $Id: tables.sql,v 1.8 2003/01/06 21:27:36 ceder Exp $
 #
 
 # The generic build table.
@@ -43,7 +43,7 @@ CREATE TABLE task (
 # builds*systems*tasks).
 # The column build is foreign key to build.id.
 # The column system is foreign key to system.id.
-# The column task is foreigh key to task.id.
+# The column task is foreign key to task.id.
 
 CREATE TABLE task_result (
   build       INT UNSIGNED NOT NULL,
