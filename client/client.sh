@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.56 2002/09/25 17:41:26 zino Exp $
+# $Id: client.sh,v 1.57 2002/09/25 17:45:20 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -65,7 +65,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.56 2002/09/25 17:41:26 zino Exp $
+	echo \$Id: client.sh,v 1.57 2002/09/25 17:45:20 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -551,6 +551,7 @@ setup_pidfile
 #If we are running a sprshd build the put command should be on the local node
 if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
     #FIXME: See if this uname location is reasonably portable
+    #FIXME: Now that the nodename finder otherwhere is so clever this can fail.
     putname=bin/put-`/bin/uname -n`
 else
     putname=bin/put-$node
