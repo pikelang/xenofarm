@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.32 2002/12/05 12:42:18 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.33 2002/12/06 15:18:19 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -110,7 +110,9 @@ static string fmt_timespan(int t) {
   return res;
 }
 
-static string my_min(array in) {
+static string my_min(array in, string ... more) {
+  if(more) in = in + more;
+  if(!sizeof(in)) return "NONE";
   if(has_value(in, "FAIL")) return "FAIL";
   if(has_value(in, "PASS")) return "PASS";
   return "WARN";
@@ -136,7 +138,14 @@ static class Build {
     project = _project;
 
     summary = export;
+    if(summary=="PASS") summary="NONE";
     str_build_datetime = fmt_time(build_datetime);
+  }
+
+  string _sprintf(int t) {
+    return t=='O' && sprintf("Build(%d, %d /* %s */,\n%s      %s, %O)",
+			     id, build_datetime, str_build_datetime,
+			     export, project);
   }
 
   //! client:status
@@ -195,7 +204,7 @@ static class Build {
     }
 
     if(changed)
-      summary = my_min( values(results) );
+      summary = my_min( values(results), export );
 
     return changed;
   }
@@ -300,7 +309,7 @@ static class Project {
       builds = map(new, lambda(mapping in) {
 			  return Build( (int)in->id, (int)in->time,
 					in->export, this_object() );
-			}) + builds[..sizeof(builds)-sizeof(new)-1];
+			}) + builds;
       build_indices = builds->id;
     }
 
