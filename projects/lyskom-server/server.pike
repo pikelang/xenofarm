@@ -12,4 +12,4 @@ string work_dir   = "/lysator/www/projects/xenofarm/lyskom-server/tmp/";
 int checkin_poll  = 180;
 int min_build_distance = 1800;
 
-string source_transformer = getcwd() + "source-transform.sh";
+string source_transformer = getcwd() + "/source-transform.sh";
