@@ -1127,6 +1127,11 @@ Arguments:
       The maximum number of results that should remain after the
       garbage collector has made a sweep. Defaults to 11.
 
+  --save-per-system=<number>
+      Save this many results from each system. The most common value
+      is to set this to 1, to have the last result from each system
+      saved. Default is 0.
+
 
 11. Creating your own Project
 

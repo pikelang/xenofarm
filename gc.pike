@@ -1,7 +1,7 @@
 
 // Xenofarm Garbage Collect
 // By Martin Nilsson
-// $Id: gc.pike,v 1.6 2002/11/19 00:33:01 mani Exp $
+// $Id: gc.pike,v 1.7 2003/10/27 16:37:08 mani Exp $
 
 string out_dir;
 string result_dir;
@@ -9,6 +9,7 @@ string result_dir;
 int gc_poll = 60*60*2;
 int dists_left = 1;
 int results_left = 11;
+int save_per_system = 0;
 
 void debug(string msg, mixed ... args) {
   write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
@@ -38,29 +39,56 @@ void rm_dir(string dir, string file) {
     debug("Removed directory %s\n", combine_path(dir,file));
 }
 
-void clean_res_dir(string dir, int save) {
+void clean_res_dir(string dir, int save_builds, int save_systems) {
 
   array files = get_dir(dir);
-  multiset|array builds = map(files, lambda(string in) {
-				       int b;
-				       sscanf(in, "%d_", b);
-				       return b;
-				     });
-  builds -= ({ 0 });
-  builds = Array.uniq(sort(builds));
-  builds = builds[..sizeof(builds)-1-save];
-  builds = (multiset)builds;
 
-  foreach(files, string file) {
-    if(!has_value(file, "_")) {
-      if(file == (string)(int)file && builds[(int)file])
-	rm_dir(dir, file);
-      continue;
-    }
-    int b;
-    sscanf(file, "%d_", b);
-    if( builds[b] )
-      rm_dir(dir, file);
+  multiset|array builds = ({});
+  mapping(int:multiset|array) systems = ([]);
+
+  foreach(files, string fn) {
+    int build, system;
+    if( sscanf(fn, "%d_%d", build, system)!=2 ) continue;
+    builds += ({ build });
+    if(!systems[system])
+      systems[system] = ({ build });
+    else
+      systems[system] += ({ build });
+  }
+
+  builds = Array.uniq(sort(builds));
+  builds = builds[..sizeof(builds)-1-save_builds];
+  builds = (multiset)builds;
+  // These builds can be removed unless save_systems says otherwise.
+
+  foreach(indices(systems), int system) {
+    array b = systems[system];
+    b = b[sizeof(b)-save_systems..];
+    if(!sizeof(b))
+      m_delete(systems, system);
+    else
+      systems[system] = (multiset)b;
+  }
+  // These results must not be removed to comply with save_systems.
+
+  // Remove the results.
+  foreach(files, string fn) {
+    int build, system;
+    if( sscanf(fn, "%d_%d", build, system)!=2 ) continue;
+    if( !builds[build] ) continue;
+    if( systems[system][build] ) continue;
+    rm_dir(dir, fn);
+  }
+
+  // Save export information about non-removed results.
+  foreach(values(systems), multiset b)
+    builds -= b;
+
+  // Remove export results.
+  foreach(files, string fn) {
+    if(has_value(fn, "_")) continue;
+    if(fn == (string)(int)fn && builds[(int)fn])
+      rm_dir(dir, fn);
   }
 }
 
@@ -95,6 +123,7 @@ int main(int n, array(string) args) {
     ({ "poll",      Getopt.HAS_ARG, "--poll"           }),
     ({ "result_dir",Getopt.HAS_ARG, "--result-dir"     }),
     ({ "results",   Getopt.HAS_ARG, "--results-left"   }),
+    ({ "systems",   Getopt.HAS_ARG, "--save-per-system"}),
   }) ),array opt)
     {
       switch(opt[0])
@@ -122,6 +151,10 @@ int main(int n, array(string) args) {
       case "results":
 	results_left = (int)opt[1];
 	break;
+
+      case "systems":
+	save_per_system = (int)opt[1];
+	break;
       }
     }
 
@@ -129,7 +162,7 @@ int main(int n, array(string) args) {
 
   while(1) {
     clean_out_dir(out_dir, dists_left);
-    clean_res_dir(result_dir, results_left);
+    clean_res_dir(result_dir, results_left, save_per_system);
     debug("Waiting...\n");
     sleep(gc_poll);
   }
@@ -143,4 +176,5 @@ constant prog_doc = #"
 --poll
 --result-dir
 --results-left
+--save-per-system
 ";
