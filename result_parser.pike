@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.27 2002/10/15 19:50:43 mani Exp $
+// $Id: result_parser.pike,v 1.28 2002/10/16 18:15:39 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -112,36 +112,132 @@ void parse_machine_id(string fn, mapping res) {
 
   if(res->sysname && res->release && res->machine && !res->platform) {
     res->platform = res->sysname + " " + res->release + " " + res->machine;
-    // FIXME Remove testname!="standard"
     if(res->testname && res->testname!="default")
       res->platform += " " + res->testname;
   }
 }
 
+//! Reads the contents of the main log at @[fn] and adds all the
+//! found tasks in the mapping tasks in @[res]. The mapping will map
+//! from the task name to an array.
+//! @array
+//!   @elem string 0
+//!     Contains the status of the task. One of "FAIL", "WARN" or "PASS".
+//!   @elem int 1
+//!     The time the task took, in seconds.
+//!   @elem int 2
+//!     The number of warnings generated.
+//! @endarray
+//! The task name will be composed as a string, e.g. if a task configure
+//! is performed inside the task build it will be represented as
+//! "build/configure".
+//!
+//! "status in @[res] will be set to the overall status of the build, one
+//! of "FAIL", "WARN" or "PASS". If the task "build" fails the status will
+//! be "FAIL". If there is any warnings or failures in any of the build
+//! tasks the status will be "WARN". Otherwise it will be "PASS".
+//!
+//! "total_time" in @[res] will be set to the time it took to complete all
+//! tasks, calculated as the sum of the time it took forall the top level
+//! tasks to complete.
 void parse_log(string fn, mapping res) {
-  res->status = "failed";
+  res->status = "FAIL";
   string file = Stdio.read_file(fn);
   if(!file || !sizeof(file)) return;
-  array parts = (file/"\n")/2;
+  array lines = file/"\n";
 
-  string last_item;
-  int last_time;
-  foreach(parts, array thing) {
-    if(sizeof(thing)!=2) return;
-    int new = Calendar.ISO.dwim_time(thing[1])->unix_time();
-    if(last_item)
-      res["time_"+last_item] = new-last_time;
-    last_time = new;
-    if(thing[0]=="Xenofarm OK")
-      res->status = "built";
-    sscanf(thing[0], "Begin %s", last_item);
+  if(lines[0]!="FORMAT 2") {
+    debug("Log format not \"FORMAT 2\" (%O).\n", lines[0]);
+    return;
   }
-  int total;
-  foreach(res; string ind; mixed val) {
-    if(has_prefix(ind, "time_"))
-      total += val;
+
+  res->tasks=([]);
+
+  ADT.Stack begin = ADT.Stack();
+  ADT.Stack tasks = ADT.Stack();
+
+  int pos=1;
+  while(pos<sizeof(lines)) {
+    string line = lines[pos++];
+
+    if(line=="END") break;
+
+    if(has_prefix(line, "BEGIN")) {
+      if(pos==sizeof(lines)) {
+	debug("BEGIN in last line of main log.\n");
+	return;
+      }
+      string task;
+      sscanf(line, "BEGIN %s", task);
+      if(!task || !sizeof(task)) {
+	debug("Empty/missing task name in main log.\n");
+	return;
+      }
+      if(has_value(task, "/")) {
+	debug("Task contains forbidden character '/'.\n");
+	return;
+      }
+      tasks->push(task);
+      begin->push(lines[pos++]);
+      continue;
+    }
+
+    if(line=="PASS" || line=="FAIL" || has_prefix(line, "WARN")) {
+      int warnings;
+      sscanf(line, "%s %d", line, warnings);
+      if(pos==sizeof(lines)) {
+	debug(line+" in last line of main log.\n");
+	return;
+      }
+
+      string begun = begin->pop();
+      int time = Calendar.ISO.dwim_time(lines[pos++])->unix_time()-
+	Calendar.ISO.dwim_time(begun)->unix_time();
+      if(time<0) {
+	debug("Error parsing time (%O %O).\n", begun, lines[pos-1]);
+	time=0;
+      }
+
+      string task = values(tasks)*"/";
+      tasks->pop();
+
+      if(res->tasks[task]) {
+	debug("Task %O present twice.\n", task);
+	continue;
+      }
+
+      res->tasks[ task ] = ({ line, time, warnings });
+      continue;
+    }
+    debug("Error in main log.\n");
+    return;
   }
-  res->total_time = total;
+
+  while(sizeof(tasks)) {
+    string task = values(tasks)*"/";
+    tasks->pop();
+    if(res->tasks[task]) {
+      debug("Task %O present twice.\n", task);
+      continue;
+    }
+    res->tasks[task] = ({ "FAIL", 0, 0 });
+  }
+
+  int badness;
+  foreach(res->tasks; string task; array data)
+    if(data[1]=="WARN" || data[1]=="FAIL") {
+      badness=1;
+      break;
+    }
+  if(res->tasks->build!="FAIL")
+    res->status = badness?"WARN":"PASS";
+
+  int total_time;
+  foreach(res->tasks; string task; array data) {
+    if(has_value(task, "/")) continue;
+    total_time += data[1];
+  }
+  res->total_time = total_time;
 }
 
 void count_warnings(string fn, mapping res) {
@@ -178,6 +274,9 @@ void store_result(mapping res) {
 		res->nodename, res->platform);
     res->system = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
+
+  // compatibility
+  res->status = replace(res->status, ([ "FAIL":"failed", "PASS":"built", "WARN":"failed" ]));
 
   xfdb->query("REPLACE INTO result (build,system,status,warnings,time_spent) "
 	      "values (%d,%d,%s,%d,%d)", res->build, res->system,
@@ -432,7 +531,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.27 2002/10/15 19:50:43 mani Exp $\n";
+"$Id: result_parser.pike,v 1.28 2002/10/16 18:15:39 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
