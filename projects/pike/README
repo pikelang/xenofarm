@@ -7,9 +7,9 @@ its web pages at http://pike.ida.liu.se/
 
 The Xenofarm project Pike takes about 20 minutes to perform the
 standard test on an average modern computer (1.5Ghz, 512MB), but some
-of the special tests, like dmalloc or valgring, can take considerably
-more time. Normally the Pikefarm server only creates new packages no
-more often than every second hour. The build results can be seen at
+of the special tests, like dmalloc or valgrind, can take considerably
+more time (and memory). Normally the Pikefarm server creates new packages
+no more often than every second hour. The build results can be seen at
 http://pike.ida.liu.se/development/pikefarm/
 
 The configuration file pike.cfg contains several different test
@@ -23,8 +23,8 @@ dmalloc:  Compiled and tested with debug malloc to look for memory
           leaks. This target takes more resources in time and memory
           than the default target.
 feature:  Compiled with extra/experimental features like security
-          sandbox and new optimizations. This target is normally as
-          resource consuming as the default target.
+          sandbox and new optimizations. This target is normally
+          about as resource consuming as the default target.
 thorough: dmalloc+feature
 static:   Compiled with static modules. This test is not very
-          interesting on architechtures that isn't Microsoft Windows.
+          interesting on architectures that aren't Microsoft Windows.
