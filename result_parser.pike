@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.35 2002/12/08 15:16:53 linus Exp $
+// $Id: result_parser.pike,v 1.36 2002/12/09 00:58:02 mani Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -364,6 +364,7 @@ void store_result(mapping res) {
     res->system = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
 
+  if(!res->tasks) return;
   TaskOrderGenie g = TaskOrderGenie();
   foreach(res->tasks, [string task, string status, int time, int warnings]) {
     int task_id = get_task_id(task, g);
@@ -395,10 +396,14 @@ mapping low_process_package() {
 
   if(!result->status) {
     parse_log(main_log_file, result);
-    foreach(result->tasks, array x) {
-      if(x[0]=="build/compile")
-	x[3] = count_warnings(compilation_log_file);
+    if(!result->tasks) {
+      write("No tasks found in result log.\n");
     }
+    else
+      foreach(result->tasks, array x) {
+	if(x[0]=="build/compile")
+	  x[3] = count_warnings(compilation_log_file);
+      }
   }
 
   if(!dry_run)
@@ -638,7 +643,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.35 2002/12/08 15:16:53 linus Exp $\n";
+"$Id: result_parser.pike,v 1.36 2002/12/09 00:58:02 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
