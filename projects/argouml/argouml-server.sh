@@ -22,12 +22,24 @@ test -x $JAVA_HOME/bin/javac || {
     exit 1;
 }
 
+DEPLOYMENT_JAVA_HOME=${DEPLOYMENT_JAVA_HOME-$JAVA_HOME}
+export DEPLOYMENT_JAVA_HOME
+test -d "$DEPLOYMENT_JAVA_HOME" || {
+    echo $DEPLOYMENT_JAVA_HOME is no directory.;
+    exit 1;
+}
+test -x $DEPLOYMENT_JAVA_HOME/bin/javac || {
+    echo $DEPLOYMENT_JAVA_HOME/bin/javac not executable.;
+    exit 1;
+}
+
+
 echo FORMAT 2 > $LOG
 
 # Independant tasks!
-cat <<EOF |
+cat <<\EOF |
 package	cd src_new && ../tools/ant-1.4.1/bin/ant package
-tests	cd src_new && ../tools/ant-1.4.1/bin/ant tests
+tests	cd src_new && ../tools/ant-1.4.1/bin/ant compile-tests && JAVA_HOME=$DEPLOYMENT_JAVA_HOME ../tools/ant-1.4.1/bin/ant tests
 php	cd modules/php && ../../tools/ant-1.4.1/bin/ant package
 cpp	cd modules/cpp && ../../tools/ant-1.4.1/bin/ant package
 classfile	cd modules/classfile && ../../tools/ant-1.4.1/bin/ant package
