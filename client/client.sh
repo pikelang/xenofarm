@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.43 2002/09/03 15:15:16 grubba Exp $
+# $Id: client.sh,v 1.44 2002/09/06 15:04:28 grubba Exp $
 # License: GPL
 #
 # Requirements:
@@ -41,9 +41,13 @@
 # 10: wget not found
 # 11: gzip not found
 #
+# 12: Configuration directory not found.
+#
 # 13-25: Reserved for internal usage.
 
 #FIXME: Sort out what error codes should be exported from the client.
+
+config_dir="config"
 
 parse_args() {
  while [ ! c"$1" = "c" ] ; do
@@ -58,6 +62,7 @@ If you encounter problems see the .BREADMEB. for requirements and help.
 
    .BArguments:B.
 
+      .B--config-dirB.:            Specify an alternate configuration directory.
       .B--helpB.:                  This information.
       .B--versionB.:               Displays client version.
 EOF
@@ -65,14 +70,22 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.43 2002/09/03 15:15:16 grubba Exp $
+	echo \$Id: client.sh,v 1.44 2002/09/06 15:04:28 grubba Exp $
 	exit 0
+  ;;
+  '-c='*|'--config-dir='*|'--configdir='*)
+	config_dir="`echo $1|sed -e 's/.*=//'`"
+  ;;
+  '-c'|'--config-dir'|'--configdir')
+	shift
+	config_dir="$1"
   ;;
   *)
 	echo "Unsupported argument: $1" 1>&2
 	echo "try --help" 1>&2
 	exit 1
   esac
+  shift
  done
 }
 
@@ -148,7 +161,7 @@ is_newer() {
 
 get_email() {
     while [ X$happy != X"yes" ] ; do
-        if [ \! -f config/contact.txt ] ; then
+        if [ \! -f $config_dir/contact.txt ] ; then
         
             echo "Please type in an email address where the project maintainer can reach you:"
             if read email
@@ -158,7 +171,7 @@ get_email() {
 		exit 9
 	    fi
             if [ X"$email" != X ] ; then
-                echo "contact: $email" > config/contact.txt
+                echo "contact: $email" > $config_dir/contact.txt
                 happy="yes"
             fi
         else
@@ -182,6 +195,11 @@ export PATH LC_ALL
 
 #Get user input
 parse_args $@
+
+if [ -d "$config_dir/." ]; then :; else
+    echo "FATAL: Configuration directory \"$config_dir\" does not exist."
+    exit 12
+fi
 
 #FIXME: Figure out what to do if we don't have an interactive shell here
 get_email
@@ -346,7 +364,7 @@ make_machineid() {
                                 >> machineid.txt &&
        echo "putversion: `$basedir/$putname --version`" \
                                 >> machineid.txt &&
-       cat "$basedir/config/contact.txt" >> machineid.txt
+       cat "$basedir/$config_dir/contact.txt" >> machineid.txt
 }
 
 #Run _one_ test
@@ -458,7 +476,7 @@ get_nodeconfig() {
 
 #Build Each project and each test in that project sequentially
 basedir="`pwd`"
-for projectconfig in config/*.cfg; do 
+for projectconfig in $config_dir/*.cfg; do 
 (
     #FIXME: Signals needs to be caught in subshells and propagated via 
     #       exit codes
