@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.48 2002/09/13 20:20:34 zino Exp $
+# $Id: client.sh,v 1.49 2002/09/14 13:22:00 grubba Exp $
 # License: GPL
 #
 # Requirements:
@@ -56,13 +56,14 @@ If you encounter problems see the .BREADMEB. for requirements and help.
 
       .B--config-dirB.:            Specify an alternate configuration directory.
       .B--helpB.:                  This information.
+      .B--no-limitsB.:             Don't apply any ulimits.
       .B--versionB.:               Displays client version.
 EOF
     	tput 'rmso' 2>/dev/null
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.48 2002/09/13 20:20:34 zino Exp $
+	echo \$Id: client.sh,v 1.49 2002/09/14 13:22:00 grubba Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -71,6 +72,11 @@ EOF
   '-c'|'--config-dir'|'--configdir')
 	shift
 	config_dir="$1"
+  ;;
+  '--nolimit'|'--no-limit'|'--nolimits'|'--no-limits')
+	# Disable use of ulimit
+	# Needed on cc/AIX.
+	limits="no"
   ;;
   *)
 	echo "Unsupported argument: $1" >&2
@@ -465,19 +471,11 @@ PATH=$PATH:/usr/local/bin:/sw/local/bin
 LC_ALL=C
 export PATH LC_ALL
 
-#Try to limit the damage if something goes out of hand.
-# NOTE: Limitations are per spawned process. You can still get plenty hurt.
-# TODO: Total time watchdog?
-# TODO: Remote compilation limits?
-ulimit -d 102400 2>/dev/null || # data segment   < 100 MiB
-    echo "NOTE: Failed to limit data segment. Might already be lower."
-ulimit -v 204800 2>/dev/null || # virtual memory < 200 MiB
-    echo "NOTE: Failed to limit virtual mem. Might already be lower."
-ulimit -t 14400  2>/dev/null || # CPU            < 4h
-    echo "NOTE: Failed to limit CPU time. Might already be lower."
-
 #Default config dir. Can be changed with the --config-dir parameter.
 config_dir="config"
+
+# Use ulimit by default
+limits=yes
 
 #Get user input
 parse_args $@
@@ -485,6 +483,19 @@ parse_args $@
 if [ -d "$config_dir/." ]; then :; else
     echo "FATAL: Configuration directory \"$config_dir\" does not exist." >&2
     exit 12
+fi
+
+if [ "x$limits" = "xno" ]; then :; else
+  #Try to limit the damage if something goes out of hand.
+  # NOTE: Limitations are per spawned process. You can still get plenty hurt.
+  # TODO: Total time watchdog?
+  # TODO: Remote compilation limits?
+  ulimit -d 102400 2>/dev/null || # data segment   < 100 MiB
+      echo "NOTE: Failed to limit data segment. Might already be lower."
+  ulimit -v 204800 2>/dev/null || # virtual memory < 200 MiB
+      echo "NOTE: Failed to limit virtual mem. Might already be lower."
+  ulimit -t 14400  2>/dev/null || # CPU            < 4h
+      echo "NOTE: Failed to limit CPU time. Might already be lower."
 fi
 
 get_email
