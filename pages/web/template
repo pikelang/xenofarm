@@ -18,7 +18,7 @@ a  {font-weight: bold}
 </head>
 <body bgcolor="#cccccc" text="black" link="red" alink="white" vlink="red">
 
-<a href="/projects/xenofarm/"><img src="xenofarm.gif" border="0"
+<a href="/xenofarm/"><img src="xenofarm.gif" border="0"
  alt="Xenofarm" title="Xenofarm" width="263" height="103" /></a>
 <br /><br />
 
