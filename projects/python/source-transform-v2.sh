@@ -56,6 +56,9 @@ dotask() {
     task="$2"
     cmd="$3"
 
+    # Return value for this task
+    task_result=1
+
     if test "x$group" = "x"
     then
         taskfile=$task
@@ -69,6 +72,7 @@ dotask() {
         if sh -c "$cmd" > r/${taskfile}log.txt 2>&1
         then
             log PASS
+            task_result=0
         else
 	        log FAIL
 	        if [ $important = 1 ]
@@ -80,6 +84,8 @@ dotask() {
 	    echo status $status makes it impossible to perform this step > \
 	        r/${taskfile}log.txt
     fi
+
+    return $task_result
 }
 
 status=good
@@ -95,17 +101,18 @@ pybin=$pydir/python
 do_python() {
     dotask  1 "configure"  "cd $pydir  && ./configure $CONFIGOPTS"
     dotask  1 "make"       "cd $pydir  && make $MAKEOPTS"
-    dotask  1 "test"       "cd $pydir  && make test TESTOPTS='-x test_pwd test_nis -x test_tempfile'"
+    dotask  0 "test"       "cd $pydir  && make test TESTOPTS='-x test_pwd test_nis -x test_tempfile'"
 }
 
 do_crypto() {
     dotask  1 "build"      "cd crypto  && $pybin setup.py build"
-    dotask  1 "test"       "cd crypto  && $pybin test.py"
+    cryptolib=`pwd`/`ls -d1 crypto/build/lib.*`
+    dotask  0 "test"       "cd crypto  && $pybin test.py"
 }
 
 do_twisted() {
     dotask  1 "build"      "cd Twisted && $pybin setup.py build"
-    dotask  1 "test"       "cd Twisted/build/lib.* && PYTHONPATH=../.. $pybin ../../admin/runtests -tv"
+    dotask  0 "test"       "cd Twisted/build/lib.* && PYTHONPATH=../..:$cryptolib $pybin ../../admin/runtests -tv"
     # external modules shouldn't block each other, we need to reset status
     status="good"
 }
