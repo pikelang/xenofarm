@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.11 2002/07/23 15:46:48 mani Exp $
+// $Id: server.pike,v 1.12 2002/07/25 02:05:50 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -28,7 +28,8 @@ void debug(string msg, mixed ... args) {
 }
 
 int get_latest_build() {
-  array res = xfdb->query("SELECT MAX(time) AS latest_build FROM build WHERE project=%s", project);
+  array res = xfdb->query("SELECT MAX(time) AS latest_build FROM build WHERE project=%s",
+			  project);
   if(!sizeof(res)) return 0;
   return (int)res[0]->latest_build;
 }
@@ -58,6 +59,7 @@ string make_build_low() {
 }
 
 void make_build() {
+  debug("Making new build.\n");
 
   int old_build_time = latest_build;
 
@@ -144,6 +146,8 @@ void check_settings() {
 int main(int num, array(string) args) {
   write(prog_id);
 
+  int (0..1) force_build;
+
   foreach(Getopt.find_all_options(args, ({
     ({ "db",        Getopt.HAS_ARG, "--db"           }),
     ({ "distance",  Getopt.HAS_ARG, "--min-distance" }),
@@ -154,6 +158,7 @@ int main(int num, array(string) args) {
     ({ "repository",Getopt.HAS_ARG, "--repository"   }),
     ({ "verbose",   Getopt.NO_ARG,  "--verbose"      }),
     ({ "workdir",   Getopt.HAS_ARG, "--work-dir"     }),
+    ({ "force",     Getopt.NO_ARG,  "--force"        }),
   }) ),array opt)
     {
       switch(opt[0])
@@ -192,14 +197,25 @@ int main(int num, array(string) args) {
 
       case "verbose":
 	verbose = 1;
+	break;
+
+      case "force":
+	force_build = 1;
+	break;
       }
     }
+  args -= ({ 0 });
 
   if(sizeof(args)>2) {
     project = args[1];
   }
 
   check_settings();
+
+  if(force_build) {
+    make_build();
+    return 0;
+  }
 
   latest_build = get_latest_build();
   if(latest_build)
@@ -231,7 +247,6 @@ int main(int num, array(string) args) {
 	  debug("New build scheduled to run in %s.\n", fmt_time(diff));
       }
       if(next_build<=time()) {
-	debug("Making new build.\n");
 	make_build();
 	latest_build = get_latest_build();
 	next_build = 0;
@@ -268,6 +283,6 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.11 2002/07/23 15:46:48 mani Exp $\n";
+"$Id: server.pike,v 1.12 2002/07/25 02:05:50 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
