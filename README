@@ -17,7 +17,7 @@ Contents
     7.2. Invoking the Generic Result Parser
   8. The Result Interface using Roxen WebServer
   9. The Result Interface using updatehtml
-    9.1 Configuring updatehtml
+    9.1. Configuring updatehtml
  10. Garbage Collection
  11. Creating your own Project
 
@@ -444,12 +444,14 @@ client as simple as possible. The package should be a standard tar.gz
 file, which when unpacked should result in a single directory with all
 the files and subdirectories of the project in it. Once unpacked, the
 client will enter the directory and execute the command defined in the
-clients configuration file. It expects this to result in a
-result.tar.gz file. This file must be a standard tar.gz file, since
-the client repackages the result and inserts the file machineid.txt.
+clients configuration file. It expects this to result in a directory
+named xenofarm_result containing the collected files to be reported
+back to the result server. The client copies the buildid.txt file into
+this directory, generates a machineid.txt and then tars and gzips the
+directory and sends it to the result server with HTTP PUT.
 
-If the command fails the client will create a result.tar.gz file of
-its own, containing at least three files:
+If the command fails the client will create a result package on its
+own containing at least three files:
 
 xenofarmclient.txt
   This file contains a log of all output from running the build command
@@ -956,7 +958,7 @@ You can use the "--verbose" argument to list the created index.html
 files.  Repeat the option for even more verbose output.
 
 
-9.1 Configuring updatehtml
+9.1. Configuring updatehtml
 
 You need to set the following variables in updatehtml.cfg:
 
