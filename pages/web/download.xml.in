@@ -1,5 +1,5 @@
 <use file="template" />
-<page>
+<header>
 <h2>Get a Dist</h2>
 
 <p>You can download a friendly package of the Xenofarm client from
@@ -20,4 +20,5 @@ cvs -d :pserver:anonymous@cvs.lysator.liu.se:/xenofarm co xenofarm
 </pre>
 to get a fresh copy of Xenofarm.</p>
 
-</page>
+</header>
+<footer/>

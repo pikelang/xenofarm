@@ -1,5 +1,5 @@
 <use file="template"/>
-<page>
+<header>
 <h2>Current installations</h2>
 
 <p>Xenofarm is currently deployed in three different projects.</p>
@@ -22,4 +22,5 @@
   both for <a href="python/">development python</a> and for the
   <a href="python-stable/">stable python</a>.<br /><br /></li>
 </ul>
-</page>
+</header>
+<footer/>

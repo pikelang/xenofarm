@@ -203,9 +203,9 @@ void main(int n, array(string) args) {
   write("<use file='template'/>\n");
 
   if(about) {
-    write("<page>\n\n");
+    write("<header>\n\n");
     make_about(chapters);
-    write("</page>\n");
+    write("</header><footer/>\n");
   }
   else {
     make_doc(chapters);

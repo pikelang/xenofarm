@@ -1,6 +1,5 @@
-<set variable="var.path" from="page.path"/>
 <define container="menuitem">
-<if variable="var.path is */&_.href;">
+<if variable="page.path is */&_.href;">
   <replace from=" " to="&nbsp;"><contents/></replace><br />
 </if>
 <else>
@@ -39,9 +38,4 @@ a  {font-weight: bold}
 </tr></table>
 </body>
 </html>
-</define>
-
-<define container="page">
-<header><contents/></header>
-<footer/>
 </define>

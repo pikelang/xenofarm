@@ -1,5 +1,5 @@
 <use file="template"/>
-<page>
+<header>
 
 <h2>Recent checkins to Xenofarm</h2>
 
@@ -25,4 +25,5 @@
   <blockquote>&_.message:none;</blockquote>
 </emit>
 <else><p>Sorry, no checkins within the last 7 days.</p></else>
-</page>
+</header>
+</footer>
