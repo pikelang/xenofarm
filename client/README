@@ -19,12 +19,29 @@ binaries to handle the network communication with the Xenofarm master.
 
 2. Compiling "put".
 
-FIXME.
+put will be built automaticly when you start the Xenofarm client, so
+you can skip this if you don't want to compile it manually for usage
+outside Xenofarm.
+
+The Xenofarm client needs a program called put that does the job of
+returning the result from the compiled and tested project to the
+project result collector by way of HTTP PUT. The put program is a
+small C-program written specificly for the Xenofarm client is portable C.
+
+To compile it manually run the normal ./configure && make.
 
 
 3. Other requirements.
 
-FIXME: wget et all.
+wget	GNU wget, must accept and handle the -N parameter.
+gzip	GNU gzip.
+
+Both can be downloaded from your nearest GNU mirror. See
+http://www.gnu.org/prep/ftp.html for a list of mirrors.
+
+If your system is strange (ie not POSIX compliant) the commands the
+system must supply are listed in the topmost comment in
+client.sh. Check that they are available in your clients PATH.
 
 
 4. Configuring the client.
@@ -45,4 +62,27 @@ repeat for each project that should be built.
 
 5.  Starting the client.
 
-FIXME: cron.
+To check that your client setup is working run `./client.sh` once
+manually and make sure it completes properly and sends the result to
+the result collector.
+
+The normal way of running the Xenofarm client is to make an entry in
+the crontab. 
+
+Examples:
+
+ # This entry will check for new snapshots to test once per hour, 24
+ # minutes past full hour. The path to where you have your client must
+ # be changed to where you have your client of course.
+ 24 * * * * cd $HOME/xenofarm/client/ && ./client.sh
+ 
+ # This entry will check for new snapshots to test once per day, 24
+ # minutes past 2 o'clock in the morning. The path to where you have
+ # your client must be changed to where you have your client.
+ 24 2 * * * cd $HOME/xenofarm/client/ && ./client.sh
+
+note: There is no problem with letting it running ofter as it will
+make sure there isn't another client already running and check if
+there is a new snapshot available before downloading anything.
+
+
