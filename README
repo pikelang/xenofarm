@@ -105,8 +105,15 @@ are better suited for this type of configurational task than any
 artificial configuration file language one might come up with.
 
 The base program is however useful in its own to create a "generic"
-source distribution from a CVS archive.
-[FIXME Insert more information here.]
+source distribution from a CVS archive. Before you run the base server
+for the first time, you must create a work directory for it. This
+directory should be located on the same filesystem as the
+web-dir. Within that directory, you must check out the project source
+from CVS. When the base server runs, it expects to be able to run "cvs
+-q update" in the module to update it. The base server will store
+state files within a subdirectory called "state", and temporary files
+within "tmp". It will not use other file names in the work directory.
+See below for a concrete example.
 
 The base server program is started with
 
@@ -149,7 +156,9 @@ Arguments:
 
   --repository=<path>
       The CVS repository the server should use. This string is given
-      as the -d argument to the CVS binary.
+      as the -d argument to the CVS binary. (This value is not
+      currently used by the generic server.pike script.  Derived
+      versions may find it useful.)
 
   --verbose
       Send messages about everything that happens to stdout. It might
@@ -160,7 +169,40 @@ Arguments:
       Where the outgoing source packages should be put.
 
   --work-dir=<path>
-      Where temporary files should be put.
+      Where state files and temporary files for the server script
+      should be put.
+
+
+3.1 Example setup for the Generic Server Script
+
+Let's say that you want to set up a Xenofarm for Python.  The first
+step is to create a work directory for the generic server script, and
+perform an initial checkout of the Python sources.  Like this:
+
+  $ mkdir -p /some/path/pythonworkdir
+  $ cd /some/path/pythonworkdir
+  $ cvs -z3 -d:pserver:anonymous@cvs.python.sourceforge.net:/cvsroot/python \
+	 co python
+  $
+
+You also need a web export directory (more about this below).
+
+  $ mkdir -p /some/path/pythonexport
+
+Finally, you need to create a database populate it with a few tables:
+
+  [FIXME -- what is the proper way to do this?]
+
+Once all this is in place, you can run the generic script like this:
+
+  $ ./server.pike --db=mysql://dbuser:dbpassword@/python_xenofarm \
+	--cvs-module=python \
+	--web-dir=/some/dir/pythonexport/ \
+	--work-dir=/some/dir/pythonworkdir/ \  
+	python
+
+The server will run forever and create new source distributions within
+/some/dir/pythonworkdir/ when anything has changed.
 
 
 4. The Web Export
