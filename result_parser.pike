@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.36 2002/12/09 00:58:02 mani Exp $
+// $Id: result_parser.pike,v 1.37 2003/02/09 10:50:51 ceder Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -14,6 +14,7 @@ string build_id_file = "buildid.txt";
 string machine_id_file = "machineid.txt";
 string main_log_file = "mainlog.txt";
 string compilation_log_file = "compilelog.txt";
+string post_script;
 
 int(0..1) verbose;
 int(0..1) dry_run;
@@ -459,6 +460,10 @@ void process_package(string fn) {
     return;
   }
 
+  foreach(get_dir("."), string pkgfile) {
+    chmod(pkgfile, file_stat(pkgfile)[0] | 0444);
+  }
+
   mapping result = low_process_package();
   if(dry_run) {
     processed_results[fn]=1;
@@ -627,11 +632,17 @@ int main(int num, array(string) args) {
   check_settings();
 
   while(1) {
+    int(0..1) got_any;
     foreach(filter(get_dir(result_dir), has_prefix, "res"), string fn) {
       fn = result_dir + fn;
       if(processed_results[fn]) continue;
       debug("Found new result %O\n", fn);
       process_package(fn);
+      got_any = 1;
+    }
+
+    if (post_script && got_any && Process.system(post_script)) {
+      werror("Postscript %O failed\n", post_script);
     }
 
     if (once_only)
@@ -643,7 +654,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.36 2002/12/09 00:58:02 mani Exp $\n";
+"$Id: result_parser.pike,v 1.37 2003/02/09 10:50:51 ceder Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
