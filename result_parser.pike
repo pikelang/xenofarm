@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.19 2002/08/30 10:13:50 mani Exp $
+// $Id: result_parser.pike,v 1.20 2002/08/30 14:01:16 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -57,7 +57,11 @@ void parse_build_id(string fn, mapping res) {
 //! If the @[res] mapping contains the keys sysname, release, machine and
 //! not the key platform, after importing all keys from the machine id file,
 //! a key platform will be added containing the expected output from
-//! "uname -s -r -m".
+//! "uname -s -r -m" concatenated with the test name, unless the test name
+//! is "default".
+//!
+//! @bugs
+//!   Currently the test name "standard" is not added to the platform value.
 void parse_machine_id(string fn, mapping res) {
   string file = Stdio.read_file(fn);
   if(!file || !sizeof(file)) return;
@@ -68,8 +72,12 @@ void parse_machine_id(string fn, mapping res) {
       res[key] = value;
   }
 
-  if(res->sysname && res->release && res->machine && !res->platform)
+  if(res->sysname && res->release && res->machine && !res->platform) {
     res->platform = res->sysname + " " + res->release + " " + res->machine;
+    // FIXME Remove testname!="standard"
+    if(res->testname && res->testname!="default" && res->testname!="standard")
+      res->platform += " " + res->testname;
+  }
 }
 
 void parse_log(string fn, mapping res) {
@@ -360,7 +368,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.19 2002/08/30 10:13:50 mani Exp $\n";
+"$Id: result_parser.pike,v 1.20 2002/08/30 14:01:16 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
