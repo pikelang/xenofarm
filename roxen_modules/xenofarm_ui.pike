@@ -4,14 +4,14 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.21 2002/09/26 08:57:13 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.22 2002/11/18 01:31:55 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
 constant module_doc  = "...";
 constant module_unique = 1;
 
-class DatabaseVar
+static class DatabaseVar
 {
   inherit Variable.StringChoice;
   array get_choice_list( )
@@ -23,7 +23,7 @@ class DatabaseVar
 
 void create()
 {
-  defvar("db", DatabaseVar(" none", ({}), 0, "Default database",
+  defvar("db", DatabaseVar(" none", ({}), 0, "Default project database",
 			   "If this is defined, it's the database "
 			   "the xenofarm tags will use by default "
 			   "when no db attribute has been given, "
@@ -38,14 +38,14 @@ void create()
 	 "lower the value, the higher the load on your poor dbm.");
 }
 
-string default_db;
+static string default_db;
 
 void start()
 {
   default_db = query("db");
 }
 
-string in_red(string msg)
+static string in_red(string msg)
 {
   return sprintf("<font color=\"red\">%s</font>", msg);
 }
@@ -75,12 +75,12 @@ string status()
   return "";
 }
 
-string fmt_time(int t)
+static string fmt_time(int t)
 {
   return Calendar.ISO.Second(t)->format_time();
 }
 
-string fmt_timespan(int t) {
+static string fmt_timespan(int t) {
   string res = "";
   if(t>3600) {
     res += (t/3600)+" h, ";
@@ -94,7 +94,7 @@ string fmt_timespan(int t) {
   return res;
 }
 
-constant WHITE = 0, RED = 1, YELLOW = 2, GREEN = 3;
+static constant WHITE = 0, RED = 1, YELLOW = 2, GREEN = 3;
 
 static class Build {
 
@@ -103,18 +103,20 @@ static class Build {
   int(0..) build_datetime;
   int(0..1) export_ok;
   int(0..2) docs_status;
+  Project project;
 
   string str_build_datetime;
 
-  void create(int(0..) _id, int(0..3) _summary, int(0..) _build_datetime,
-	      int(0..1) _export_ok, int(0..2) _docs_status) {
+  void create(int(0..) _id, int(0..) _build_datetime,
+	      int(0..1) _export_ok, int(0..2) _docs_status, Project _project) {
 
     id = _id;
-    summary = _summary;
     build_datetime = _build_datetime;
     export_ok = _export_ok;
     docs_status = _docs_status;
+    project = _project;
 
+    if(!export_ok) summary = RED;
     str_build_datetime = fmt_time(build_datetime);
   }
 
@@ -207,7 +209,7 @@ static class Build {
 		"timespan" : fmt_timespan(time_spent[machine]),
       ]);
     array ret = ({});
-    foreach(sort(indices(machines)), int system)
+    foreach(sort(indices(project->machines)), int system)
       ret += ({ ([ "status" : color[ratings[results[system]]],
 		   "system" : system,
 		   "build" : id,
@@ -220,8 +222,8 @@ static class Build {
   }
 
   mapping(string:int|string) get_details(int client) {
-    return ([ "machine" : machines[client],
-	      "platform" : platforms[client],
+    return ([ "machine" : project->machines[client],
+	      "platform" : project->platforms[client],
 	      "result" : results[client],
 	      "warnings" : warnings[client],
 	      "time" : fmt_timespan(time_spent[client]),
@@ -231,99 +233,104 @@ static class Build {
   }
 }
 
-static array(Build) builds = ({});
-static array build_indices = ({});
+static class Project {
 
-static mapping(int:string) platforms = ([]);
-static mapping(int:string) machines = ([]);
-static array(mapping(string:string|int)) machine_entities = ({});
+  array(Build) builds = ({});
+  array build_indices = ({});
 
-static int next_update;
+  mapping(int:string) platforms = ([]);
+  mapping(int:string) machines = ([]);
+  array(mapping(string:string|int)) machine_entities = ({});
 
-//! Updates the module's internal state with recent activity by the
-//! packager daemons and the result parsers, as logged in the
-//! Xenofarm database of choice.
-//! @returns
-//!   The number of seconds left until the next update will happen.
-static int update_builds(Sql.Sql xfdb)
-{
-  // Only update internal state once a minute.
-  int now = time(1), latency = query("latency");
-  if(next_update < now)
-    next_update = time() + latency;
-  else
-    return next_update - now;
+  int next_update;
 
-  // Add new builds
-
-  int latest_build;
-  if(sizeof(builds))
-    latest_build = builds[0]->build_datetime;
-
-  array new = xfdb->query("SELECT id,time FROM build WHERE time > %d"
-			  " ORDER BY time DESC LIMIT %d", latest_build,
-			  query("results"));
-
-  if(sizeof(new))
-  {
-    builds = map(new, lambda(mapping in)
-		 {
-		   int id = (int)in->id, t = (int)in->time;
-		   mapping info = get(xfdb, "build",
-				      ({ "export", "documentation" }),
-				      ([ "id" : id ]));
-		   int summary, docs, export = info->export == "yes";
-		   docs = ([ "yes":2, "no":1 ])[info->documentation];
-		   if(!export) summary = RED;
-		   return Build(id, summary, t, export, docs);
-		 }) + builds[..sizeof(builds)-sizeof(new)-1];
-    build_indices = builds->id;
-  }
-
-  if(sizeof(builds)>query("results")) {
-    builds = builds[..query("results")-1];
-    build_indices = builds->id;
-  }
-
-  // Update featured builds
-
-  int changed = `+( @builds->update_results(xfdb) );
-  if(!changed)
-    return latency;
-
-  // Update list of involved machines
-
-  multiset m = (multiset)Array.uniq( `+( @builds->list_machines() ) );
-
-  foreach(indices(machines), int machine)
-    if( !m[machine] ) {
-      m_delete(machines, machine);
-      m_delete(platforms, machine);
-    }
+  //! Updates the module's internal state with recent activity by the
+  //! packager daemons and the result parsers, as logged in the
+  //! Xenofarm database of choice.
+  //! @returns
+  //!   The number of seconds left until the next update will happen.
+  int update_builds(Sql.Sql xfdb) {
+    // Only update internal state once a minute.
+    int now = time(1), latency = query("latency");
+    if(next_update < now)
+      next_update = time() + latency;
     else
-      m[machine] = 0;
+      return next_update - now;
 
-  foreach(indices(m), int machine) {
-    array data = xfdb->query("SELECT name,platform FROM system WHERE id=%d",
-			     machine);
-    machines[machine] = data[0]->name;
-    platforms[machine] = data[0]->platform;
+    // Add new builds
+
+    int latest_build;
+    if(sizeof(builds))
+      latest_build = builds[0]->build_datetime;
+
+    array new = xfdb->query("SELECT id,time FROM build WHERE time > %d"
+			    " ORDER BY time DESC LIMIT %d", latest_build,
+			    query("results"));
+
+    if(sizeof(new)) {
+      builds = map(new, lambda(mapping in) {
+			  int id = (int)in->id, t = (int)in->time;
+			  mapping info = get(xfdb, "build",
+					     ({ "export", "documentation" }),
+					     ([ "id" : id ]));
+			  int summary, docs, export = info->export == "yes";
+			  docs = ([ "yes":2, "no":1 ])[info->documentation];
+			  return Build(id, t, export, docs, this_object());
+			}) + builds[..sizeof(builds)-sizeof(new)-1];
+      build_indices = builds->id;
+    }
+
+    if(sizeof(builds)>query("results")) {
+      builds = builds[..query("results")-1];
+      build_indices = builds->id;
+    }
+
+    // Update featured builds
+
+    int changed = `+( @builds->update_results(xfdb) );
+    if(!changed)
+      return latency;
+
+    // Update list of involved machines
+
+    multiset m = (multiset)Array.uniq( `+( @builds->list_machines() ) );
+
+    foreach(indices(machines), int machine)
+      if( !m[machine] ) {
+	m_delete(machines, machine);
+	m_delete(platforms, machine);
+      }
+      else
+	m[machine] = 0;
+
+    foreach(indices(m), int machine) {
+      array data = xfdb->query("SELECT name,platform FROM system WHERE id=%d",
+			       machine);
+      machines[machine] = data[0]->name;
+      platforms[machine] = data[0]->platform;
+    }
+
+    array me = ({});
+    foreach(sort(indices(machines)), int machine)
+      me += ({ get_machine_entities_for( machine ) });
+    machine_entities = me;
+
+    return latency; // [until] next time, gadget...
   }
 
-  array me = ({});
-  foreach(sort(indices(machines)), int machine)
-    me += ({ get_machine_entities_for( machine ) });
-  machine_entities = me;
-
-  return latency; // [until] next time, gadget...
+  mapping get_machine_entities_for(int machine) {
+    return ([ "id"   : machine,
+	      "name" : machines[machine],
+	      "platform" : platforms[machine] ]);
+  }
 }
 
-mapping get_machine_entities_for(int machine)
-{
-  return ([ "id"   : machine,
-	    "name" : machines[machine],
-	"platform" : platforms[machine] ]);
+static mapping(string:Project) projects = ([]);
+
+static Project get_project(string db) {
+  return projects[db] || ( projects[db]=Project() );
 }
+
 
 //
 // Tags
@@ -340,19 +347,23 @@ class TagXF_Update {
 
     array do_enter(RequestID id)
     {
+      string db = args->db || default_db;
+      id->misc->xenofarm_db = db;
+      Project p = get_project(db);
+
       Sql.Sql xfdb;
-      array error = catch(xfdb = DBManager.get(args->db || default_db,
-					       my_configuration(), 1));
+      array error = catch(xfdb = DBManager.get(db, my_configuration(), 1));
       if(!xfdb)
 	RXML.run_error("Couldn't connect to SQL server" +
 		       (error ? ": " + error[0] : "") + "\n");
       if(!xflock++)
-	CACHE(update_builds(xfdb));
-      vars->updated = fmt_time(next_update);
+	CACHE(p->update_builds(xfdb));
+      vars->updated = fmt_time(p->next_update);
     }
 
-    array do_return() {
+    array do_return(RequestID id) {
       result = content;
+      id->misc->xenofarm_db = 0;
       xflock--;
     }
   }
@@ -366,21 +377,22 @@ class TagEmitXF_Machine {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
+    Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
 
     // Remove machines whose last max-columns builds were all white
     if(int maxcols = (int)m_delete(m, "max-columns"))
     {
       array(mapping) result = ({});
-      foreach(sort(indices(machines)), int machine)
+      foreach(sort(indices(p->machines)), int machine)
       {
-	array status = builds->get_result_entities( machine )->status;
+	array status = p->builds->get_result_entities( machine )->status;
 	if(sizeof(status[..maxcols-1] - ({ "white" })))
-	  result += ({ get_machine_entities_for(machine) });
+	  result += ({ p->get_machine_entities_for(machine) });
       }
       return result;
     }
 
-    return machine_entities;
+    return p->machine_entities;
   }
 }
 
@@ -392,7 +404,8 @@ class TagEmitXF_Build {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
-    array res = builds->get_build_entities();
+    string db = m->db || id->misc->xenofarm_db || default_db;
+    array res = get_project(db)->builds->get_build_entities();
 
     // Optimize sorting
     if(string order=m->sort)
@@ -420,16 +433,17 @@ class TagEmitXF_Result {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
+    Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
     array res;
 
     if(m->build && m->machine)
-      res = ({ builds[search(build_indices, (int)m->build)]->
+      res = ({ p->builds[search(p->build_indices, (int)m->build)]->
 	       get_result_entities() });
     else if(m->build)
-      res = builds[search(build_indices, (int)m->build)]->
+      res = p->builds[search(p->build_indices, (int)m->build)]->
 	get_result_entities();
     else if(m->machine)
-      res = builds->get_result_entities( (int)m->machine );
+      res = p->builds->get_result_entities( (int)m->machine );
 
     if(!res)
       RXML.parse_error("No build or machine attribute.\n");
@@ -464,6 +478,8 @@ class TagXF_Details {
     array do_enter(RequestID id)
     {
       NOCACHE();
+      Project p = get_project(args->db || id->misc->xenofarm_db || default_db);
+
       int build, client;
       if(args->id) {
 	if( sscanf(args->id, "%d_%d", build, client)!=2 )
@@ -476,11 +492,11 @@ class TagXF_Details {
       else
 	RXML.parse_error("No build chosen (id or build+client).\n");
 
-      build = search(build_indices, build);
+      build = search(p->build_indices, build);
       if(build==-1)
 	RXML.run_error("Selected build no longer available.\n");
 
-      vars = builds[build]->get_details(client);
+      vars = p->builds[build]->get_details(client);
     }
   }
 }
