@@ -1,4 +1,4 @@
 *.pid
 pike
 bin
-
+debug.log
