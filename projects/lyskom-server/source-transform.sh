@@ -143,7 +143,6 @@ log Begin response assembly
 
 timeecho Collecting results
 cp $BASE/config.cache r/configcache.txt
-mkdir r/testsuite
 for file in $BASE/src/server/testsuite/*.log
 do
   if test -f $file
