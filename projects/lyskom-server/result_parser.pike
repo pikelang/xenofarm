@@ -1,7 +1,9 @@
-
 // Xenofarm lyskom server result parser
-// By Martin Nilsson
-// $Id: result_parser.pike,v 1.2 2002/08/15 09:04:51 ceder Exp $
 
 inherit "../../result_parser.pike";
 
+Sql.Sql xfdb = Sql.Sql(Stdio.read_file("/home/ceder/.xeno-mysql-url"));
+
+string work_dir   = "tmp";
+string result_dir = "/lysator/www/projects/xenofarm/lyskom-server/results/";
+string web_dir    = "/lysator/www/projects/xenofarm/lyskom-server/files/";
