@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.24 2002/11/15 17:03:46 jhs Exp $
+// $Id: server.pike,v 1.25 2002/11/15 18:34:24 jhs Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -81,9 +81,7 @@ string make_build_low(int latest_checkin)
   object checkout =
     Process.create_process(({ "cvs", "-Q", "-d", repository, "co", "-D",
 			      at->set_timezone("localtime")->format_time(),
-			      "Pike/" + pike_version }),
-			   ([ "stdout" : Stdio.File("/dev/null", "cwt"),
-			      "stderr" : Stdio.File("/dev/null", "cwt") ]));
+			      "Pike/" + pike_version }));
   if(checkout->wait())
     return 0; // something went wrong
 
@@ -110,7 +108,7 @@ string make_build_low(int latest_checkin)
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.24 2002/11/15 17:03:46 jhs Exp $\n";
+"$Id: server.pike,v 1.25 2002/11/15 18:34:24 jhs Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Project defaults to pike7.3.
