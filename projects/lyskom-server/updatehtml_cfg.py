@@ -1,19 +1,12 @@
-# Configuration: things you must change.
-
+# updatehtml configuration file.
 # These variables are documented in the top-level README file.
 
-# Formerly: "input".
 unpacked_results_dir = "/lysator/www/projects/xenofarm/lyskom-server/files"
-
-# Formerly: "output"
-result_overview_dir = "/lysator/www/user-pages/ceder/xeno/"
-
-# Formerly: "filesurl"
 unpacked_results_url = "http://www.lysator.liu.se/xenofarm/lyskom-server/files"
 
-# Formerly: "overviewurl"
-result_overview_url = "http://www.lysator.liu.se/~ceder/xeno/"
-# Formerly: "buttonurl" and "fullbuttonurl"
+result_overview_dir = "/lysator/www/projects/xenofarm/lyskom-server"
+result_overview_url = "http://www.lysator.liu.se/xenofarm/lyskom-server/"
+
 button_url_prefix = "http://www.lysator.liu.se/~ceder/xeno/pcl-"
 button_ext = ".gif"
 
