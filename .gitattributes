@@ -1,5 +1,7 @@
 [attr]binary -text -crlf -diff -ident
 * text ident
+*.gif binary
+*.xcf binary
 
 # Handling of foreign (ie CVS) identifiers.
 #
