@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.29 2002/10/26 12:37:08 mani Exp $
+// $Id: result_parser.pike,v 1.30 2002/11/15 18:23:10 jhs Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -531,7 +531,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.29 2002/10/26 12:37:08 mani Exp $\n";
+"$Id: result_parser.pike,v 1.30 2002/11/15 18:23:10 jhs Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
@@ -542,7 +542,7 @@ result_parser.pike <arguments> [<result files>]
              result files.
 --result-dir Where incoming result files are read from.
 --verbose    Send messages about everything that happens to stdout.
---web-dir    Where the contents of the result files chould be
+--web-dir    Where the contents of the result files should be
              copied to.
 --work-dir   Where temporary files should be put.
 ";
