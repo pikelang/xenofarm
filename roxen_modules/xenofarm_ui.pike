@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.18 2002/08/30 09:58:38 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.19 2002/09/19 22:44:07 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -96,10 +96,28 @@ string fmt_timespan(int t) {
 
 constant WHITE = 0, RED = 1, YELLOW = 2, GREEN = 3;
 
-static class Build(int(0..) id,
-		   int(0..3) summary, int(0..) build_datetime,
-		   int(0..1) export_ok, int(0..2) docs_status)
-{
+static class Build {
+
+  int(0..) id;
+  int(0..3) summary;
+  int(0..) build_datetime;
+  int(0..1) export_ok;
+  int(0..2) docs_status;
+
+  string str_build_datetime;
+
+  void create(int(0..) _id, int(0..3) _summary, int(0..) _build_datetime,
+	      int(0..1) _export_ok, int(0..2) _docs_status) {
+
+    id = _id;
+    summary = _summary;
+    build_datetime = _build_datetime;
+    export_ok = _export_ok;
+    docs_status = _docs_status;
+
+    str_build_datetime = fmt_time(build_datetime);
+  }
+
   constant color = ([ WHITE : "white",
 			RED : "red",
 		     YELLOW : "yellow",
@@ -170,7 +188,7 @@ static class Build(int(0..) id,
   mapping(string:int|string) get_build_entities()
   {
     return ([ "id": id,
-	      "time": fmt_time(build_datetime),
+	      "time": str_build_datetime,
 	      "summary": color[summary],
 	      "source": export_color[export_ok],
 	      "documentation": docs_color[docs_status],
@@ -183,12 +201,17 @@ static class Build(int(0..) id,
     if(!zero_type(machine))
       return ([ "status" : color[ratings[results[machine]]],
 		"system" : machine,
-		"build" : id, ]);
+		"build" : id,
+		"warnings" : warnings[machine],
+		"time" : str_build_datetime,
+		"timespan" : fmt_timespan(time_spent[machine]),
+      ]);
     array ret = ({});
     foreach(sort(indices(machines)), int system)
       ret += ({ ([ "status" : color[ratings[results[system]]],
 		   "system" : system,
-		   "build" : id, ]) });
+		   "build" : id,
+      ]) });
     return ret;
   }
 
@@ -202,7 +225,9 @@ static class Build(int(0..) id,
 	      "result" : results[client],
 	      "warnings" : warnings[client],
 	      "time" : fmt_timespan(time_spent[client]),
-    ]);
+	      "build_id" : (string)id,
+	      "machine_id" : (string)client,
+   ]);
   }
 }
 
@@ -436,6 +461,58 @@ class TagXF_Details {
 	RXML.run_error("Selected build no longer available.\n");
 
       vars = builds[build]->get_details(client);
+    }
+  }
+}
+
+class TagXF_Files {
+  inherit RXML.Tag;
+  constant name = "xf-files";
+
+  class Frame {
+    inherit RXML.Frame;
+
+    array(string) make_result(string path, RequestID id) {
+      mapping a = id->conf->find_dir_stat(path,id);
+      array res = ({});
+      foreach(sort(indices(a)), string fn) {
+	if(a[fn]->isreg) {
+	  fn = sprintf("<a href='%s%s'>%s</a>", path, fn, fn);
+	  res += ({ fn });
+	  continue;
+	}
+	if(a[fn]->isdir) {
+	  res += map(make_result(path+fn+"/", id),
+		     lambda(string in) {
+		       return "&nbsp;" + in;
+		     });
+	}
+      }
+      return res;
+    }
+
+    array do_enter(RequestID id) {
+      // No CACHE call. Cache forever.
+
+      int build, client;
+      if(args->id) {
+	if( sscanf(args->id, "%d_%d", build, client)!=2 )
+	  RXML.parse_error("Could not decode id (%O)\n", args->id);
+      }
+      else if(args->build && args->client) {
+	build = args->build;
+	client = args->client;
+      }
+      else
+	RXML.parse_error("No build chosen (id or build+client).\n");
+
+      if(!args->dir)
+	RXML.parse_error("No directory chosen.\n");
+      args->dir = Roxen.fix_relative(args->dir, id);
+      if(args->dir[-1]!='/')
+	args->dir += "/";
+
+      result = make_result(args->dir+build+"_"+client+"/", id)*"<br />";
     }
   }
 }
