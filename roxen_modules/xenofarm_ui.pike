@@ -1,9 +1,10 @@
 // This is a Roxen WebServer module.
 // Copyright 2002 Martin Nilsson
 
+#include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.1 2002/05/29 00:31:04 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.2 2002/05/29 01:23:45 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm UI module";
@@ -16,17 +17,15 @@ void create() {
 	  TYPE_STRING, "The build/result database" );
 }
 
-static Sql.Sql xfdb;
+static Sql.sql xfdb;
 
 void start() {
-  xfdb = Sql.Sql( query("xfdb") );
+  xfdb = Sql.sql( query("xfdb") );
 }
 
-enum Status {
-  RED = 0,
-  YELLOW,
-  GREEN
-}
+constant RED = 0;
+constant YELLOW = 1;
+constant GREEN = 2;
 
 static class Build {
 
@@ -46,23 +45,23 @@ static class Build {
   // client:status
   mapping(int(0..):int(0..2)) res = ([]);
 
-  int summary;
+  int(0..2) summary;
 
-  constant mapping ratings = ([
+  constant ratings = ([
     "failed" : RED,
     "built" : YELLOW,
     "verified" : YELLOW,
     "exported" : GREEN
   ]);
 
-  constant mapping colors = ([
+  constant colors = ([
     RED : "red",
     YELLOW : "yellow",
     GREEN : "green"
   ]);
 
   int(0..1) update_results() {
-    array res = xfdb->query("SELECT system,status FROM result WHERE build = %d", id);
+    array res = xfdb->query("SELECT system,status FROM result WHERE build = "+id);
     int changed;
     foreach(res, mapping x) {
       int system = (int)x->system;
@@ -85,12 +84,12 @@ static class Build {
   array(mapping(string:int|string)) get_result_entities() {
     array ret = ({});
     foreach(indices(res), int system)
-      ret += ({ ([ "status" : color[res[system]] ]) });
+      ret += ({ ([ "status" : colors[res[system]] ]) });
     return ret;
   }
 
-  void list_machines() {
-    return indicies(res);
+  array(int) list_machines() {
+    return indices(res);
   }
 }
 
@@ -116,8 +115,8 @@ static void update_builds() {
   if(sizeof(builds))
     latest_build = builds[0]->buildtime;
 
-  array new = xfdb->query("SELECT id,time FROM build WHERE time > %d "
-			  "ORDER BY time DESC LIMIT 10", latset_build);
+  array new = xfdb->query("SELECT id,time FROM build WHERE time > "+latest_build+
+			  "ORDER BY time DESC LIMIT 10");
 
   if(sizeof(new)) {
     builds = map(new, lambda(mapping in) {
@@ -145,14 +144,14 @@ static void update_builds() {
       m[machine] = 0;
 
   foreach(indices(m), int machine) {
-    array data = xfdb->query("SELECT name,platform FROM system WHERE id=%d", machine);
+    array data = xfdb->query("SELECT name,platform FROM system WHERE id="+machine);
     machines[machine] = data->name;
     platforms[machine] = data->platform;
   }
 
   array me = ({});
   foreach(sort(indices(machines)), int machine)
-    me += ({ ([ "name":maxhines[machine], "platform":platforms[machine] ]) });
+    me += ({ ([ "name":machines[machine], "platform":platforms[machine] ]) });
   machine_entities = me;
 }
 
@@ -160,7 +159,7 @@ static void update_builds() {
 // Tags
 //
 
-class TagEmitXF_Lock {
+class TagXF_Lock {
   inherit RXML.Tag;
   constant name = "xf-lock";
   int xflock;
@@ -186,7 +185,7 @@ class TagEmitXF_Machine {
   constant plugin_name = "xf-machine";
 
   array(mapping) get_dataset(mapping m, RequestID id) {
-    return entity_machines;
+    return machine_entities;
   }
 }
 
@@ -211,7 +210,7 @@ class TagEmitXF_Result {
   }
 }
 
-class TagEmitXF_Details {
+class TagXF_Details {
   inherit RXML.Tag;
   constant name = "xf-details";
 
