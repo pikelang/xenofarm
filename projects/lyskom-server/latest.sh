@@ -70,7 +70,7 @@ do
 
     builddir=$input/${build}_$sys
     echo "<tr><td><a href=\"$url/${build}_$sys/\">" >&7
-    sed -e '1s_$_<br>_' < $builddir/machineid.txt >&7
+    mysql --batch -D lyskom_server_xenofarm -e 'select name, platform from system where id = '$sys -p`cat /home/ceder/.xeno-mysql-pwd`|sed 1d|sed 's/	/<br>/' >&7
     echo "</a></td>" >&7
     
     # echo "<td><a href=\"${build}.html\">$build</a></td>" >&7
