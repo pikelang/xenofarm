@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.19 2002/12/01 14:15:09 mani Exp $
+// $Id: result_parser.pike,v 1.20 2002/12/02 20:05:46 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -18,6 +18,13 @@ void create() {
   FIX(web_dir);
   FIX(work_dir);
   FIX(result_dir);
+
+  foreach(ignored_warnings, string w)
+    if(lower_case(w)!=w)
+      werror("Warning %O not lower cased.\n");
+  foreach(removed_warnings, string w)
+    if(lower_case(w)!=w)
+      werror("Warning %O not lower cased.\n");
 }
 
 // These warnings will not be counted as real warnings.
@@ -39,6 +46,10 @@ array(string) ignored_warnings = ({
     "rlim_infinity.  there may not be enough space to complete the "
     "compilation.",
   "configure: warning: debug malloc requires rtldebug. enabling rtldebug.",
+  "warning added -lpthread to $libs!",
+  "configure: warning: gnome 1.0.x not supported",
+  "makefile:*: warning: overriding commands for target `depend'",
+  "makefile:*: warning: ignoring old commands for target `depend'",
 });
 
 constant removed_warnings = ({
