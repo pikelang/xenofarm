@@ -1,0 +1,28 @@
+<use file="template"/>
+<header>
+
+
+<h2>&form.module;/&form.file;</h2>
+
+<form action="view.xml" method="GET">
+  <input type="hidden" name="module" value="&form.module;" />
+  <input type="hidden" name="file" value="&form.file;" />
+  Revision:
+    <default value="&form.revision;">
+      <select name="revision" onchange="this.form.submit()">
+          <comment><option>HEAD</option> (not supported yet) </comment>
+          <emit source="revisions" module="&form.module;" file="&form.file;">
+            <option value="&_.revision;">&_.revision; (&_.time;)</option>
+          </emit>
+      </select>
+    </default>
+  <hr />
+</form>
+
+<tt>
+<syntax-highlight revision="&form.revision;"
+    module="&form.module;" file="&form.file;"
+    highlight="" show_lineno="&form.show_lineno;"/>
+</tt>
+
+</header><footer/>

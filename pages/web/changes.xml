@@ -3,6 +3,18 @@
 
 <h2>Recent checkins to Xenofarm</h2>
 
+<js-include file="CrossPlatform.js"/>
+<js-include file="Popup.js"/>
+<js-include file="DynamicLoading.js"/>
+<js-dynamic-popup-div name="layer"/>
+<script language="javascript" type="text/javascript">
+props = new PopupProperties(10, 0, 1, 0); // offset: x,y
+props.setHide2ndClick();
+props.setHideDelay(300);                // ms
+function setPStat() { setStatus("Click me!"); }
+function close_popup() { clearToPopup(); }
+</script>
+
 <set variable="var.from"><date date="" type="iso" days="-7"/></set>
 <set variable="var.to"><date date="" type="iso" days="1"/></set>
 
@@ -13,12 +25,12 @@
   <ul>
   <emit source="checked-in-files" scope="ci">
     <li><b><if variable="_.state = changed">
-      <emit source="js-dynamic-popup" name="layer" props="props" src="piff.xml?module=&ci.module;&amp;file=&ci.path;&amp;from=&ci.ancestor;&amp;to=&ci.revision;">
-        <a href="piff.xml?module=&ci.module;&amp;file=&ci.path;&amp;from=&ci.ancestor;&amp;to=&ci.revision;" onclick="&_.event;">&ci.module;/&ci.path;</a>
+      <emit source="js-dynamic-popup" name="layer" props="props" src="diff.xml?module=&ci.module;&amp;file=&ci.path;&amp;from=&ci.ancestor;&amp;to=&ci.revision;">
+        <a href="diff.xml?module=&ci.module;&amp;file=&ci.path;&amp;from=&ci.ancestor;&amp;to=&ci.revision;" onclick="&_.event;">&ci.module;/&ci.path;</a>
       </emit>
     </if><else>&ci.module;/&ci.path;</else></b>
     &_.status:none;
-    <if variable="_.status != removed">(<a href="colorize.xml?module=&ci.module;&amp;file=&ci.path;&amp;revision=&ci.revision;">&_.lines;&nbsp;lines</a>)</if>
+    <if variable="_.status != removed">(<a href="view.xml?module=&ci.module;&amp;file=&ci.path;&amp;revision=&ci.revision;">&_.lines;&nbsp;lines</a>)</if>
     <if variable="_.branch != "><i>Branch: &_.branch;</i></if></li>
   </emit>
   </ul>

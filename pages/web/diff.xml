@@ -1,0 +1,32 @@
+<html>
+<head>
+  <title>Diff of &form.module;/&form.file; (&form.from; ? &form.to;)</title>
+  <base target="_top"/>
+<style type="text/css">
+td {font: 14px Helvetica}
+a  {font-weight: bold}
+diff {padding: 3px}
+</style>
+</head>
+<body bgcolor="#cccccc" text="black" link="red" alink="white" vlink="red">
+  <table border="1" cellspacing="0" cellpadding="0" bgcolor="#cccccc">
+    <tr><td bgcolor="#E0E0E0"><table bgcolor="#E0E0E0" cellspacing="0" cellpadding="2"><tr><td>
+      <a href="javascript:close_popup()"><img src="x.gif" width="17" height="17" valign="top" border="0" vspace="1" hspace="1" alt="Close Popup"/></a><a href="diff.xml?module=&form.module;&amp;file=&form.file;&amp;from=&form.from;&amp;to=&form.to;"><img src="full.gif" width="17" height="17" valign="base" border="0" vspace="1" hspace="2" alt="Show diff in full window"/></a><a href="view.xml?module=&form.module;&amp;file=&form.file;&amp;revision=&form.to;"><img src="source.gif" width="17" height="17" valign="bottom" border="0" vspace="1" hspace="1" alt="Show full source of &form.to;"/></a></td><td bgcolor="#E0E0E0" class="title">
+      &nbsp;
+      &form.module;/&form.file;
+      &nbsp;
+      <font color="#686868">(&form.from; ? &form.to;)</font>
+    </td></tr></table></td></tr>
+    <tr><td class="diff">
+      <emit source="pike-diff" module="&form.module;" file="&form.file;"
+            from="&form.from;" to="&form.to;">
+        <delimiter><br /></delimiter>
+        <i>Line <a href='view.xml?module=&form.module;&amp;file=&form.file;&amp;revision=&form.from;&amp;lines=yes#l&_.from-line;'>&_.from-line;</a>:</i><br />
+        <tt><emit source="diff-lines">
+          <if variable="_.type = removed"><font color='#DD0000'><b>-</b></if><elseif variable="_.type = added"><font color='#008000'><b>+</b></elseif><else>&nbsp;</else>&nbsp;&_.line;<if variable="_.type = added" or="or" match="&_.type; = re*"></font></if><br />
+        </emit></tt>
+      </emit>
+    </td></tr>
+  </table>
+</body>
+</html>
