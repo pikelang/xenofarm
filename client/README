@@ -51,18 +51,27 @@ client.sh. Check that they are available in your clients PATH.
 
 4. Configuring the client.
 
-client.sh is configured by editing the projects.conf file. Each
-project should have seven lines on the form:
+client.sh builds and tests projects based on configuration files
+stored in the "config" directory. Each project has it's own
+configuration file, but each configuration may contain several tests
+to be done on the same project.
 
-Projectname
-Build directory
-URL to fetch the snapshot from
-URL to PUT the result too.
-The names of the targets that should be built.
-The minimum time between two builds of the project
-end Projectname
+Configuration files' names must have the extension ".cfg" or they will
+not be considered by the client. The file itself consists of a list of
+configuration name/value bindings separated by a colon. A
+configuration file must have these configurations:
 
-repeat for each project that should be built.
+configformat:     2
+project:          <Project name>
+projectdir:       <Project testdirectory relative to cwd. Avoid spaces>
+snapshoturl:      <URL to GET the snapshot from>
+resulturl:        <URL to PUT the result too>
+test: <testname>  <test commands that will be executed inside the 
+                   unarchived snapshot. One line. Newlines cannot be quoted>
+
+An arbitrary number of "test:" lines can be added to the
+configuration. Note that the "test:" lines must come last in the
+configuration file.
 
 
 5.  Starting the client.

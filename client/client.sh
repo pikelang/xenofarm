@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.27 2002/08/28 12:18:38 zino Exp $
+# $Id: client.sh,v 1.28 2002/08/28 22:52:26 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -28,6 +28,7 @@
 #  - The export stamp will be renamed from export.stamp to buildid.txt
 #  - The xenofarm client log, which will be submitted in case of complete
 #    failure of a build, will be renamed from RESULT to xenofarmclient.txt
+# NOTE: This is now in effect
 ##############################################
 # See `client.sh --help` for command line options.
 #
@@ -70,7 +71,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.27 2002/08/28 12:18:38 zino Exp $
+	echo \$Id: client.sh,v 1.28 2002/08/28 22:52:26 zino Exp $
 	exit 0
   ;;
   *)
@@ -238,6 +239,7 @@ wget --help > /dev/null 2>&1 || missing_req wget 10
 gzip --help > /dev/null 2>&1 || missing_req wget 11
 
 #Read only the node specific configuration file if it exists.
+#FIXME: Functionalize and use below
 if [ -f "projects.conf.$node" ] ; then
     configfile="projects.conf.$node";
     echo "NOTE: found node specific config file: $configfile"
@@ -248,37 +250,15 @@ else
     fi
 fi
 
-#Build Each project and each target in that project sequentially
-basedir="`pwd`"
-grep -v \# $configfile | ( while 
-    last=$?
-    if [ X"$last" != X0 ] ; then
-        echo "Project $project failed with exit code $last" 1>&2
-    fi
-
-    read project ; do
-    read dir
-    read geturl
-    read puturl
-    read targets
-    read delay
-    read endmarker
-
-    if [ x$dir = x ] ; then
-        echo "No more projects in $configfile"
-        # This will drop from the subshell to the backend
-        exit 0;
-    else
-	dir="$dir/$node/"
-        echo "Building $project in $dir from $geturl with targets: $targets"
-    fi
-
+#Called to prepare the project build enviroment. Not reapeated for each id.
+prepare_project() {
+    echo "First test in this project. Preparing build enviroment."
+    dir="$dir/$node/"
     if [ ! -d "$dir" ]; then
         pmkdir "$dir"
-    fi
+    fi  
 
-    (cd "$dir" &&
-     uncompressed=0
+    cd "$dir" &&
      NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
      #FIXME: get a tee >1 in here for better manual runs
      wget --dot-style=binary -N "$geturl" > "wget.log" 2>&1 &&
@@ -293,46 +273,72 @@ grep -v \# $configfile | ( while
         # the first one is downloaded. (Yes, this long text is necessary.)
         touch localtime_lastdl
      fi || wget_exit
-     rm -rf buildtmp && mkdir buildtmp || mkdir_exit
-     cd buildtmp &&
-     for target in `echo $targets` ; do
-        if [ \! -f "../last_$target" ] ||
-           is_newer ../localtime_lastdl "../last_$target" ; then
+
+     echo "Uncompressing archive..." &&
+     rm -f snapshot.tar &&
+     test -f snapshot.tar.gz &&
+     #FIXME: Well, we could avoid doing this every time the client is started. Normally doesn't matter though.
+     #FIXME: This will not fail on full disk
+     gzip -cd snapshot.tar.gz > snapshot.tar &&
+     echo "done" || exit 17
+    cd ../..
+}
+
+#Run _one_ test
+run_test() {
+    echo "Building project $project from $geturl."
+    if [ X"$virgin" = Xtrue ] ; then
+        prepare_project
+    fi
+    echo "Running test $id in $dir with test command: $command"    
+
+    (   cd "$dir"
+        pwd
+        rm -rf buildtmp && mkdir buildtmp || mkdir_exit
+        cd buildtmp &&
+        if [ \! -f "../last_$id" ] ||
+           is_newer ../localtime_lastdl "../last_$id" ; then
         get_time
-        echo $hour:$minute > "../current_$target";
+        echo $hour:$minute > "../current_$id";
         #FIXME: Check if the project configurable build delay has passed
         if `check_delay`; then
-            if [ x"$uncompressed" = x0 ] ; then
-              echo "Uncompressing archive..." &&
-	      [ -f ../snapshot.tar.gz ] &&
-              (gzip -cd ../snapshot.tar.gz | tar xf -) &&
-              echo "done" &&
-              uncompressed=1
-              if [ ! x$uncompressed = x1 ] ; then
-                echo "FATAL: Unable to decompress snapshot!" 1>&2
-                #Will drop from the the second subshell to the while shell
-                exit 4
-              fi
-            fi
+            echo "Extracting archive..." &&
+	    test -f ../snapshot.tar &&
+            tar xf ../snapshot.tar &&
+            echo "done" || exit 4
+
             cd */.
-            resultdir="../../result_$target"
+            resultdir="../../result_$id"
             rm -rf "$resultdir" && mkdir "$resultdir" &&
-            cp export.stamp "$resultdir/" &&
-            echo "Building $target" &&
-            make $target >"$resultdir/RESULT" 2>&1;
+            #FIXME: export.stamp -> buildid.txt
+            cp export.stamp "$resultdir" &&
+            echo "Building and running test $id: $command" &&
+            echo "id: $id" > "$resultdir/xenofarmclient.txt" &&
+            echo "command: $command" >> "$resultdir/xenofarmclient.txt" &&
+            echo "version: `$basedir/client.sh --version`" >> "$resultdir/xenofarmclient.txt" &&
+            echo "putversion: `$basedir/$putname --version`" >> "$resultdir/xenofarmclient.txt" &&
+            echo "test output follows:" >>  "$resultdir/xenofarmclient.txt" &&
+            $command >"$resultdir/xenofarmclient.txt" 2>&1;
             if [ -f xenofarm_result.tar.gz ] ; then
-                mv xenofarm_result.tar.gz "$resultdir/"
+                mv xenofarm_result.tar.gz "$resultdir"
+                (cd "$resultdir" &&
+                 rm -rf repack &&
+                 mkdir repack &&
+                 cd repack &&
+                 gzip -cd $resultdir/xenofarm_result.tar.gz | tar xf - &&
+                 cp $resultdir/xenofarmclient.txt . &&
+                 tar cf - * | gzip -c > $resultdir/xenofarm_result.tar.gz)
             else
                 (cd "$resultdir" &&
                 echo $machineid > machineid.txt &&
                 echo $node >> machineid.txt &&
-                tar cvf xenofarm_result.tar RESULT export.stamp machineid.txt &&
+                tar cvf xenofarm_result.tar xenofarmclient.txt buildid.txt machineid.txt &&
                 gzip xenofarm_result.tar)
             fi
-	    mv "../../current_$target" "../../last_$target";
-	    echo "Sending results for $project: $target."
+	    mv "../../current_$id" "../../last_$id";
+	    echo "Sending results for $project: $id."
             #FIXME: Store failed result sendings and restry every client run.
-            #possible date string: date | sed 's/ //g' | sed 's/://g'
+            #       possible date string: date | sed 's/ //g' | sed 's/://g'
             $basedir/$putname "$puturl" < "$resultdir/xenofarm_result.tar.gz" ||
             echo "OBSERVE: Failed to send result package to $puturl. Result will be lost. Skipping to the next project." 1>&2 && exit 8
             cd ..
@@ -340,9 +346,74 @@ grep -v \# $configfile | ( while
             echo "NOTE: Build delay for $project not passed. Skipping."
         fi
         else
-            echo "NOTE: Already built $project: $target. Skipping."
+            echo "NOTE: Already built $project: $id. Skipping."
         fi
-     done )
-done )
+    )
+    last=$?
+    if [ X"$last" != X0 ] ; then
+        echo "Project $project failed with exit code $last" 1>&2
+    fi
+}
+
+#Remove spaces in the beginning and end of a string.
+chomp_ends() {
+    echo $1 | sed 's/^[ ]*//' | sed 's/[ ]*$//'
+}
+
+#Build Each project and each target in that project sequentially
+basedir="`pwd`"
+for projectconfig in config/*.cfg; do (
+
+    configformat=""
+    testnames=""
+    testcmds=""
+    virgin="true"
+    cat $projectconfig | while read line; do
+        type=`echo $line | awk -F: '{ print $1 }'`
+        arguments=`echo $line | sed 's/[^:]*//' | sed 's/://'`
+#        echo $arguments
+        arguments=`chomp_ends "$arguments"`
+        case $type in
+        configformat)
+            if [ X"$arguments" != X2 ] ; then
+                echo "Unknown configformat $arguments in $projectconfig"
+                exit 15
+            fi
+            ;;
+        project)
+            project=$arguments  ;;
+        projectdir)
+            dir=$arguments      ;;
+        snapshoturl)
+            geturl=$arguments   ;;
+        resulturl)
+            puturl=$arguments   ;;
+        mindelay)
+            delay=$arguments    ;;
+        test)
+            #FIXME: Check that necessary variables are set
+            id=`echo $arguments | awk '{ print $1 }'`
+            command=`echo $arguments | sed 's/[^ ]* //'`
+            command=`chomp_ends "$command"`
+            echo Running id: $id, Command: $command
+            run_test
+            virgin="false"
+            ;;
+        "")
+            :
+            ;;
+        *)
+            echo "Unknown parameter \"$line\" in $projectfile." 1>&2
+            exit 16
+        esac
+    done
+) done
 
 clean_exit $?
+
+
+#              if [ ! x$uncompressed = x1 ] ; then
+#                echo "FATAL: Unable to decompress $project snapshot!" 1>&2
+#                #Will drop from the the second subshell to the while shell
+#                exit 4
+#              fi
