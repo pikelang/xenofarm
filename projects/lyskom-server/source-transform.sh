@@ -65,9 +65,12 @@ dotask() {
 	    touch r/$task.fail
 	    if [ $important = 1 ]
 	    then
-	        status=bad
+	        status=${task}-failed
 	    fi
         fi
+    else
+	echo status $status makes it impossible to perform this step \
+	    > r/${task}log.txt
     fi
 }
 
