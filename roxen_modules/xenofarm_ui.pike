@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.14 2002/08/14 20:05:22 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.15 2002/08/18 16:00:51 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -296,7 +296,7 @@ class TagXF_Update {
     inherit RXML.Frame;
     mapping vars = ([]);
 
-    array do_enter()
+    array do_enter(RequestID id)
     {
       Sql.Sql xfdb;
       array error = catch(xfdb = DBManager.get(args->db || default_db,
@@ -323,7 +323,7 @@ class TagEmitXF_Machine {
 
   array(mapping) get_dataset(mapping m, RequestID id)
   {
-    NOCACHE():
+    NOCACHE();
     return machine_entities;
   }
 }
@@ -335,7 +335,7 @@ class TagEmitXF_Build {
 
   array(mapping) get_dataset(mapping m, RequestID id)
   {
-    NOCACHE():
+    NOCACHE();
     return builds->get_build_entities();
   }
 }
@@ -347,7 +347,7 @@ class TagEmitXF_Result {
 
   array(mapping) get_dataset(mapping m, RequestID id)
   {
-    NOCACHE():
+    NOCACHE();
     if(!m->build) RXML.parse_error("No build attribute.\n");
     return builds[search(build_indices, (int)m->build)]->
       get_result_entities();
@@ -362,9 +362,9 @@ class TagXF_Details {
     inherit RXML.Frame;
     mapping vars;
 
-    array do_enter()
+    array do_enter(RequestID id)
     {
-      NOCACHE():
+      NOCACHE();
       int build, client;
       if(args->id) {
 	if( sscanf(args->id, "%d_%d", build, client)!=2 )
