@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.17 2002/08/14 01:02:07 ceder Exp $
+# $Id: client.sh,v 1.18 2002/08/14 09:12:05 mani Exp $
 # License: GPL
 #
 # Requirements:
@@ -23,7 +23,7 @@
 ##############################################
 # NOTE: The following changes will be committed when Pikefarm officially
 # moves to pike.ida.liu.se.
-#  - The export stamp will be renamed from export.stamp to exportstamp.txt
+#  - The export stamp will be renamed from export.stamp to buildid.txt
 #  - The xenofarm client log, which will be submitted in case of complete
 #    failure of a build, will be renamed from RESULT to xenofarmclient.txt
 ##############################################
