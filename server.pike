@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.3 2002/05/03 20:45:58 mani Exp $
+// $Id: server.pike,v 1.4 2002/05/12 19:24:12 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -55,6 +55,14 @@ void make_build() {
     return;
 
   xfdb->query("INSERT INTO builds (time, project) VALUES (%d,%s)", latest_build, project);
+}
+
+string fmt_time(int t) {
+  if(t<60)
+    return sprintf("%02d seconds", t);
+  if(t/60 < 60)
+    return sprintf("%02d:%02d minutes", t/60, t%60);
+  return sprintf("%02d:%02d:%02d hours", t/3600, (t%3600)/60, t%60);
 }
 
 void check_settings() {
@@ -143,6 +151,12 @@ int main(int num, array(string) args) {
   check_settings();
 
   latest_build = get_latest_build();
+  if(verbose) {
+    if(latest_build)
+      werror("Latest build was %s ago.\n", fmt_time(time()-latest_build));
+    else
+      werror("No previous builds found.\n");
+  }
 
   int real_checkin_poll;
   int next_build;
@@ -154,7 +168,7 @@ int main(int num, array(string) args) {
 
     // Is there a queued build?
     if(next_build) {
-      if(verbose) werror("There is a new build scheduled.\n");
+      if(verbose) werror("New build scheduled to run in %s.\n", fmt_time(next_build-time()));
       if(next_build<time()) {
 	if(verbose) werror("Making new build.\n");
 	make_build();
@@ -166,20 +180,30 @@ int main(int num, array(string) args) {
 
     // Enforce build distances
     if(time()-latest_build < min_build_distance) {
-      if(verbose) werror("Enforce build distances\n");
+      if(verbose) werror("Enforce build distances. Quarantine left %s.\n",
+			 fmt_time(min_build_distance-(time()-latest_build)));
       continue;
     }
 
     int new_checkin = get_latest_checkin();
-    if(verbose) werror("Latest checkin %d seconds ago.\n", time()-new_checkin);
-    if(new_checkin>latest_build)
-      next_build = new_checkin+checkin_latency;
+    if(verbose) werror("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
+    if(new_checkin>latest_build) {
+      if(new_checkin + checkin_latency < time()) {
+	next_build = time()-1;
+	if(verbose) werror("A new build is scheduled to run at once.\n");
+	real_checkin_poll = 0;
+      }
+      else {
+	next_build = time()+checkin_latency;
+	if(verbose) werror("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
+      }
+    }
 
   }
 
   return 1;
 }
 
-constant prog_id = "Xenofarm generic server\n";
+constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.4 2002/05/12 19:24:12 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
