@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.15 2002/10/21 23:17:02 mani Exp $
+// $Id: result_parser.pike,v 1.16 2002/11/20 00:01:02 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -21,9 +21,6 @@ Sql.Sql xfdb = Sql.Sql("mysql://rw@:/pike/sw/roxen"
 string result_dir = "/pike/home/manual/pikefarm/in/";
 string work_dir = "/pike/home/manual/pikefarm/in_work/";
 string web_dir = "/pike/home/manual/web/pikefarm/";
-
-string main_log_file = "xenofarmlog.txt";
-string compilation_log_file = "makelog.txt";
 
 // These warnings will not be counted as real warnings.
 multiset(string) ignored_warnings = (<
@@ -115,8 +112,8 @@ void count_warnings(string fn, mapping res) {
   ::count_warnings(fn, res);
 
   // Highlight warnings.
-  if(file_stat("makelog.txt")) {
-    array lines = Stdio.read_file("makelog.txt")/"\n";
+  if(file_stat("compilelog.txt")) {
+    array lines = Stdio.read_file("compilelog.txt")/"\n";
   newline:
     foreach(lines; int n; string line) {
       string lc_line=lower_case(line);
