@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.8 2002/06/04 13:10:57 zino Exp $
+# $Id: client.sh,v 1.9 2002/07/17 16:57:40 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -17,7 +17,21 @@
 # `LC_ALL="C" date` should return a space-separated string with where the
 #                   first substring containging colons is on the form
 #                   <hour>:<minute>.*
+# tar 	            must be available in the PATH
+# find              must be available in the PATH
 ##############################################
+# See `client.sh --help` for command line options.
+#
+# Error codes:
+#  0: Exited without errors or was stopped by a signal
+#  1: Unsupported argument
+#  2: Client already running
+#  3: Failed to compile put
+#  4: Unable to decompress project snapshot
+#  5: Failed to fetch project snapshot
+#  
+# 10: wget not found
+# 11: gzip not found
 
 #FIXME: use logger to put stuff in the syslog if available
 
@@ -30,7 +44,7 @@ parse_args() {
 
 Start it with cron or with the "start"-script.
 
-If you encounter problems see the .BREAMEB. for requirements and help.
+If you encounter problems see the .BREADMEB. for requirements and help.
 
 EOF
     	tput 'rmso' 2>/dev/null
@@ -84,15 +98,18 @@ check_delay() {
     /bin/true 
 }
 
-sigint() {
-    echo "SIGINT recived. Exiting."
+clean_exit() {
     rm -f $pidfile
     exit 0
 }
+
+sigint() {
+    echo "SIGINT recived. Cleaning up and exiting."
+    clean_exit
+}
 sighup() {
-    echo "SIGHUP recived. Exiting for now."
-    rm -f $pidfile
-    exit 0
+    echo "SIGHUP recived. Cleaning up and exiting for now."
+    clean_exit
 }
 
 #Execcution begins here.
@@ -101,6 +118,11 @@ sighup() {
 trap sighup 1
 trap sigint 2
 trap sigint 15
+
+#Add a few directories to the PATH
+#FIXME: Make this configurable per project?
+PATH=$PATH:/usr/local/bin:/sw/local/bin
+export PATH
 
 #Get user input
 parse_args $@
@@ -137,6 +159,10 @@ if [ ! -x bin/put-$node ] ; then
     fi
 fi
 
+#Make sure wget and gzip exists
+wget --help > /dev/null 2>&1 || (echo "wget not found"; exit 10)
+gzip --help > /dev/null 2>&1 || (echo "gzip not found"; exit 11)
+
 #Build Each project and each target in that project sequentially
 basedir="`pwd`"
 grep -v \# projects.conf | ( while 
@@ -164,20 +190,21 @@ grep -v \# projects.conf | ( while
 
     (cd "$dir" &&
      uncompressed=0
-     NEWCHECK="`ls -l snapshot.tar.gz`";
+     NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
      wget --dot-style=binary -N "$geturl" &&
      if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         echo "NOTE: No newer snapshot for $project available."
-     fi
+     fi || exit 5 
      rm -rf buildtmp && mkdir buildtmp && 
      cd buildtmp &&
      for target in `echo $targets` ; do
         if [ \! -f "../last_$target" ] ||
-           [ "../last_$target" -ot ../../snapshot.tar.gz ] ; then
+           [ X != X`find ../snapshot.tar.gz -newer "../last_$target"` ] ; then
         #FIXME: Check if the project configurable build delay has passed
         if `check_delay`; then
             if [ x"$uncompressed" = x0 ] ; then
               echo "Uncompressing archive..." &&
+	      [ -f ../snapshot.tar.gz ] &&
               (gzip -cd ../snapshot.tar.gz | tar xf -) &&
               echo "done" &&
               uncompressed=1
@@ -214,4 +241,4 @@ grep -v \# projects.conf | ( while
      done )
 done )
 
-rm $pidfile
+clean_exit
