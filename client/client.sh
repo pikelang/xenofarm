@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.64 2002/11/29 20:37:37 zino Exp $
+# $Id: client.sh,v 1.65 2002/12/06 18:10:31 zino Exp $
 # Distribution version: 1.0
 # License: GPL
 #
@@ -67,7 +67,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.64 2002/11/29 20:37:37 zino Exp $
+	echo \$Id: client.sh,v 1.65 2002/12/06 18:10:31 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -251,14 +251,15 @@ spinlock() {
     while [ X$gotlock != X"true" ] ; do
         if [ \! -f lock.tmp ] ; then
             echo `uname -n` > lock.tmp
+        else 
             holder=`cat lock.tmp`
             if [ X$holder = X`uname -n` ] ; then
                 echo "Got compilation lock."
                 gotlock="true"
+            else
+                echo "Waiting for $holder to release compilation lock."
+                sleep 60
             fi
-        else 
-            echo "Waiting for `cat lock.tmp` to release compilation lock."
-            sleep 60
         fi
     done
 }
