@@ -42,6 +42,24 @@ def get_systems_for_latest():
     return [build_sys_info(-row[0], row[-1], system(*row[1:-1]))
             for row in rows]
 
+def get_systems_for_build(buildid):
+    cursor = _DB.cursor()
+    cursor.execute("select distinct"
+                   "     concat(system.sysname, ' ', system.machine),"
+                   "     system.release,"
+                   "     system.testname,"
+                   "     system.name,"
+                   "     system.id"
+                   " from system, build, task_result"
+                   " where task_result.system = system.id"
+                   " and task_result.build = build.id"
+                   " and build.id = %s" % (buildid))
+    rows = cursor.fetchall()
+    cursor.close()
+    rows = list(rows)
+    rows.sort()
+    return [system(*row) for row in rows]
+
 class build_sys_info:
     def __init__(self, buildid, buildtime, sysinfo):
         self.buildid = buildid
@@ -103,7 +121,7 @@ def latest_content(systems, tasks):
         if lastbuild != bs.buildid:
             pretty = format_time(bs.buildtime)
             age = "%.2f" % ((time.time() - bs.buildtime) / (24*3600))
-            res.append('  <tr><td colspan="%d"><a href="%s.html">'
+            res.append('  <tr><td colspan="%d"><a href="build-%s.html">'
                        '<br>Build %s (%s days ago)'
                        ' %s<br></a>&nbsp;</td></tr>' % (
                            3 + len(tasks), bs.buildid, bs.buildid,
@@ -323,8 +341,8 @@ def mkindex(buildid, systemid, force = 0):
     for f in updatehtml_cfg.hidden_files:
         if files_left.has_key(f):
             del files_left[f]
-    
-    maxlen = max([len(f) for f in files_left])
+
+    maxlen = max([len(f) for f in files_left.keys()])
 
     tasks = get_task_results(buildid, systemid)
 
@@ -400,7 +418,77 @@ def file_listing(dirname, filename, maxlen):
                 abegin, filename.ljust(maxlen), aend, size, tm))
 
 def mk_build_overview(buildid):
-    pass
+    cursor = _DB.cursor()
+    cursor.execute("select b.time"
+                   " from build b"
+                   " where b.id = %d" % (buildid))
+    rows = cursor.fetchall()
+    cursor.close()
+    buildtime = rows[0][0]
+
+    cursor = _DB.cursor()
+    cursor.execute("select b.time"
+                   " from build b"
+                   " where b.id = %d" % (buildid))
+    rows = cursor.fetchall()
+    cursor.close()
+    buildtime = rows[0][0]
+
+    systems = get_systems_for_build(buildid)
+
+    tasks = get_all_tasks_for_builds([buildid])
+
+    m = {}
+    m["project"] = updatehtml_cfg.projectname
+    m["now"] = format_time()
+    m["buttonurl"] = updatehtml_cfg.buttonurl
+    m["overviewurl"] = updatehtml_cfg.overviewurl
+
+    m["buildid"] = buildid
+    m["buildtime"] = format_time(buildtime)
+
+    ctr = {
+        'green': 0,
+        'yellow': 0,
+        'red': 0,
+        'white': 0,
+        }
+
+    res = []
+    lastplat = None
+    for sysinfo in systems:
+        bs = build_sys_info(buildid, buildtime, sysinfo)
+        if lastplat != bs.sysinfo.os_hw:
+            if lastplat != None:
+                res.append("<tr><td colspan=%d bgcolor=grey></td></tr>" % (
+                    3 + len(tasks)))
+            lastplat = bs.sysinfo.os_hw
+        row, row_status = result_row(bs , tasks,
+                                     result_details_anchor, system_label,
+                                     system_overview_anchor, hostname_label)
+
+        res.append(row)
+        ctr[row_status] += 1
+
+    m["content"] = '\n'.join(res)
+
+    res = ["  <tr>",
+           "    <th>Machine<br><font size=-1>(build details)</font></th>"]
+    for (taskid, taskname) in tasks:
+        res.append("    <th>%s</th>" % taskname)
+    res.append("    <th>Total</th>")
+    res.append("    <th>Hostname<br>"
+               "<font size=-1>(all builds for system)</font></th>")
+    res.append("  </tr>")
+    m["heading"] = "\n".join(res)
+
+    for c in ctr.keys():
+        m[c] = ctr[c]
+
+    page = updatehtml_templates.BUILD_OVERVIEW_PAGE % m
+    fn = os.path.join(updatehtml_cfg.output, "build-%d.html" % buildid)
+    open(fn, "w").write(page)
+
 
 
 def mk_system_overview(systemid):
@@ -437,7 +525,6 @@ def mk_system_overview(systemid):
 
     res = []
     for (buildid, buildtime) in rows:
-        pretty = format_time(buildtime)
         bs = build_sys_info(buildid, buildtime, sysinfo)
         row, row_status = result_row(bs , tasks,
                                      result_details_anchor, buildid_label,
@@ -465,7 +552,7 @@ def mk_system_overview(systemid):
     fn = os.path.join(updatehtml_cfg.output, "sys-%d.html" % systemid)
     open(fn, "w").write(page)
 
-def mk_all_index():
+def mk_all_index(force):
     cursor = _DB.cursor()
     cursor.execute("select distinct build, system"
                    " from task_result")
@@ -474,7 +561,7 @@ def mk_all_index():
     pending_builds = {}
     pending_systems = {}
     for (buildid, systemid) in rows:
-        if mkindex(buildid, systemid, systemid==22):
+        if mkindex(buildid, systemid, force):
             print "Generated index for", buildid, systemid
             pending_builds[buildid] = None
             pending_systems[systemid] = None
@@ -485,6 +572,12 @@ def mk_all_index():
     for systemid in pending_systems.keys():
         mk_system_overview(systemid)
 
-init()
-update_latest()
-mk_all_index()
+def main(force):
+    init()
+    update_latest()
+    mk_all_index(force)
+
+if __name__ == '__main__':
+    import sys
+    force = len(sys.argv) > 1 and sys.argv[1] == "--force"
+    main(force)

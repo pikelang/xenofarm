@@ -1,7 +1,7 @@
 LATEST_PAGE = """<html>
 <head><title>%(project)s: latest Xenofarm results</title></head>
 <body>
-<a href="index.html">[build overview]</a>
+<a href="latest.html">[latest results]</a>
 <h1>%(project)s: latest Xenofarm results</h1>
 This page collects the latest result for all machines that have ever
 reported a result.  Some of these results may be very old and
@@ -56,7 +56,7 @@ RESULT_PAGE = """<html>
       <table border=1>
         <tr>
           <td>Host:</td>
-          <td>%(hostname)s</td>
+          <td><a href="%(overviewurl)s/sys-%(systemid)s.html">%(hostname)s</a></td>
         </tr>
         <tr>
           <td>OS &amp; hardware:</td>
@@ -64,7 +64,7 @@ RESULT_PAGE = """<html>
         </tr>
         <tr>
           <td>Build ID:</td>
-          <td>%(buildid)d</td>
+          <td><a href="%(overviewurl)s/build-%(buildid)s.html">Build %(buildid)d</a></td>
         </tr>
         <tr>
           <td>Test name:</td>
@@ -104,10 +104,10 @@ RESULT_PAGE = """<html>
 """
 
 SYS_OVERVIEW_PAGE = """<html>
-<head><title>%(project)s: all Xenofarm results for %(hostname)s %(testname)s</title></head>
+<head><title>%(project)s: Xenofarm: %(hostname)s %(testname)s</title></head>
 <body>
-<a href="index.html">[build overview]</a>
-<h1>%(project)s: all Xenofarm results for %(hostname)s %(testname)s</h1>
+<a href="latest.html">[latest results]</a>
+<h1>%(project)s: Xenofarm: %(hostname)s %(testname)s</h1>
 This page collects all the results collected for %(hostname)s running
 the test %(testname)s.
 
@@ -129,6 +129,58 @@ the test %(testname)s.
         <tr>
           <td>Test name:</td>
           <td>%(testname)s</td>
+        </tr>
+      </table>
+    </td>
+    <td>
+      <table border=1>
+        <tr>
+          <th><img border=0 src="%(buttonurl)sgreen.gif"><br>(OK)</th>
+          <th><img border=0 src="%(buttonurl)syellow.gif"><br>(Warning)</th>
+          <th><img border=0 src="%(buttonurl)sred.gif"><br>(Failure)</th>
+        </tr>
+        <tr>
+          <td>%(green)s</td>
+          <td>%(yellow)s</td>
+          <td>%(red)s</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p>
+
+<table border=1>
+  %(heading)s
+  %(content)s
+</table>
+
+</body>
+</html>
+"""
+
+BUILD_OVERVIEW_PAGE = """<html>
+<head><title>%(project)s: Xenofarm: Build %(buildid)s</title></head>
+<body>
+<a href="latest.html">[latest results]</a>
+<h1>%(project)s: Xenofarm: Build %(buildid)s</h1>
+This page collects all the results collected for build %(buildid)s.
+
+<p>The information on this page was collected
+%(now)s.
+
+<table border=0>
+  <tr>
+    <td>
+      <table border=1>
+        <tr>
+          <td>Build:</td>
+          <td>%(buildid)s</td>
+        </tr>
+        <tr>
+          <td>Build time:</td>
+          <td>%(buildtime)s</td>
         </tr>
       </table>
     </td>
