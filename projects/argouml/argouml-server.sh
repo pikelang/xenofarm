@@ -105,3 +105,19 @@ EOF
 tar cfX $name.tar $working/EXCLUDED $working/build $working/lib $working/modules $working/src_new $working/tests $working/tools $working/buildid.txt $working/doit.sh || exit 1
 gzip $name.tar || exit 1
 rm $working/buildid.txt $working/doit.sh $working/EXCLUDED
+
+cd $working
+find . -type d -name CVS -print |
+while read dirname
+do
+    (
+        REST=`echo $dirname | sed -e "s;\\./;;" -e "s;/CVS;;"`
+	cat $dirname/Entries 2>/dev/null |
+	awk -F/ '$1 == "" {
+	    printf "insert into files values (%d, '"'%s/%s'"', '"'%s'"');\n", \
+		build, rest, $2, $3; }' build=$buildid "rest=$REST"
+    )
+done |
+mysql --batch \
+    -D argouml_xenofarm \
+    -u linus -p`cat /home/linus/.argouml_xenofarm_mysql_password`
