@@ -1,10 +1,10 @@
 
 // Xenofarm Garbage Collect
 // By Martin Nilsson
-// $Id: gc.pike,v 1.3 2002/08/20 17:31:56 mani Exp $
+// $Id: gc.pike,v 1.4 2002/08/30 00:24:54 mani Exp $
 
-string out_dir = "/home/nilsson/xenofarm/out/";
-string result_dir = "/home/nilsson/html/xenofarm_results/";
+string out_dir;
+string result_dir;
 
 int gc_poll = 60*60*2;
 int dists_left = 1;
@@ -58,6 +58,28 @@ void clean_res_dir(string dir, int save) {
 
 }
 
+void check_settings() {
+
+  if(!out_dir) {
+    write("No out directory found.\n");
+    exit(1);
+  }
+  if(!file_stat(out_dir) || !file_stat(out_dir)->isdir) {
+    write("Out directory %s does not exist.\n", out_dir);
+    exit(1);
+  }
+
+  if(!result_dir) {
+    write("No result directory found.\n");
+    exit(1);
+  }
+  if(!file_stat(result_dir) || !file_stat(result_dir)->isdir) {
+    write("Result directory %s does not exist.\n", result_dir);
+    exit(1);
+  }
+
+}
+
 int main(int n, array(string) args) {
 
   foreach(Getopt.find_all_options(args, ({
@@ -96,6 +118,8 @@ int main(int n, array(string) args) {
 	return 0;
       }
     }
+
+  check_settings();
 
   while(1) {
     clean_out_dir(out_dir, dists_left);
