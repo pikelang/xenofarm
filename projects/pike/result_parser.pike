@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.7 2002/07/24 18:37:43 mani Exp $
+// $Id: result_parser.pike,v 1.8 2002/07/29 20:45:46 mani Exp $
 
 inherit "result_parser.pike";
 
@@ -45,21 +45,10 @@ void parse_build_id(string fn, mapping res) {
     return;
   }
 
-  int year;
-  if( sscanf(file, "%*syear:%d", year)!=2 ) return;
-  int month;
-  if( sscanf(file, "%*smonth:%d", month)!=2 ) return;
-  int day;
-  if( sscanf(file, "%*sday:%d", day)!=2 ) return;
-  int hour;
-  if( sscanf(file, "%*shour:%d", hour)!=2 ) return;
-  int min;
-  if( sscanf(file, "%*sminute:%d", min)!=2 ) return;
-  int sec;
-  if( sscanf(file, "%*ssecond:%d", sec)!=2 ) return;
+  int build_time;
 
-  int build_time = mktime(sec, min, hour, day, month-1, year-1900, 0, 0);
-  if(!build_time) return;
+  if( sscanf(file, "%*stime:%d", build_time)!=2 )
+    return;
 
   array err = catch {
     res->build = (int)xfdb->query("SELECT id FROM build WHERE "
@@ -68,8 +57,7 @@ void parse_build_id(string fn, mapping res) {
   };
 
   if(err) {
-    debug("Build %d-%02d-%02d %02d:%02d:%02d not found.\n",
-	  year, month, day, hour, min, sec);
+    debug("Build %d not found.\n", build_time);
     if(verbose)
       write(describe_backtrace(err));
     else
