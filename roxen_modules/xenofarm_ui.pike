@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.6 2002/07/24 18:22:55 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.7 2002/07/25 02:17:23 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm UI module";
@@ -198,6 +198,12 @@ static void update_builds() {
 		      }) + builds[..sizeof(builds)-sizeof(new)-1];
     build_indices = builds->id;
   }
+
+  if(sizeof(builds)>query("results")) {
+    builds = builds[..query("results")-1];
+    build_indices = builds->id;
+  }
+
 
   // Update featured builds
 
