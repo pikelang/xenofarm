@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.6 2002/07/16 12:29:14 mani Exp $
+// $Id: result_parser.pike,v 1.7 2002/07/16 12:46:39 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -149,14 +149,16 @@ void process_package(string fn) {
   mapping result = low_process_package();
 
   if(result->build && result->system) {
-    mkdir(web_dir + result->build+"_"+result->system);
-    // mv dir, webdir
+    string dest = web_dir + result->build+"_"+result->system;
+    mkdir(dest);
+    foreach(get_dir(work_dir), string f)
+      mv(work_dir+f, dest+"/"+f);
   }
 
-  //  if(!rm(fn))
-  //    write("Unable to remove %O\n", fn);
-  //  else
-  processed_results[fn]=1;
+  if(!rm(fn))
+    write("Unable to remove %O\n", fn);
+  else
+    processed_results[fn]=1;
 }
 
 int main(int num, array(string) args) {
