@@ -1,7 +1,7 @@
 #!/bin/sh
 # init.d script for Pikefarm.
 #
-# $Id: init_d.pikefarm,v 1.2 2002/12/08 17:52:34 grubba Exp $
+# $Id: init_d.pikefarm,v 1.3 2002/12/08 17:57:23 grubba Exp $
 
 pikefarmhome=/pike/home/manual/xenofarm_cvs/projects/pike
 
@@ -41,14 +41,14 @@ case $1 in
   ;;
   'start')
     echo "Starting Pikefarm in $pikefarmhome..."
-    cd "pikefarmhome" &&
+    cd "$pikefarmhome" &&
       for server in $servers; do
         start_server $server
       done
   ;;
   'stop')
     echo "Stopping Pikefarm in $pikefarmhome..."
-    cd "pikefarmhome" &&
+    cd "$pikefarmhome" &&
       for server in $servers; do
         if test -f "$piddir/$server.pid" && \
 	   read pid <"$piddir/$server.pid"; then
