@@ -1,11 +1,11 @@
 #!/bin/sh
 # init.d script for Pikefarm.
 #
-# $Id: init_d.pikefarm,v 1.5 2002/12/08 18:15:36 grubba Exp $
+# $Id: init_d.pikefarm,v 1.6 2002/12/13 16:21:57 mani Exp $
 
-pikefarmhome=/pike/home/manual/xenofarm_cvs/projects/pike
+pikefarmhome=/pike/home/xenofarm/xenofarm_cvs/projects/pike
 
-pikefarmuser=manual
+pikefarmuser=xenofarm
 
 pike=pike
 
