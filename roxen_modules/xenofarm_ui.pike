@@ -4,38 +4,75 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.9 2002/07/31 01:24:40 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.10 2002/08/14 18:56:07 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
-constant module_name = "Xenofarm UI module";
+constant module_name = "Xenofarm: UI module";
 constant module_doc  = "...";
 constant module_unique = 1;
 
-void create() {
-
-  defvar( "xfdb", "mysql://localhost/xenofarm", "Xenofarm database",
-	  TYPE_STRING, "The build/result database" );
-
-  defvar( "results", 10, "Number of results", TYPE_INT,
-	  "The maximum number of results" );
+class DatabaseVar
+{
+  inherit Variable.StringChoice;
+  array get_choice_list( )
+  {
+    return ({ " none" })
+           + sort(DBManager.list( my_configuration() ));
+  }
 }
 
-static Sql.sql xfdb;
+void create()
+{
+  defvar("db", DatabaseVar(" none", ({}), 0, "Default database",
+			   "If this is defined, it's the database "
+			   "the xenofarm tags will use by default "
+			   "when no db attribute has been given, "
+			   "for all build and result data."));
 
-void start() {
-  xfdb = Sql.sql( query("xfdb") );
+  defvar("results", 10, "Number of results", TYPE_INT,
+	 "The maximum number of results" );
 }
 
-constant WHITE = 0;
-constant RED = 1;
-constant YELLOW = 2;
-constant GREEN = 3;
+string default_db;
 
-string fmt_time(int t) {
-    mapping m = localtime(t);
-    return sprintf("%d-%02d-%02d %02d:%02d:%02d",
-		   m->year+1900, m->mon+1, m->mday,
-		   m->hour, m->min, m->sec);
+void start()
+{
+  default_db = query("db");
+}
+
+string in_red(string msg)
+{
+  return sprintf("<font color=\"red\">%s</font>", msg);
+}
+
+string status()
+{
+  if(default_db != " none")
+  {
+    mixed err = catch
+    {
+      object o = DBManager.get(default_db, my_configuration());
+      if(!o)
+	error("The database specified as default database does not exist");
+      return sprintf("The default database is connected to %s server on %s."
+                     "<br />\n",
+                     Roxen.html_encode_string(o->server_info()),
+                     Roxen.html_encode_string(o->host_info()));
+    };
+    if(err)
+    {
+      return in_red("The default database is not connected:") + "<br />\n" +
+	     replace(Roxen.html_encode_string(describe_error(err)),
+		     "\n", "<br />\n") + "<br />\n";
+    }
+  } else
+    return in_red("Please set up a default database under the DBs tab.");
+  return "";
+}
+
+string fmt_time(int t)
+{
+  return Calendar.ISO.Second(t)->format_time();
 }
 
 string fmt_timespan(int t) {
@@ -52,33 +89,26 @@ string fmt_timespan(int t) {
   return res;
 }
 
-static class Build {
+constant WHITE = 0, RED = 1, YELLOW = 2, GREEN = 3;
 
-  int(0..) id;
-  int(0..) buildtime;
-  string str_buildtime;
+static class Build(int(0..) id,
+		   int(0..3) summary, int(0..) build_datetime,
+		   int(0..1) export_ok, int(0..2) docs_status)
+{
+  constant color = ([ WHITE : "white",
+			RED : "red",
+		     YELLOW : "yellow",
+		      GREEN : "green" ]);
+  constant export_color = ({ "red", "green" });		// int(0..1) export_ok
+  constant docs_color = ({ "white", "red", "green" }); // int(0..2) docs_status
 
-  int(0..1) src_export;
-  int(0..2) documentation;
-
-  void create(int(0..) _id, int(0..) _buildtime) {
-    id = _id;
-    buildtime = _buildtime;
-    str_buildtime = fmt_time(buildtime);
-    array res = xfdb->query("SELECT export,documentation FROM build WHERE "
-			    "id=%d", id);
-    src_export = ([ "yes":1 ])[res[0]->export];
-    if(!src_export) summary = 1;
-    documentation = ([ "yes":2,"no":1 ])[res[0]->documentation];
-  }
-
-  // client:status
+  //! client:status
   mapping(int(0..):string) results = ([]);
 
-  // client:warnings
+  //! client:warnings
   mapping(int(0..):int(0..)) warnings = ([]);
 
-  // client:time
+  //! client:time
   mapping(int(0..):int(0..)) time_spent = ([]);
 
   mapping(string:int(0..)) status_summary = ([
@@ -88,8 +118,6 @@ static class Build {
     "export" : 0,
   ]);
 
-  int(0..3) summary;
-
   constant ratings = ([
     "failed" : RED,
     "built" : YELLOW,
@@ -97,33 +125,25 @@ static class Build {
     "exported" : GREEN
   ]);
 
-  constant color = ([
-    WHITE : "white",
-    RED : "red",
-    YELLOW : "yellow",
-    GREEN : "green"
-  ]);
-
-  int(0..1) update_results() {
+  int(0..1) update_results(Sql.Sql xfdb)
+  {
     array res = xfdb->query("SELECT system,status,warnings,time_spent "
 			    "FROM result WHERE build = "+id);
     int changed;
-    foreach(res, mapping x) {
+    foreach(res, mapping x)
+    {
       int system = (int)x->system;
       if(results[system]) continue;
       results[system] = x->status;
-      changed=1;
+      changed = 1;
 
-      switch(x->status) {
-      case "exported":
-	status_summary->export++;
-      case "verified":
-	status_summary->verify++;
-      case "built":
-	status_summary->build++;
-      case "failed":
-      default:
-	status_summary->results++;
+      switch(x->status)
+      {
+        case "exported": status_summary->export++; // Fall through
+	case "verified": status_summary->verify++; // Fall through
+	case "built":	 status_summary->build++;  // Fall through
+	case "failed":
+	default:	 status_summary->results++;
       }
 
       warnings[system] = (int)x->warnings;
@@ -133,17 +153,17 @@ static class Build {
       summary = min( @map( values(results),
 			   lambda(string in) { return ratings[in]; } ) );
 
-    // FIXME: Update documentation
-
+    string docs = get(xfdb, "build", "documentation", ([ "id":id ]));
     return changed;
   }
 
-  mapping(string:int|string) get_build_entities() {
-    return ([ "id":id,
-	      "time":str_buildtime,
-	      "summary":color[summary],
-	      "source": ({ "red", "green" })[src_export],
-	      "documentation": ({ "white", "red", "green" })[documentation],
+  mapping(string:int|string) get_build_entities()
+  {
+    return ([ "id": id,
+	      "time": fmt_time(build_datetime),
+	      "summary": color[summary],
+	      "source": export_color[export_ok],
+	      "documentation": docs_color[docs_status],
     ]) + status_summary;
   }
 
@@ -177,8 +197,8 @@ static mapping(int:string) machines = ([]);
 static array(mapping(string:string)) machine_entities = ({});
 
 static int latest_update;
-static void update_builds() {
-
+static void update_builds(Sql.Sql xfdb)
+{
   // Only update internal state once a minute.
   if(latest_update < time(1))
     latest_update = time()+60;
@@ -189,15 +209,25 @@ static void update_builds() {
 
   int latest_build;
   if(sizeof(builds))
-    latest_build = builds[0]->buildtime;
+    latest_build = builds[0]->build_datetime;
 
-  array new = xfdb->query("SELECT id,time FROM build WHERE time > "+latest_build+
-			  " ORDER BY time DESC LIMIT "+query("results") );
+  array new = xfdb->query("SELECT id,time FROM build WHERE time > %d"
+			  " ORDER BY time DESC LIMIT %d", latest_build,
+			  query("results"));
 
-  if(sizeof(new)) {
-    builds = map(new, lambda(mapping in) {
-			return Build((int)in->id, (int)in->time);
-		      }) + builds[..sizeof(builds)-sizeof(new)-1];
+  if(sizeof(new))
+  {
+    builds = map(new, lambda(mapping in)
+		 {
+		   int id = (int)in->id, t = (int)in->time;
+		   mapping info = get(xfdb, "build",
+				      ({ "export", "documentation" }),
+				      ([ "id" : id ]));
+		   int summary, docs, export = info->export == "yes";
+		   docs = ([ "yes":2, "no":1 ])[info->documentation];
+		   if(!export) summary = RED;
+		   return Build(id, t, summary, export, docs);
+		 }) + builds[..sizeof(builds)-sizeof(new)-1];
     build_indices = builds->id;
   }
 
@@ -206,10 +236,9 @@ static void update_builds() {
     build_indices = builds->id;
   }
 
-
   // Update featured builds
 
-  int changed = `+( @builds->update_results() );
+  int changed = `+( @builds->update_results(xfdb) );
   if(!changed)
     return;
 
@@ -226,7 +255,8 @@ static void update_builds() {
       m[machine] = 0;
 
   foreach(indices(m), int machine) {
-    array data = xfdb->query("SELECT name,platform FROM system WHERE id="+machine);
+    array data = xfdb->query("SELECT name,platform FROM system WHERE id=%d",
+			     machine);
     machines[machine] = data[0]->name;
     platforms[machine] = data[0]->platform;
   }
@@ -252,9 +282,16 @@ class TagXF_Update {
     inherit RXML.Frame;
     mapping vars = ([]);
 
-    array do_enter() {
+    array do_enter()
+    {
+      Sql.Sql xfdb;
+      array error = catch(xfdb = DBManager.get(args->db || default_db,
+					       my_configuration(), 1));
+      if(!xfdb)
+	RXML.run_error("Couldn't connect to SQL server" +
+		       (error ? ": " + error[0] : "") + "\n");
       if(!xflock++)
-	update_builds();
+	update_builds(xfdb);
       vars->updated = fmt_time(latest_update);
     }
 
@@ -326,4 +363,37 @@ class TagXF_Details {
       vars = builds[build]->get_details(client);
     }
   }
+}
+
+//! Convenience method to get the column (or columns) @[field] from
+//! the database table @[table], where the conditions @[where] are
+//! satisfied. The result is never more than one row (in fact, a
+//! @code{" LIMIT 1"@} is always appended to the query), and if no
+//! rows match, the value @code{0@} is returned.
+string|mapping get(Sql.Sql db, string table,
+                   string|array field,
+                   array|mapping|string where)
+{ 
+  if(mappingp(where))
+    where = format_idx_is_val(db, where);
+  if(arrayp(where))
+    where *= " AND ";
+  string q = sprintf("SELECT %s FROM %s WHERE %s LIMIT 1",
+                     (stringp(field) ? field : field * ","), table, where);
+  array(mapping) rows = db->query(q);
+  if(sizeof(rows))
+    if(arrayp(field))
+      return rows[0];
+    else
+      return rows[0][field];
+}
+
+array(string) format_idx_is_val(Sql.Sql db, mapping(string:mixed) what)
+{ 
+  return Array.map((array)what,
+                   lambda(array w)
+                   { 
+                     return sprintf("%s='%s'", w[0],
+                                    db->quote((string)w[1]));
+                   });
 }
