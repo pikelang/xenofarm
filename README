@@ -55,7 +55,7 @@ HTTP PUT  by Per Hedbor
 The rest  by Martin Nilsson
 
 Substantial contributors:
-  Per  Cederqvist
+  Per Cederqvist
   Johan Sundström
   Anders Qvist
 
@@ -504,7 +504,7 @@ Once the result packages are uploaded to the result server, which need
 not be the same machine as the export server, they are processed by
 the result parser. The result parser is a fairly simplistic script
 that checks the in directory for new files at given intervals, and if
-a new script is found does the following:
+a new result package is found does the following:
 
  1. Unzips and untars the package into a working directory.
  2. Retrieves the build id.
