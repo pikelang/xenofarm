@@ -1,10 +1,19 @@
 #
-# $Id: Makefile,v 1.6 2003/01/06 17:51:57 ceder Exp $
+# $Id: Makefile,v 1.7 2003/01/16 22:05:27 ceder Exp $
 #
 
 USER=mani
 SERVER=proton.lysator.liu.se
 .PHONY : publish preview website clean
+
+all:
+	@echo Please specify the target you need.
+	@echo 
+	@echo Note: this makefile is only used to publish the web pages at
+	@echo http://www.lysator.liu.se/xenofarm/. Please read README if you
+	@echo want to set up your own Xenofarm project, or client/README if
+	@echo you want to run a client.  In neither case will you be using
+	@echo this Makefile.
 
 publish: website
 	scp build/web/* $(USER)@$(SERVER):/lysator/www/projects/xenofarm
