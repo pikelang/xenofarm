@@ -33,6 +33,8 @@ test -x $DEPLOYMENT_JAVA_HOME/bin/javac || {
     exit 1;
 }
 
+$JAVA_HOME/bin/java -version > javaversion.txt
+
 
 echo FORMAT 2 > $LOG
 
@@ -87,6 +89,7 @@ fi
 
 tar cf xenofarm_result.tar \
     buildid.txt $LOG *.log.txt *.log.html \
+    javaversion.txt \
     junittesthtml.tar
 gzip --fast xenofarm_result.tar
 
