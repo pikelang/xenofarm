@@ -24,24 +24,38 @@ mysql --batch \
     -u linus -p`cat /home/linus/.argouml_xenofarm_mysql_password` |
 sed -e '1d' |
 /sw/local/bin/awk -F'	' '
-BEGIN { print "<H1>Build results for ArgoUML</H1>"; 
+BEGIN {
+    print "<TITLE>Xenofarm results for ArgoUML</TITLE>";
+    print "<H1>Build results for ArgoUML</H1>";
     print "This result was generated ", strftime("%a %b %d %H:%M:%S %Y");
     print "<TABLE BORDER=3>";
-    print "<TR><TH>Target</TH><TH>Result</TH><TH>Warnings</TH>";
+    print "<TR><TH>Java</TH><TH>Task</TH><TH>Result</TH><TH>Warnings</TH>";
     print "<TH>Host</TH>";
+    print "<TH>Time</TH>";
     print "</TR>";
 }
-{ if (id != $1) {
-    print "<TR><TH COLSPAN=4>Build", $1, " from ";
-    print strftime("%a %b %d %H:%M:%S %Y", $2), "</TH></TR>";
-    id = $1;
+{
+    if (id != $1) {
+	print "<TR><TH COLSPAN=6>Build", $1, " from ";
+	print strftime("%a %b %d %H:%M:%S %Y", $2), "</TH></TR>";
+	id = $1;
     }
-  print "<TR><TD>";
-  printf "<A HREF=\"'$url'%d_%d\">", $1, $3;
-  print $13, $9, "</A></TD>";
-  print "<TD ALIGN=CENTER>", $10, "</TD><TD ALIGN=CENTER>", $11, "</TD>";
-  print "<TD>", $4, "(", $5, $6, ")", "</TD>";
-  print "</TR>";
+    print "<TR><TD>";
+    printf "<A HREF=\"'$url'%d_%d\">", $1, $3;
+    print $13, "</A></TD>";
+    print "<TD>", $9, "</TD>";
+    print "<TD ALIGN=CENTER";
+    if ($10 == "FAIL") print "bgcolor=#FF0000";
+    if ($10 == "WARN") print "bgcolor=#FFCC00";
+    print ">", $10, "</TD>";
+    print "<TD ALIGN=CENTER>", $11, "</TD>";
+    print "<TD>", $4, "(", $5, $6, ")", "</TD>";
+    printf "<TD>%02d:%02d:%02d</TD>\n", $12/3600, ($12 % 3600)/60, $12%60;
+    print "</TR>";
 }
-END { print "</TABLE>"; }' |
+END {
+    print "</TABLE>"; 
+    print "For details about ArgoUML visit ";
+    print "<a href=\"http://argouml.tigris.org/\">the ArgoUML site</a>."; 
+}' |
 cat > $output
