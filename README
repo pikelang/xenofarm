@@ -310,18 +310,21 @@ Arguments:
 3.5. Example Setup for the Generic Server Script
 
 Let's say that you want to set up a Xenofarm for Python. The first
-step is to create a work directory for the generic server script, and
-perform an initial checkout of the Python sources. Like this:
+step is to create a web export directory. This is where the build
+packages will be created. This must be accessible by a web server.
+
+  $ mkdir -p /some/path/pythonexport
+
+You also need a work directory for the generic server script. It must
+be located on the same partition as the web export directory. You must
+perform an initial checkout of the Python sources inside the work
+directory, like this:
 
   $ mkdir -p /some/path/pythonworkdir
   $ cd /some/path/pythonworkdir
   $ cvs -z3 -d:pserver:anonymous@cvs.python.sourceforge.net:/cvsroot/python \
 	 co python
   $
-
-You also need a web export directory (more about this below).
-
-  $ mkdir -p /some/path/pythonexport
 
 Finally, you need to create a database. Assuming that the user "linus"
 will do the database maintenance and run server.pike and
@@ -354,6 +357,9 @@ Once all this is in place, you can run the generic script like this:
 
 The server will run forever and create new build packages within
 /some/dir/pythonworkdir/ when anything has changed.
+
+To avoid having to give so many options, you can create an inherited
+server.pike.  See projects/python/stable/server.pike for an example.
 
 
 4. The Web Export
@@ -677,4 +683,33 @@ Arguments:
 
 10. Creating your own Project
 
-TBD
+Here is a checklist of the things you must do to set up a new
+project. If you use a non-standard server.pike or result_parser.pike,
+this checklist may be incorrect.
+
+ 1. Follow the steps in "3.5. Example Setup for the Generic Server
+    Script", but don't run server.pike just yet.
+
+ 2. Make sure the resulting build package can produce a result
+    package.  See "7.1. Format of a Result Package".
+
+ 3. Run server.pike with the --force option:
+
+      $ pike server.pike --verbose --force <options as in 3.5>
+
+    A build package should be created.
+
+ 4. Set up the Roxen module xenofarm_fs.pike.  See "4. The Web
+    Export".
+
+ 5. Create a config file for the client.  See "4. Configuring the
+    client." in client/README.
+
+ 6. Run the client:
+
+	./client.sh
+
+    It should download the build package, build it, and upload the
+    resulting result package.
+
+ 7. FIXME: TBD: How to process the result package.
