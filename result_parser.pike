@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.9 2002/07/28 23:17:27 mani Exp $
+// $Id: result_parser.pike,v 1.10 2002/08/09 13:13:39 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -79,7 +79,10 @@ void parse_log(string fn, mapping res) {
 }
 
 void count_warnings(string fn, mapping res) {
-  Stdio.FILE file = Stdio.FILE(fn);
+  Stdio.FILE file;
+  catch {
+    file = Stdio.FILE(fn);
+  };
   if(!file) return;
 
   int warnings;
@@ -296,5 +299,5 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.9 2002/07/28 23:17:27 mani Exp $\n";
+"$Id: result_parser.pike,v 1.10 2002/08/09 13:13:39 mani Exp $\n";
 constant prog_doc = "Blah blah\n";
