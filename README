@@ -240,6 +240,32 @@ the client in this way:
     the source distribution target is broken so that some files are not
     generated.
 
+We have tried to keep the interface between the distributed package
+and the client as simple as possible. The package should be a standard
+tar.gz file, which when unpacked should result in a single directory
+with all the files and subdirectories of the project in it. Once
+unpacked, the client will enter the directory and run the make target
+defined in the clients configuration file. It expects this to result
+in a result.tar.gz file. This file must be a standard tar.gz file,
+since the client may repackage the result in the future.
+
+If the make fails the client will create a result.tar.gz file of its
+own. It will contain at least three files:
+
+xenofarmclient.txt
+  This file contains a log of all output from running the make target
+  in the package. [Currently this file is named RESULT, but that will
+  be changed in the near future.]
+
+machineid.txt
+  This file contains the output from "uname -s -r -m" followed by the
+  output from "uname -n".
+
+exportstamp.txt
+  This file is a copy of the exportstamp.txt file in the package.
+  [Currently this file is named export.stamp, but that will be changed
+  in the near future.]
+
 For more information about the compilation client, see the README in
 the client directory.
 
