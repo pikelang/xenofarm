@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.75 2003/09/15 13:33:49 mani Exp $
+# $Id: client.sh,v 1.76 2003/09/15 17:20:00 mani Exp $
 # Distribution version: 1.2
 # License: GPL
 #
@@ -68,7 +68,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.75 2003/09/15 13:33:49 mani Exp $
+	echo \$Id: client.sh,v 1.76 2003/09/15 17:20:00 mani Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -428,12 +428,14 @@ run_test() {
                 check_multimachinecompilation
 
                 if [ -d xenofarm_result ] ; then
+                    cp buildid.txt xenofarm_result
                     (
                      cd xenofarm_result &&
                      make_machineid &&
                      tar cf xenofarm_result.tar * &&
                      gzip xenofarm_result.tar &&
-                     mv xenofarm_result.tar.gz "$resultdir"
+                     cd .. &&
+                     mv xenofarm_result/xenofarm_result.tar.gz "$resultdir"
                     ) || exit 25
                 elif [ -f xenofarm_result.tar.gz ] ; then
                     # This branch is for support of the old API
