@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.23 2002/08/14 15:54:17 ceder Exp $
+// $Id: server.pike,v 1.24 2002/08/30 01:42:25 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -84,6 +84,7 @@ int get_latest_checkin() {
 // Return true on success, false on error.
 int transform_source(string cvs_module, string name, string buildid) {
   if(source_transformer) {
+    // FIXME: quoting.
     if(Process.system(source_transformer+" "+cvs_module+" "+name+" "
 		      +buildid)) {
       write(source_transformer+" failed\n");
@@ -389,7 +390,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.23 2002/08/14 15:54:17 ceder Exp $\n";
+"$Id: server.pike,v 1.24 2002/08/30 01:42:25 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
@@ -411,7 +412,7 @@ Possible arguments:
                Defaults to 60 seconds.
 --repository   The CVS repository the server should use.
 --verbose      Send messages about everything that happens to stdout.
---web-dir      Where the outgoing source packages should be put.
+--web-dir      Where the outgoing build packages should be put.
 --work-dir     Where temporary files should be put.
 --source-transform Program that builds the source package (see README).
 ";
