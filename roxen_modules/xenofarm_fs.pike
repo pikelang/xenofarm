@@ -5,17 +5,18 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.15 2002/08/11 13:51:22 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.16 2002/08/12 07:25:13 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
-constant module_name = "Xenofarm I/O module";
-constant module_doc  = #"This module provides a mount point from which the new build packages
-can be fetched by the clients. At also provides a redirect from <tt>moutpoint/latest</tt> to
-the latest build. The time stamps are taken from the file names (project-YYYYMMDD-hhmmss.tar.gz)
-and not from file stats. At <tt>mountpoint/result</tt> this module also accepts HTTP PUT of
-finished results. Results will be named as res&lt;timestamp&gt;-&lt;counter&gt.tar.gz, e.g.
-res1028172584_4.tar.gz. The counter wraps at 10.
-";
+constant module_name = "Xenofarm: I/O module";
+constant module_doc  = #"This module provides a mount point from which build
+packages can be fetched by the clients. It also provides a redirect from
+<tt><i>moutpoint</i>/latest</tt> to the most recent build. The time stamps are
+parsed from the file names (project-YYYYMMDD-hhmmss.tar.gz) and not from file
+stats. At <tt><i>mountpoint</i>/result</tt> this module also accepts HTTP PUTs
+of finished results. These will be named as
+res<i>&lt;timestamp&gt;</i>-<i>&lt;counter&gt;</i>.tar.gz, e g
+res1028172584_4.tar.gz. The counter wraps at 10.";
 
 void create() {
   defvar( "mountpoint", "/xenofarm/",
@@ -25,11 +26,11 @@ void create() {
 
   defvar( "distpath", "NONE", "Dist search path",
 	  TYPE_DIR|VAR_INITIAL,
-	  "The directory that contains the export files.");
+	  "The directory that contains the files to supply to the clients.");
 
   defvar( "resultpath", "NONE", "Result search path",
 	  TYPE_DIR|VAR_INITIAL,
-	  "The directory where results will be stored." );
+	  "The directory where uploaded results will be stored." );
 }
 
 string info() {
