@@ -34,6 +34,9 @@ ln $lockfile $lock
 trap "rm -f $lockfile $lock ; exit 0" 0 1 2 15
 
 # Nu kör vi!
+    # Rensa lite dumma saker.
+    rm -f $ROOT/work/res/tmp
+
     # Bygg dist
     ../../server.pike \
 	--repository=:pserver:guest@cvs.tigris.org:/cvs \
@@ -64,7 +67,7 @@ trap "rm -f $lockfile $lock ; exit 0" 0 1 2 15
     ./gen-diffs.sh
 
     # Rensa bort gamla filer
-    ( cd $ROOT && find files -type d -mtime +$SPARA_DAGAR -exec rm -r "{}" ";" )
+    ( cd $ROOT && find files -mindepth 1 -maxdepth 1 -type d -mtime +$SPARA_DAGAR -exec rm -r "{}" ";" )
     ( cd $ROOT && find export -mtime +$SPARA_DAGAR -exec rm "{}" ";" )
     # packa upp tar-arkiv
     find $ROOT/files -type f -name junittesthtml.tar -print |
