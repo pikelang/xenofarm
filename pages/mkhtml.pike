@@ -172,6 +172,7 @@ mapping links = ([
   "Martin Nilsson" : "http://www.lysator.liu.se/~mani/",
   "Peter Bortas" : "http://peter.bortas.org/",
   "Per Hedbor" : "http://per.hedbor.org/",
+  "Johan Schön" : "http://johan.schon.org/",
   "Tinderbox" : "http://tinderbox.mozilla.org/",
   "Mozilla" : "http://www.mozilla.org/",
   "Pike" : "http://pike.ida.liu.se/",
