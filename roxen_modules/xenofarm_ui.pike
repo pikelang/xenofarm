@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.25 2002/11/30 03:43:44 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.26 2002/11/30 05:28:26 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -109,38 +109,34 @@ static string fmt_timespan(int t) {
   return res;
 }
 
-static constant WHITE = 0, RED = 1, YELLOW = 2, GREEN = 3;
+static string my_min(array in) {
+  if(has_value(in, "FAIL")) return "FAIL";
+  if(has_value(in, "PASS")) return "PASS";
+  return "WARN";
+}
 
 static class Build {
 
-  int(0..) id;
-  int(0..3) summary;
-  int(0..) build_datetime;
-  int(0..1) export_ok;
-  int(0..2) docs_status;
   Project project;
+  int(0..) id;
+  int(0..) build_datetime;
+
+  string summary;
+  string export;
 
   string str_build_datetime;
 
   void create(int(0..) _id, int(0..) _build_datetime,
-	      int(0..1) _export_ok, int(0..2) _docs_status, Project _project) {
+	      string _export, Project _project) {
 
     id = _id;
     build_datetime = _build_datetime;
-    export_ok = _export_ok;
-    docs_status = _docs_status;
+    export = _export;
     project = _project;
 
-    if(!export_ok) summary = RED;
+    summary = export;
     str_build_datetime = fmt_time(build_datetime);
   }
-
-  constant color = ([ WHITE : "white",
-			RED : "red",
-		     YELLOW : "yellow",
-		      GREEN : "green" ]);
-  constant export_color = ({ "red", "green" });		// int(0..1) export_ok
-  constant docs_color = ({ "white", "red", "green" }); // int(0..2) docs_status
 
   //! client:status
   mapping(int(0..):string) results = ([]);
@@ -151,53 +147,49 @@ static class Build {
   //! client:time
   mapping(int(0..):int(0..)) time_spent = ([]);
 
-  mapping(string:int(0..)) status_summary = ([
-    "results" : 0,
-    "build" : 0,
-    "verify" : 0,
-    "export" : 0,
-  ]);
+  mapping(int(0..):mapping(int(0..):array)) task_results = ([]);
 
-  constant ratings = ([
-    "failed" : RED,
-    "built" : YELLOW,
-    "verified" : YELLOW,
-    "exported" : GREEN
-  ]);
+  mapping(string:int(0..)) status_summary = ([]);
 
   int(0..1) update_results(Sql.Sql xfdb)
   {
-    array res = xfdb->query("SELECT system,status,warnings,time_spent "
-			    "FROM result WHERE build = "+id);
+    array res = xfdb->query("SELECT system,task,status,warnings,time_spent "
+			    "FROM task_result WHERE build = "+id);
     int changed;
+    int build_task = project->build_task;
+    array(int) new_systems = ({});
     foreach(res, mapping x)
     {
       int system = (int)x->system;
       if(results[system]) continue;
-      results[system] = x->status;
       changed = 1;
+      if(!task_results[system]) task_results[system] = ([]);
+      int task = (int)x->task;
+      task_results[system][task] = 
+	({ x->status, (int)x->time_spent, (int)x->warnings });
+      new_systems += ({ system });
 
-      switch(x->status)
-      {
-        case "exported": status_summary->export++; // Fall through
-	case "verified": status_summary->verify++; // Fall through
-	case "built":	 status_summary->build++;  // Fall through
-	case "failed":
-	default:	 status_summary->results++;
+      if(x->status!="FAIL") status_summary[task]++;
+    }
+
+    foreach(new_systems, int system) {
+      mapping tasks = task_results[system];
+      string status = tasks[build_task];
+      array data = values(tasks);
+      if(!status)
+	results[system] = "FAIL";
+      else if(status=="PASS") {
+	results[system] = my_min( column(data,0) );
       }
+      else
+	results[system] = status[0];
 
-      warnings[system] = (int)x->warnings;
-      time_spent[system] = (int)x->time_spent;
+      time_spent[system] = `+( @column(data,1) );
+      warnings[system] = `+( @column(data,2) );
     }
+
     if(changed)
-      summary = min( @map( values(results),
-			   lambda(string in) { return ratings[in]; } ) );
-
-    if(!docs_status) {
-      string docs = get(xfdb, "build", "documentation", ([ "id":id ]));
-      docs_status = ([ 0:0, "no":1, "yes":2 ])[docs];
-      if(docs_status) changed=1;
-    }
+      summary = my_min( values(results) );
 
     return changed;
   }
@@ -206,9 +198,8 @@ static class Build {
   {
     return ([ "id": id,
 	      "time": str_build_datetime,
-	      "summary": color[summary],
-	      "source": export_color[export_ok],
-	      "documentation": docs_color[docs_status],
+	      "summary": summary,
+	      "source": export,
     ]) + status_summary;
   }
 
@@ -216,7 +207,7 @@ static class Build {
     get_result_entities(void|int machine) {
 
     if(!zero_type(machine))
-      return ([ "status" : color[ratings[results[machine]]],
+      return ([ "status" : results[machine]||"NONE",
 		"system" : machine,
 		"build" : id,
 		"warnings" : warnings[machine],
@@ -225,7 +216,7 @@ static class Build {
       ]);
     array ret = ({});
     foreach(sort(indices(project->machines)), int system)
-      ret += ({ ([ "status" : color[ratings[results[system]]],
+      ret += ({ ([ "status" : results[system]||"NONE",
 		   "system" : system,
 		   "build" : id,
       ]) });
@@ -263,6 +254,9 @@ static class Project {
   int last_changed;
   int next_update;
 
+  int build_task;
+  int tasks;
+
   //! Updates the module's internal state with recent activity by the
   //! packager daemons and the result parsers, as logged in the
   //! Xenofarm database of choice.
@@ -282,20 +276,27 @@ static class Project {
     if(sizeof(builds))
       latest_build = builds[0]->build_datetime;
 
-    array new = xfdb->query("SELECT id,time FROM build WHERE time > %d"
+    array new = xfdb->query("SELECT id,name FROM task WHERE id > " + tasks);
+
+    if(sizeof(new)) {
+      tasks = sizeof(new);
+      foreach(new, mapping res) {
+	if(res->name=="build") {
+	  build_task = (int)res->id;
+	  break;
+	}
+      }
+    }
+
+    new = xfdb->query("SELECT id,time,export FROM build WHERE time > %d"
 			    " ORDER BY time DESC LIMIT %d", latest_build,
 			    query("results"));
 
     if(sizeof(new)) {
       new_build = time();
       builds = map(new, lambda(mapping in) {
-			  int id = (int)in->id, t = (int)in->time;
-			  mapping info = get(xfdb, "build",
-					     ({ "export", "documentation" }),
-					     ([ "id" : id ]));
-			  int summary, docs, export = info->export == "yes";
-			  docs = ([ "yes":2, "no":1 ])[info->documentation];
-			  return Build(id, t, export, docs, this_object());
+			  return Build( (int)in->id, (int)in->time,
+					in->export, this_object() );
 			}) + builds[..sizeof(builds)-sizeof(new)-1];
       build_indices = builds->id;
     }
@@ -325,10 +326,18 @@ static class Project {
 	m[machine] = 0;
 
     foreach(indices(m), int machine) {
-      array data = xfdb->query("SELECT name,platform FROM system WHERE id=%d",
-			       machine);
+      array data = xfdb->query("SELECT name,sysname,release,version,"
+			       "machine,testname "
+			       "FROM system WHERE id=%d", machine);
       machines[machine] = data[0]->name;
-      platforms[machine] = data[0]->platform;
+      string u_sysname = data[0]->sysname;
+      string u_release = data[0]->release;
+      string u_version = data[0]->version;
+      string u_machine = data[0]->machine;
+
+      platforms[machine] = u_sysname + " " + u_release + " " + u_machine;
+      if(data[0]->testname!="")
+	platforms[machine] += " " + data[0]->testname;
     }
 
     array me = ({});
@@ -707,11 +716,6 @@ constant tagdoc = ([
   "&_.source;":#"<desc type='entity'><p>
   The result from the source package creation. Can assume one of the values
   \"red\", \"yellow\" and \"green\".
-</p></desc>",
-
-  "&_.documentation;":#"<desc type='entity'><p>
-  The result from the documentation creation. Can assume one of the values
-  \"white\", \"red\", \"yellow\" and \"green\".
 </p></desc>",
 
   // Project dependent
