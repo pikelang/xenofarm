@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.24 2002/11/19 00:07:36 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.25 2002/11/30 03:43:44 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -52,6 +52,7 @@ static string in_red(string msg)
 
 string status()
 {
+  string ret = "";
   if(default_db != " none")
   {
     mixed err = catch
@@ -59,20 +60,34 @@ string status()
       object o = DBManager.get(default_db, my_configuration());
       if(!o)
 	error("The database specified as default database does not exist");
-      return sprintf("The default database is connected to %s server on %s."
+      ret += sprintf("The default database is connected to %s server on %s."
                      "<br />\n",
                      Roxen.html_encode_string(o->server_info()),
                      Roxen.html_encode_string(o->host_info()));
     };
     if(err)
     {
-      return in_red("The default database is not connected:") + "<br />\n" +
+      ret += in_red("The default database is not connected:") + "<br />\n" +
 	     replace(Roxen.html_encode_string(describe_error(err)),
 		     "\n", "<br />\n") + "<br />\n";
     }
   } else
-    return in_red("Please set up a default database under the DBs tab.");
-  return "";
+    ret += in_red("Please set up a default database under the DBs tab.");
+
+  if(sizeof(projects)) {
+    ret += "<table border='1'>\n"
+      "<tr><th>Database</th><th>Next update in</th>"
+      "<th>New build</th><th>Last changed</th></tr>\n";
+    foreach(indices(projects), string db) {
+      Project p = projects[db];
+      ret += "<tr><td>" + db + "</td><td>" +
+      (p->next_update-time()) + " s</td><td>" +
+	fmt_timespan(time()-p->new_build) + " ago</td><td>" +
+	fmt_timespan(time()-p->last_changed) + " ago</td></tr>\n";
+    }
+    ret += "</table>\n";
+  }
+  return ret;
 }
 
 static string fmt_time(int t)
@@ -244,6 +259,8 @@ static class Project {
   mapping(int:string) machines = ([]);
   array(mapping(string:string|int)) machine_entities = ({});
 
+  int new_build;
+  int last_changed;
   int next_update;
 
   //! Updates the module's internal state with recent activity by the
@@ -270,6 +287,7 @@ static class Project {
 			    query("results"));
 
     if(sizeof(new)) {
+      new_build = time();
       builds = map(new, lambda(mapping in) {
 			  int id = (int)in->id, t = (int)in->time;
 			  mapping info = get(xfdb, "build",
@@ -292,6 +310,7 @@ static class Project {
     int changed = `+( 0, @builds->update_results(xfdb) );
     if(!changed)
       return latency;
+    last_changed = time();
 
     // Update list of involved machines
 
