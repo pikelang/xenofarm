@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.6 2002/05/12 23:00:05 mani Exp $
+// $Id: server.pike,v 1.7 2002/05/15 01:10:21 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -25,7 +25,7 @@ int latest_build;
 int get_latest_build() {
   array res = xfdb->query("SELECT MAX(time) AS latest_build FROM build WHERE project=%s", project);
   if(!sizeof(res)) return 0;
-  return res[0]->latest_build;
+  return (int)res[0]->latest_build;
 }
 
 int get_latest_checkin() {
@@ -48,12 +48,17 @@ string make_build_low() {
 
 void make_build() {
 
+  int old_build_time = latest_build;
+
   string build_name = make_build_low();
   if(!build_name) {
     werror("No source distribution was created by make_build_low...\n");
     return;
   }
   if(verbose) werror("The source distribution %s assembled.\n", build_name);
+
+  if(latest_build == old_build_time)
+    latest_build = time();
 
   string fn = (build_name/"/")[-1];
 
@@ -62,7 +67,7 @@ void make_build() {
     return;
   }
 
-  xfdb->query("INSERT INTO builds (time, project) VALUES (%d,%s)", latest_build, project);
+  xfdb->query("INSERT INTO build (time, project) VALUES (%d,%s)", latest_build, project);
 }
 
 string fmt_time(int t) {
@@ -92,7 +97,7 @@ void check_settings() {
     werror("No web dir found.\n");
     exit(1);
   }
-  if(web_dir[-1]!="/")
+  if(web_dir[-1]!='/')
     web_dir += "/";
   if(!file_stat(web_dir)) {
     werror("%s does not exist.\n", web_dir);
@@ -113,6 +118,15 @@ void check_settings() {
   if(!project) {
     werror("No project set.\n");
     exit(1);
+  }
+
+  if(verbose) {
+    werror("Database   : %s\n", xfdb->host_info());
+    werror("Project    : %s\n", project);
+    werror("Repository : %s\n", repository);
+    werror("Work dir   : %s\n", work_dir);
+    werror("Web dir    : %s\n", web_dir);
+    werror("\n");
   }
 }
 
@@ -194,8 +208,14 @@ int main(int num, array(string) args) {
 
     // Is there a queued build?
     if(next_build) {
-      if(verbose) werror("New build scheduled to run in %s.\n", fmt_time(next_build-time()));
-      if(next_build<time()) {
+      if(verbose) {
+	int diff = next_build-time();
+	if(diff<=0)
+	  werror("New build scheduled to run at once.\n");
+	else
+	  werror("New build scheduled to run in %s.\n", fmt_time(diff));
+      }
+      if(next_build<=time()) {
 	if(verbose) werror("Making new build.\n");
 	make_build();
 	latest_build = get_latest_build();
@@ -230,6 +250,6 @@ int main(int num, array(string) args) {
   return 1;
 }
 
-constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.6 2002/05/12 23:00:05 mani Exp $\n";
+constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.7 2002/05/15 01:10:21 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
