@@ -72,9 +72,11 @@ void main(int n, array(string) args) {
     string file = Stdio.read_file(fn);
     file = String.trim_all_whites(file);
     file = _Roxen.html_encode_string(file);
-    file = replace(file, links);
+    //    file = replace(file, links);
     chapters = file / "\n\n\n";
   }
+
+  write("<use file='template'/>\n<page>\n");
 
   // Special case for contents chapter...
   chapters = chapters[1..];
@@ -82,4 +84,5 @@ void main(int n, array(string) args) {
   foreach(chapters, string chapter)
     layout_chapter(chapter);
 
+  write("</page>\n");
 }
