@@ -83,6 +83,7 @@ do
       if [ -f $builddir/$task.fail ]
       then
           color=red
+	  logtypes="fail $logtypes"
 	  status=red
       elif [ -f $builddir/$task.warn ]
       then
