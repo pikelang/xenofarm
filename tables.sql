@@ -1,7 +1,7 @@
 #
 # Database tables for Xenofarm.
 # Implemented to work with MySQL
-# $Id: tables.sql,v 1.5 2002/11/30 03:24:29 mani Exp $
+# $Id: tables.sql,v 1.6 2002/11/30 05:29:22 mani Exp $
 #
 
 # The generic build table.
@@ -16,12 +16,13 @@ CREATE TABLE build (
 # Table with the build systems.
 
 CREATE TABLE system (
-  id       INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
-  name     VARCHAR(255) NOT NULL,
-  sysname  VARCHAR(255) NOT NULL,
-  release  VARCHAR(255) NOT NULL,
-  version  VARCHAR(255) NOT NULL,
-  machine  VARCHAR(255) NOT NULL
+  id        INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  name      VARCHAR(255) NOT NULL,
+  sysname   VARCHAR(255) NOT NULL,
+  release   VARCHAR(255) NOT NULL,
+  version   VARCHAR(255) NOT NULL,
+  machine   VARCHAR(255) NOT NULL,
+  testname  VARCHAR(255) NOT NULL
 );
 
 
