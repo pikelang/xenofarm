@@ -2,7 +2,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.18 2002/08/12 23:16:28 mani Exp $
+// $Id: server.pike,v 1.19 2002/08/13 01:06:04 ceder Exp $
 
 Sql.Sql xfdb;
 
@@ -181,7 +181,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "distance":
-	min_build_distance = opt[1];
+	min_build_distance = (int)opt[1];
 	break;
 
       case "force":
@@ -193,7 +193,7 @@ int main(int num, array(string) args) {
 	return 0;
 
       case "latency":
-	checkin_latency = opt[1];
+	checkin_latency = (int)opt[1];
 	break;
 
       case "module":
@@ -201,7 +201,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "poll":
-	checkin_poll = opt[1];
+	checkin_poll = (int)opt[1];
 	break;
 
       case "repository":
@@ -300,7 +300,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.18 2002/08/12 23:16:28 mani Exp $\n";
+"$Id: server.pike,v 1.19 2002/08/13 01:06:04 ceder Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
