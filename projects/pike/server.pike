@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.20 2002/08/31 00:41:03 mani Exp $
+// $Id: server.pike,v 1.21 2002/09/16 22:19:14 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -13,12 +13,13 @@ inherit "../../server.pike";
 
 // Set default values to variables, so that we don't have to remember to give them
 // when starting the program.
-Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
+Sql.Sql xfdb = Sql.Sql("mysql://rw@:/pike/sw/roxen"
+		       "/configurations/_mysql/socket/xenofarm");
 string project = "pike7.3";
-string web_dir = "/home/nilsson/xenofarm/out/";
-string work_dir = "/home/nilsson/xenofarm/temp/";
+string web_dir = "/pike/home/manual/pikefarm/out/";
+string work_dir = "/pike/home/manual/pikefarm/out_work/";
 string cvs_module = "(ignored)"; // Ignore this.
-string repository = "(ignored)"; // Ignore this.
+string repository = "/pike/data/cvsroot"; // Ignore this.
 
 string pike_version = "7.3";
 
@@ -65,11 +66,12 @@ int get_latest_checkin()
 string make_build_low() {
   cd(work_dir);
   Stdio.recursive_rm("Pike");
-  if(Process.system("cvs -Q -d :ext:nilsson@pelix.ida.liu.se:/pike/data/cvsroot co Pike/"+
+  if(Process.system("cvs -Q "+repository+" co Pike/"+
 		    pike_version))
     return 0;
   cd("Pike/"+pike_version);
-  if(Process.system("make xenofarm_export")) {
+  if(Process.system("make xenofarm_export "
+		    "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\"")) {
     latest_build = time();
     xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'no')",
 		latest_build, project);
@@ -94,7 +96,7 @@ string make_build_low() {
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.20 2002/08/31 00:41:03 mani Exp $\n";
+"$Id: server.pike,v 1.21 2002/09/16 22:19:14 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Project defaults to pike7.3.

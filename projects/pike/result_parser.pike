@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.11 2002/08/30 00:01:26 mani Exp $
+// $Id: result_parser.pike,v 1.12 2002/09/16 22:19:14 mani Exp $
 
 inherit "../../result_parser.pike";
 
@@ -16,10 +16,11 @@ constant db_def2 = "CREATE TABLE result (build INT UNSIGNED NOT NULL, " // FK bu
                    "time_spent INT UNSIGNED NOT NULL, "
                    "PRIMARY KEY (build, system) )";
 
-Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
-string result_dir = "/home/nilsson/xenofarm/in/";
-string work_dir = "/tmp/xtmp/";
-string web_dir = "/home/nilsson/html/xenofarm_results/";
+Sql.Sql xfdb = Sql.Sql("mysql://rw@:/pike/sw/roxen"
+		       "/configurations/_mysql/socket/xenofarm");
+string result_dir = "/pike/home/manual/pikefarm/in/";
+string work_dir = "/pike/home/manual/pikefarm/in_work/";
+string web_dir = "/pike/home/manual/web/pikefarm/";
 
 string main_log_file = "xenofarmlog.txt";
 string compilation_log_file = "makelog.txt";
