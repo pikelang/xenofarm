@@ -30,3 +30,4 @@ _$*
 *.elc
 *.ln
 core
+/build
