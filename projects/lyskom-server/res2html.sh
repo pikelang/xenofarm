@@ -4,10 +4,11 @@
 build=$1
 input=/lysator/www/projects/xenofarm/lyskom-server/files
 output=/lysator/www/user-pages/ceder/xeno/
-url=http://www.lysator.liu.se/xenofarm/lyskom-server/files/
+url=http://www.lysator.liu.se/xenofarm/lyskom-server/files
 tmp=/lysator/www/user-pages/ceder/xeno/tmp
-rm -rf $tmp
-mkdir $tmp
+
+rm -f $tmp/tsort.in
+
 for builddir in $input/${build}_*
 do
   awk '$1 == "Begin" && NF == 2 { if (prev) { print prev, $2 } prev=$2 }' \
@@ -16,7 +17,7 @@ done
 tsort < $tmp/tsort.in > $tmp/tasks
 
 now=`date "+%Y-%m-%d %H:%M:%S"`
-buildtime=`mysql --batch -e 'select time from build where id='$build -D lyskom_server_xenofarm -pTnCktgAM|sed 1d`
+buildtime=`mysql --batch -e 'select time from build where id='$build -D lyskom_server_xenofarm -p\`cat /home/ceder/.xeno-mysql-pwd\`|sed 1d`
 pretty=`pike -e 'write(Calendar.Second((int)argv[1])->format_time()+"\n");' $buildtime`
 
 
@@ -24,11 +25,12 @@ exec 7> $output/$build.html
 cat <<EOF >&7
 <html><head><title>lyskom-server build $build Xenofarm results</title><head>
 <body>
+
 <h1>lyskom-server build $build Xenofarm results</h1>
 This build overview was collected $now.  Results from other
 machines may come in later.
 
-<p>Build time: $pretty 
+<p>Build time: $pretty
 
 <table border="1">
 <tr>
@@ -90,6 +92,7 @@ exec 8> $output/index.html
 cat <<EOF >&8
 <html><head><title>lyskom-server Xenofarm result overview</title><head>
 <body>
+<a href="latest.html">[latest per machine]</a>
 <h1>lyskom-server Xenofarm result overview</h1>
 This build overview was collected $now.
 
