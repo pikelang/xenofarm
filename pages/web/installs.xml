@@ -18,9 +18,11 @@
   <br /><br /></li>
 <li>Python</a><br />
   Python is another general purpose programming language that also
-  uses Xenofarm to find portability problems. There are result pages
-  both for <a href="python/">development python</a> and for the
-  <a href="python-stable/">stable python</a>.<br /><br /></li>
+  uses Xenofarm, in a project they call <a href="/~sfarmer">Snake Farm</a>,
+  to find portability problems. There are result pages
+  both for <a href="/~sfarmer/xeno/latest.html">development python</a> and
+  for the  <a href="/~sfarmer/xeno/latest-stable.html">stable python</a>.
+  <br /><br /></li>
 <li><a href="http://argouml.tigris.org/">ArgoUML</a><br />
   ArgoUML is a Java based Universal Modeling Language tool. It is able
   to create and save most of the nine standard UML diagrams. ArgoUML
