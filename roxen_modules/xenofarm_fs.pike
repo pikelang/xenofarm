@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.18 2002/08/12 22:09:03 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.19 2002/08/15 00:11:24 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -155,8 +155,16 @@ static void done_with_put( array(object) id_arr ) {
 // API methods
 
 Stat stat_file(string f, RequestID id) {
-  Stat s = file_stat( distpath + f );
+  if(f=="latest" || f=="result") {
+    mapping|Stdio.File res = find_file(f,id);
+    if(!res) return 0;
+    if(objectp(res)) return res->stat();
+    return res->stat;
+  }
+
+  Stat  s = file_stat( distpath + f );
   if(!s) return 0;
+
   int mtime = dist_mtime(f);
   if(mtime)
     s[3] = mtime;
@@ -173,7 +181,10 @@ string real_file(string f, RequestID id) {
 array(string) find_dir(string path, RequestID id) {
   if(path=="")
     return get_dir(distpath) +
-      ({ "latest", "latest-green", "result" });
+      ({ "latest",
+	 //	 "latest-green",
+	 //	 "most-successful",
+	 "result" });
   if( file_stat( (path/"/")[0] + ".tar.gz" ) )
     return ({ "snapshot.tar.gz" });
   return 0;
