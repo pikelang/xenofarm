@@ -1,7 +1,7 @@
 #
 # Database tables for Xenofarm.
 # Implemented to work with MySQL
-# $Id: tables.sql,v 1.2 2002/05/29 00:56:06 mani Exp $
+# $Id: tables.sql,v 1.3 2002/07/16 12:28:46 mani Exp $
 #
 
 # The generic build table.
@@ -31,9 +31,10 @@ CREATE TABLE system (id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
 
 CREATE TABLE result (build INT UNSIGNED NOT NULL,
                      system INT UNSIGNED NOT NULL,
-                     status ENUM('failed','built','verified') NOT NULL,
+                     status ENUM('failed','built') NOT NULL,
                      warnings INT UNSIGNED NOT NULL,
-                     time_spent INT UNSIGNED NOT NULL);
+                     time_spent INT UNSIGNED NOT NULL,
+		     PRIMARY KEY (build, system) );
 
 # Result table for the Pike project.
 
@@ -41,4 +42,5 @@ CREATE TABLE result (build INT UNSIGNED NOT NULL,
 # 		       system INT UNSIGNED NOT NULL,
 # 		       status ENUM('failed','built','verified','exported') NOT NULL,
 # 		       warnings INT UNSIGNED NOT NULL,
-# 		       time_spent INT UNSIGNED NOT NULL);
+# 		       time_spent INT UNSIGNED NOT NULL,
+# 		       PRIMARY KEY (build, system) );
