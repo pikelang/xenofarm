@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.25 2002/09/01 22:58:38 mani Exp $
+// $Id: server.pike,v 1.26 2002/09/02 13:23:07 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -28,6 +28,11 @@ string update_opts = "-d";
 
 int(0..1) verbose;
 int latest_build;
+
+
+//
+// Helper functions
+//
 
 void debug(string msg, mixed ... args) {
   if(verbose)
@@ -62,6 +67,21 @@ array persistent_query( string q, mixed ... args ) {
   return res;
 }
 
+string fmt_time(int t) {
+  if(t<60)
+    return sprintf("%02d seconds", t);
+  if(t/60 < 60)
+    return sprintf("%02d:%02d minutes", t/60, t%60);
+  return sprintf("%02d:%02d:%02d hours", t/3600, (t%3600)/60, t%60);
+}
+
+
+//
+// "API" functions
+//
+
+// Should return the time of the latest build package made for
+// this project.
 int get_latest_build() {
   array res = persistent_query("SELECT MAX(time) AS latest_build FROM build WHERE project=%s",
 			       project);
@@ -89,10 +109,12 @@ int get_latest_checkin() {
 
   latest_checkin = (int)Stdio.read_file(checkin_state_file);
 
-  if(Stdio.read_file("tmp/update.log") != "") {
-    debug("Something changed: \n%s", Stdio.read_file("tmp/update.log"));
+  array(string)|string log = Stdio.read_file("tmp/update.log");
+  log = filter(log/"\n", lambda(string row) { return !has_prefix(row, "? "); });
+  if( sizeof(log)>1 ) {
+    debug("Something changed: \n%s", log);
     latest_checkin = time();
-    Stdio.write_file(checkin_state_file, sprintf("%d\n", latest_checkin));
+    Stdio.write_file(checkin_state_file, latest_checkin+"\n");
   }
   else {
     debug("Nothing changed\n");
@@ -103,50 +125,40 @@ int get_latest_checkin() {
   if (latest_checkin == 0) {
     debug("No checkin timestamp found.  Assuming something changed.\n");
     latest_checkin = time();
-    Stdio.write_file(checkin_state_file, sprintf("%d\n", latest_checkin));
+    Stdio.write_file(checkin_state_file, latest_checkin+"\n");
   }
 
   return latest_checkin;
 }
 
 // Return true on success, false on error.
-int transform_source(string cvs_module, string name, string buildid) {
+int(0..1) transform_source(string cvs_module, string name, string buildid) {
   if(source_transformer) {
-    // FIXME: quoting.
-    if(Process.system(source_transformer+" "+cvs_module+" "+name+" "
-		      +buildid)) {
+    if(Process.create_process( ({ source_transformer, cvs_module, name, buildid }),
+			       ([]) )->wait() ) {
       write(source_transformer+" failed\n");
       return 0;
     }
   } 
   else {
-    string stamp1 = cvs_module+"/export.stamp";
-    string stamp2 = cvs_module+"/exportstamp.txt";
-    string stamp3 = cvs_module+"/buildid.txt";
-    if(file_stat(stamp1) || file_stat(stamp2) || file_stat(stamp3)) {
-      write(stamp1+" or "+stamp2+" or "+stamp3+" exists!\n");
+    string stamp = cvs_module+"/buildid.txt";
+    if(file_stat(stamp)) {
+      write(stamp+" exists!\n");
       exit(1);
     }
-    Stdio.write_file(stamp1, buildid+"\n");
-    Stdio.write_file(stamp2, buildid+"\n");
-    Stdio.write_file(stamp3, buildid+"\n");
-    if(Process.system("tar cf "+name+".tar "+cvs_module)) {
+    Stdio.write_file(stamp, buildid+"\n");
+    if(Process.create_process( ({ "tar", "cf", name+".tar", cvs_module }),
+			       ([]) )->wait() ) {
       write("Failed to create %s.tar\n", name);
-      rm(stamp1);
-      rm(stamp2);
-      rm(stamp3);
+      rm(stamp);
       return 0;
     }
-    if(Process.system("gzip -9 "+name+".tar")) {
+    if(Process.create_process( ({ "gzip", "-9", name+".tar" }), ([]) )->wait() ) {
       write("Failed to compress %s.tar\n", name);
-      rm(stamp1);
-      rm(stamp2);
-      rm(stamp3);
+      rm(stamp);
       return 0;
     }
-    rm(stamp1);
-    rm(stamp2);
-    rm(stamp3);
+    rm(stamp);
   }
   return 1;
 }
@@ -167,8 +179,11 @@ string make_build_low() {
   err = catch {
     buildid = xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   };
-  // FIXME: Remove build as well?
-  if(err) return 0;
+  if(err) {
+    catch(xfdb->query("DELETE FROM build WHERE time=%d && project=%s",
+		      latest_build, project));
+    return 0;
+  }
 
   if (!transform_source(cvs_module, name, buildid)) {
     persistent_query("DELETE FROM build WHERE id = %s", buildid);
@@ -201,13 +216,10 @@ void make_build() {
   }
 }
 
-string fmt_time(int t) {
-  if(t<60)
-    return sprintf("%02d seconds", t);
-  if(t/60 < 60)
-    return sprintf("%02d:%02d minutes", t/60, t%60);
-  return sprintf("%02d:%02d:%02d hours", t/3600, (t%3600)/60, t%60);
-}
+
+//
+// Main program code
+//
 
 void check_settings() {
   if(!xfdb) {
@@ -241,7 +253,6 @@ void check_settings() {
     exit(1);
   }
   // FIXME: Check web dir write privileges.
-
 
   if(!cvs_module) {
     write("No CVS module selected.\n");
@@ -425,7 +436,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.25 2002/09/01 22:58:38 mani Exp $\n";
+"$Id: server.pike,v 1.26 2002/09/02 13:23:07 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
