@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.12 2002/07/25 02:05:50 mani Exp $
+// $Id: server.pike,v 1.13 2002/08/09 15:04:16 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -17,6 +17,7 @@ int checkin_latency = 60*5;
 string project;
 string web_dir;
 string repository;
+string cvs_module;
 string work_dir;
 
 int(0..1) verbose;
@@ -40,12 +41,12 @@ int get_latest_checkin() {
 }
 
 string make_build_low() {
-  if(!Process.system("cvs co "+repository)) {
-    write("Failed to check out from CVS repository %O to %O.\n", repository, getcwd());
+  if(!Process.system("cvs "+repository+" co "+cvs_module)) {
+    write("Failed to check out from CVS module %O to %O.\n", cvs_module, getcwd());
     return 0;
   }
 
-  if(!Process.system("tar -c "+repository+" > "+project+".tar")) {
+  if(!Process.system("tar -c "+cvs_module+" > "+project+".tar")) {
     write("Failed to create %s.tar\n", project);
     return 0;
   }
@@ -123,10 +124,14 @@ void check_settings() {
   // FIXME: Check web dir write privileges.
 
 
-  if(!repository) {
-    write("No repository selected.\n");
+  if(!cvs_module) {
+    write("No CVS module selected.\n");
     exit(1);
   }
+
+  if(repository)
+    repository = "-d "+repository;
+  // FIXME: Check CVSROOT?
 
   if(!project) {
     write("No project set.\n");
@@ -136,7 +141,8 @@ void check_settings() {
   if(verbose) {
     write("Database   : %s\n", xfdb->host_info());
     write("Project    : %s\n", project);
-    write("Repository : %s\n", repository);
+    write("CVS module : %s\n", cvs_module);
+    write("Repository : %s\n", repository||"(implicit)");
     write("Work dir   : %s\n", work_dir);
     write("Web dir    : %s\n", web_dir);
     write("\n");
@@ -151,44 +157,45 @@ int main(int num, array(string) args) {
   foreach(Getopt.find_all_options(args, ({
     ({ "db",        Getopt.HAS_ARG, "--db"           }),
     ({ "distance",  Getopt.HAS_ARG, "--min-distance" }),
+    ({ "force",     Getopt.NO_ARG,  "--force"        }),
     ({ "help",      Getopt.NO_ARG,  "--help"         }),
     ({ "latency",   Getopt.HAS_ARG, "--latency"      }),
+    ({ "module",    Getopt.HAS_ARG, "--cvs-module"   }),
     ({ "poll",      Getopt.HAS_ARG, "--poll"         }),
-    ({ "webdir",    Getopt.HAS_ARG, "--web-dir"      }),
     ({ "repository",Getopt.HAS_ARG, "--repository"   }),
     ({ "verbose",   Getopt.NO_ARG,  "--verbose"      }),
+    ({ "webdir",    Getopt.HAS_ARG, "--web-dir"      }),
     ({ "workdir",   Getopt.HAS_ARG, "--work-dir"     }),
-    ({ "force",     Getopt.NO_ARG,  "--force"        }),
   }) ),array opt)
     {
       switch(opt[0])
       {
-      case "help":
-	write(prog_doc);
-	return 0;
+      case "db":
+	xfdb = Sql.Sql( opt[1] );
+	break;
 
       case "distance":
 	min_build_distance = opt[1];
 	break;
 
-      case "poll":
-	checkin_poll = opt[1];
+      case "force":
+	force_build = 1;
 	break;
+
+      case "help":
+	write(prog_doc);
+	return 0;
 
       case "latency":
 	checkin_latency = opt[1];
 	break;
 
-      case "db":
-	xfdb = Sql.Sql( opt[1] );
+      case "module":
+	cvs_module = opt[1];
 	break;
 
-      case "webdir":
-	web_dir = opt[1];
-	break;
-
-      case "workdir":
-	work_dir = opt[1];
+      case "poll":
+	checkin_poll = opt[1];
 	break;
 
       case "repository":
@@ -199,8 +206,12 @@ int main(int num, array(string) args) {
 	verbose = 1;
 	break;
 
-      case "force":
-	force_build = 1;
+      case "webdir":
+	web_dir = opt[1];
+	break;
+
+      case "workdir":
+	work_dir = opt[1];
 	break;
       }
     }
@@ -283,6 +294,26 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.12 2002/07/25 02:05:50 mani Exp $\n";
+"$Id: server.pike,v 1.13 2002/08/09 15:04:16 mani Exp $\n";
 constant prog_doc = #"
-Blah blah.";
+server.pike <arguments> <project>
+Where the arguments db, cvs-module, web-dir and work-dir are
+mandatory and the project is the name of the project.
+Possible arguments:
+
+--cvs-module   The CVS module the server should use.
+--db           The database URL, e.g. mysql://localhost/xenofarm.
+--force        Make a new build and exit.
+--help         Displays this text.
+--latency      The enforced latency between the latest checkin and
+               when the next build is run. Defaults to 300 seconds
+               (5 minutes).
+--min-distance The enforced minimum distance between to builds.
+               Defaults to 7200 seconds (two hours).
+--poll         How often the CVS is queried for new checkins.
+               Defaults to 60 seconds.
+--repository   The CVS repository the server should use.
+--verbose      Send messages about everything that happens to stdout.
+--web-dir      Where the outgoing source packages should be put.
+--work-dir     Where temporary files should be put.
+";
