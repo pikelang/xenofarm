@@ -10,7 +10,9 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
-
+#ifdef HAVE_POLL
+# include <sys/poll.h>
+#endif
 void syntax( char * cmd )
 {
   printf( "Syntax: %s [--help] [--version] [url] < file\n", cmd );
@@ -55,7 +57,7 @@ void put_file( char *url, int len )
   if( strncmp( url, "http://", 7 ) )
   {
     printf("Only HTTP urls are supported\n");
-    exit(0);
+    exit(1);
   }
   id = 0;
   host = url + 7;
@@ -95,7 +97,7 @@ void put_file( char *url, int len )
   if( !hent )
   {
     perror("gethostbyname");
-    exit(0);
+    exit(1);
   }
 
   printf( "IP  : %d.%d.%d.%d\n",
@@ -124,7 +126,7 @@ void put_file( char *url, int len )
   if( connect( fd, (struct sockaddr *)&addr, sizeof(addr) ) )
   {
     perror("connect" );
-    exit(0);
+    exit(1);
   }
   printf("done\n");
 
@@ -196,6 +198,67 @@ void put_file( char *url, int len )
     }
   }
   printf("done\n");
+
+  printf("Reading reply...");
+  fflush(stdout);
+
+  {
+    char *x, *y;
+    int rpos, errorcode, r;
+
+    while( 1 )
+    {
+#ifndef HAVE_POLL
+      fd_set rs;
+      struct timeval timeout;
+      timeout.tv_sec = 20;
+      timeout.tv_usec = 0;
+      FD_SET( fd, &rs );
+      if( select( fd+1, &rs, 0, 0, &timeout ) != 1 )
+#else
+      struct pollfd fds[1];
+      fds[0].fd = fd;
+      fds[0].events = POLLIN;
+      if( poll( fds, 1, 20000 ) != 1 )
+#endif      
+      {
+        printf("Timeout\n");
+        exit(1);
+      }
+      r = read( fd, buffer+rpos, 4711 );
+      rpos += r;
+      if( x=strchr( buffer, '\n' ) )
+      {
+        *x = 0;
+        if( y=strchr( buffer, '\r' ) )
+          *y = 0;
+        y = strchr( buffer, ' ' )+1; 
+
+        if( !y )
+        {
+          printf("Illegal response from server: %s\n", buffer );
+          exit( 1 );
+        }
+        errorcode = atoi(y);
+        x = strchr( y, ' ' )+1;
+        switch( errorcode/100 )
+        {
+         case 2:
+           break;
+         default:
+           printf(" error %d: %s\n", errorcode, x?x:y );
+           exit(1);
+           break;
+        }
+        exit(0);
+      }
+      else if( rpos > 4711 )
+      {
+        printf("End of buffer while looking for first line\n");
+        exit(1);
+      }
+    }
+  }
 }
 
 
@@ -216,7 +279,7 @@ int main( int argc, char *argv[] )
       syntax(argv[i]);
     if( !strcmp( argv[i], "--version" ) )
     {
-      printf( "%s\n", "$Id: put.c,v 1.6 2002/08/22 19:51:06 zino Exp $" );
+      printf( "%s\n", "$Id: put.c,v 1.7 2002/08/25 14:39:52 zino Exp $" );
       exit(0);
     }
     if( (st.st_mode & S_IFMT) != S_IFREG )

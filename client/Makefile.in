@@ -7,12 +7,12 @@ VPATH = @srcdir@
 
 LIBS=@LIBS@ $(EXTRALIBS)
 CC=@CC@
-DEFINES=@DEFS@
+CFLAGS=@CFLAGS@ @DEFS@
 
 all: put
 
 put: put.o
-	$(CC) -o put put.o $(LIBS) $(DEFINES)
+	$(CC) $(CFLAGS) -o put put.o $(LIBS) 
 
 clean:
 	rm -f put put.o

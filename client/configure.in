@@ -20,8 +20,8 @@ AC_DEFINE(HAVE_WORKING___FUNC__)
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(socket)
-
+AC_CHECK_FUNCS(socket poll)
+        
 cat <<EOF
 
 build information:
