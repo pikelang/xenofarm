@@ -1,7 +1,7 @@
 
 // Xenofarm server
 // By Martin Nilsson
-// $Id: server.pike,v 1.8 2002/05/15 09:41:21 mani Exp $
+// $Id: server.pike,v 1.9 2002/05/20 15:13:43 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -52,10 +52,10 @@ void make_build() {
 
   string build_name = make_build_low();
   if(!build_name) {
-    werror("No source distribution was created by make_build_low...\n");
+    write("No source distribution was created by make_build_low...\n");
     return;
   }
-  if(verbose) werror("The source distribution %s assembled.\n", build_name);
+  if(verbose) write("The source distribution %s assembled.\n", build_name);
 
   if(latest_build == old_build_time)
     latest_build = time();
@@ -63,7 +63,7 @@ void make_build() {
   string fn = (build_name/"/")[-1];
 
   if(!mv(build_name, web_dir+fn)) {
-    werror("Unable to move %s to %s.\n", build_name, web_dir+fn);
+    write("Unable to move %s to %s.\n", build_name, web_dir+fn);
     return;
   }
 
@@ -80,13 +80,13 @@ string fmt_time(int t) {
 
 void check_settings() {
   if(!xfdb) {
-    werror("No database found.\n");
+    write("No database found.\n");
     exit(1);
   }
 
   if(work_dir) {
     if(!file_stat(work_dir) || !file_stat(work_dir)->isdir) {
-      werror("Working directory %s does not exist.\n", work_dir);
+      write("Working directory %s does not exist.\n", work_dir);
       exit(1);
     }
     cd(work_dir);
@@ -94,44 +94,44 @@ void check_settings() {
   }
 
   if(!web_dir) {
-    werror("No web dir found.\n");
+    write("No web dir found.\n");
     exit(1);
   }
   if(web_dir[-1]!='/')
     web_dir += "/";
   if(!file_stat(web_dir)) {
-    werror("%s does not exist.\n", web_dir);
+    write("%s does not exist.\n", web_dir);
     exit(1);
   }
   if(!file_stat(web_dir)->isdir) {
-    werror("%s is no directory.\n", web_dir);
+    write("%s is no directory.\n", web_dir);
     exit(1);
   }
   // FIXME: Check web dir write privileges.
 
 
   if(!repository) {
-    werror("No repository selected.\n");
+    write("No repository selected.\n");
     exit(1);
   }
 
   if(!project) {
-    werror("No project set.\n");
+    write("No project set.\n");
     exit(1);
   }
 
   if(verbose) {
-    werror("Database   : %s\n", xfdb->host_info());
-    werror("Project    : %s\n", project);
-    werror("Repository : %s\n", repository);
-    werror("Work dir   : %s\n", work_dir);
-    werror("Web dir    : %s\n", web_dir);
-    werror("\n");
+    write("Database   : %s\n", xfdb->host_info());
+    write("Project    : %s\n", project);
+    write("Repository : %s\n", repository);
+    write("Work dir   : %s\n", work_dir);
+    write("Web dir    : %s\n", web_dir);
+    write("\n");
   }
 }
 
 int main(int num, array(string) args) {
-  werror(prog_id);
+  write(prog_id);
 
   foreach(Getopt.find_all_options(args, ({
     ({ "db",        Getopt.HAS_ARG, "--db"           }),
@@ -193,16 +193,16 @@ int main(int num, array(string) args) {
   latest_build = get_latest_build();
   if(verbose) {
     if(latest_build)
-      werror("Latest build was %s ago.\n", fmt_time(time()-latest_build));
+      write("Latest build was %s ago.\n", fmt_time(time()-latest_build));
     else
-      werror("No previous builds found.\n");
+      write("No previous builds found.\n");
   }
 
   int real_checkin_poll;
   int next_build;
 
   while(1) {
-    if(verbose) werror("Sleep %d seconds...\n", real_checkin_poll);
+    if(verbose) write("Sleep %d seconds...\n", real_checkin_poll);
     sleep(real_checkin_poll);
     real_checkin_poll = checkin_poll;
 
@@ -211,12 +211,12 @@ int main(int num, array(string) args) {
       if(verbose) {
 	int diff = next_build-time();
 	if(diff<=0)
-	  werror("New build scheduled to run at once.\n");
+	  write("New build scheduled to run at once.\n");
 	else
-	  werror("New build scheduled to run in %s.\n", fmt_time(diff));
+	  write("New build scheduled to run in %s.\n", fmt_time(diff));
       }
       if(next_build<=time()) {
-	if(verbose) werror("Making new build.\n");
+	if(verbose) write("Making new build.\n");
 	make_build();
 	latest_build = get_latest_build();
 	next_build = 0;
@@ -226,23 +226,24 @@ int main(int num, array(string) args) {
 
     // Enforce build distances
     if(time()-latest_build < min_build_distance) {
-      if(verbose) werror("Enforce build distances. Quarantine left %s.\n",
+      if(verbose) write("Enforce build distances. Quarantine left %s.\n",
 			 fmt_time(min_build_distance-(time()-latest_build)));
       real_checkin_poll = min_build_distance - (time()-latest_build);
       continue;
     }
 
     int new_checkin = get_latest_checkin();
-    if(verbose) werror("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
+    if(verbose) write("Latest checkin was %s ago.\n", fmt_time(time()-new_checkin));
     if(new_checkin>latest_build) {
       if(new_checkin + checkin_latency < time()) {
 	next_build = time()-1;
-	if(verbose) werror("A new build is scheduled to run at once.\n");
+	if(verbose) write("A new build is scheduled to run at once.\n");
 	real_checkin_poll = 0;
       }
       else {
 	next_build = time()+checkin_latency;
-	if(verbose) werror("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
+	if(verbose) write("A new build is scheduled to run in %s.\n", fmt_time(checkin_latency));
+	real_checkin_poll = checkin_latency;
       }
     }
 
@@ -251,6 +252,6 @@ int main(int num, array(string) args) {
   return 1;
 }
 
-constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.8 2002/05/15 09:41:21 mani Exp $\n";
+constant prog_id = "Xenofarm generic server\n$Id: server.pike,v 1.9 2002/05/20 15:13:43 mani Exp $\n";
 constant prog_doc = #"
 Blah blah.";
