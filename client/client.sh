@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.18 2002/08/14 09:12:05 mani Exp $
+# $Id: client.sh,v 1.19 2002/08/15 23:03:00 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -175,8 +175,16 @@ fi
 
 echo $$ > $pidfile
 
+#If we are running a sprshd build the put command should be on the local node
+if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
+    #FIXME: See if this uname location is resonable portable
+    putname=bin/put-`/bin/uname -n`
+else
+    putname=bin/put-$node
+fi
+
 #Make sure there is a put command available for this node
-if [ ! -x bin/put-$node ] ; then
+if [ ! -x $putname ] ; then
     rm -f config.cache
     ./configure
     make clean
@@ -187,7 +195,7 @@ if [ ! -x bin/put-$node ] ; then
         clean_exit 3
     else
 	mkdir bin 2>/dev/null
-	mv put bin/put-$node
+	mv put $putname
     fi
 fi
 
@@ -265,7 +273,7 @@ grep -v \# projects.conf | ( while
             get_time
 	    mv "../../current_$target" "../../last_$target";
 	    echo "Sending results for $project: $target."
-            $basedir/bin/put-$node "$puturl" < "$resultdir/xenofarm_result.tar.gz"
+            $basedir/$putname "$puturl" < "$resultdir/xenofarm_result.tar.gz"
             cd ..
         else
             echo "NOTE: Build delay for $project not passed. Skipping."
