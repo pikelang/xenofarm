@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+import sys
+import os
+import getopt
+
+def usage():
+    print "Usage: updatehtml [-f|--force] [-v|--verbose...] projdir"
+    sys.exit(1)
+
+try:
+    (optlist, args) = getopt.getopt(sys.argv[1:], "fv", ["force", "verbose"])
+except getopt.GetoptError:
+    usage()
+
+force = 0
+verbose = 0
+for (opt, arg) in optlist:
+    if opt in ("-f", "--force"):
+        force = 1
+    elif opt in ("-v", "--verbose"):
+        verbose = verbose + 1
+    else:
+        usage()
+
+if len(args) != 1:
+    usage()
+
+projdir = args[0]
+
+# The directory that holds this script.
+top_srcdir = sys.path[0]
+
+# Insert ./python_modules first in the path.
+sys.path.insert(0, os.path.join(top_srcdir, "python_modules"))
+
+# Insert the project directory, that contains updatehtml_cfg.py,
+# before that.  This is so that updatehtml_templates.py can be
+# overridden.  (This also makes it possible to override updatehtml.py,
+# if you are crazy enough to do that.  If you have any improvements,
+# please make them to the generic module instead.)
+sys.path.insert(0, projdir)
+
+import updatehtml
+updatehtml.main(force, verbose)

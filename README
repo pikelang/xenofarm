@@ -16,8 +16,8 @@ Contents
     7.1. Format of a Result Package
     7.2. Invoking the Generic Result Parser
   8. The Result Interface using xenofarm_ui.pike
-  9. The Result Interface using updatehtml.py
-    9.1 Configuring updatehtml.py
+  9. The Result Interface using updatehtml
+    9.1 Configuring updatehtml
  10. Garbage Collection
  11. Creating your own Project
 
@@ -641,7 +641,7 @@ This chapter will maybe someday explain how the Roxen module works.
 TBD
 
 
-9. The Result Interface using updatehtml.py
+9. The Result Interface using updatehtml
 
 As an alternative to the Roxen module, you can generate static HTML
 files that can be served using any web server, or even looked at in
@@ -656,11 +656,19 @@ sample file that you can start to edit. See the next section.
 If you want to do minor changes to the HTML code, you can copy and
 edit the updatehtml_templates.py file.
 
-Once you are done, you can run the updatehtml.py script like this,
+Once you are done, you can run the updatehtml script like this,
 assuming that your configuration files are located in
 projects/something, and that that is your current working directory:
 
-  $ PYTHONPATH=.:../lyskom-server ../lyskom-server/updatehtml.py
+  $ ../../updatehtml .
+
+Or like this, if the current working directory is the the directory of
+this README file:
+
+  $ ./updatehtml projects/something
+
+You can also give a full path to both the script and the project
+directory.
 
 This will create index.html files for all the unpacked build results
 that don't already have an index.html file. It will also generate
@@ -671,8 +679,11 @@ You can use the "--force" argument to regenerate all files. This is
 useful if you have changed a configuration parameter, or if you
 upgrade the version of updatehtml.py.
 
+You can use the "--verbose" argument to list the created index.html
+files.  Repeat the option for even more verbose output.
 
-9.1 Configuring updatehtml.py
+
+9.1 Configuring updatehtml
 
 You need to set the following variables in updatehtml.cfg:
 

@@ -260,6 +260,8 @@ def update_latest():
     page = updatehtml_templates.LATEST_PAGE % m
     fn = os.path.join(updatehtml_cfg.result_overview_dir, "latest.html")
     open(fn, "w").write(page)
+    if verbose > 2:
+        print "Generated the latest page"
 
 class task_result:
     def __init__(self, name, status, warnings, time_spent):
@@ -509,6 +511,8 @@ def mk_build_overview(buildid):
     fn = os.path.join(updatehtml_cfg.result_overview_dir,
                       "build-%d.html" % buildid)
     open(fn, "w").write(page)
+    if verbose > 1:
+        print "Generated overview for build", buildid
 
 
 
@@ -574,6 +578,8 @@ def mk_system_overview(systemid):
     fn = os.path.join(updatehtml_cfg.result_overview_dir,
                       "sys-%d.html" % systemid)
     open(fn, "w").write(page)
+    if verbose > 1:
+        print "Generated overview for system", systemid
 
 def mk_all_index(force):
     cursor = _DB.cursor()
@@ -585,7 +591,8 @@ def mk_all_index(force):
     pending_systems = {}
     for (buildid, systemid) in rows:
         if mkindex(buildid, systemid, force):
-            print "Generated index for", buildid, systemid
+            if verbose > 0:
+                print "Generated index for", buildid, systemid
             pending_builds[buildid] = None
             pending_systems[systemid] = None
 
@@ -595,13 +602,12 @@ def mk_all_index(force):
     for systemid in pending_systems.keys():
         mk_system_overview(systemid)
 
-def main(force):
+def main(force, verb):
+    global verbose
+
+    verbose = verb
+
     init_cfg()
     init_db()
     update_latest()
     mk_all_index(force)
-
-if __name__ == '__main__':
-    import sys
-    force = len(sys.argv) > 1 and sys.argv[1] == "--force"
-    main(force)
