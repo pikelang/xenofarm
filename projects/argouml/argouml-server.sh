@@ -54,6 +54,7 @@ do
     date >> $LOG
 done
 
+# Collect data
 # Mangle the logfiles
 for logfile in *.log
 do
@@ -64,7 +65,16 @@ do
     echo '</PRE>' >> $logfile.html
 done
 
-tar cf xenofarm_result.tar buildid.txt $LOG *.log.txt *.log.html
+# Collect result from Unit tests.
+if test -d build/tests/reports/junit/output/html
+then
+    ( cd build/tests/reports/junit/output/html && 
+      tar cf - * ) > junittesthtml.tar
+fi
+
+tar cf xenofarm_result.tar \
+    buildid.txt $LOG *.log.txt *.log.html \
+    junittesthtml.tar
 gzip --fast xenofarm_result.tar
 
 E1OF
