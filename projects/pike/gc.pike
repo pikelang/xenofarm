@@ -1,26 +1,45 @@
 //
 // Garbage collector for the Pike projects
-// $Id: gc.pike,v 1.3 2002/11/30 03:36:57 mani Exp $
+// $Id: gc.pike,v 1.4 2002/12/01 14:30:51 mani Exp $
 //
 
-string my_out_dir = "/pike/data/pikefarm/out/";
-string my_result_dir = "/pike/home/manual/web/pikefarm/";
+constant my_out_dir = "/pike/data/pikefarm/out/";
+constant my_result_dir = "/pike/home/manual/web/pikefarm/";
+constant gc_poll = 60*60*2;
 
-class Pike7_3 {
+void debug(string msg, mixed ... args) {
+  write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
+}
+
+class PikeVersion {
   inherit "../../gc.pike";
+  string version;
 
-  string out_dir = my_out_dir + "7.3/";
-  string result_dir = my_result_dir + "7.3/";
+  void create(string v) {
+    version = v;
+    out_dir = my_out_dir + v + "/";
+    result_dir = my_result_dir + v + "/";
+  }
+
+  void clean_out_dir() { ::clean_out_dir(out_dir, dists_left); }
+  void clean_res_dir() { ::clean_res_dir(result_dir, results_left); }
+
+  void info() {
+    debug("Cleaning Pike %s.\n", version);
+  }
 }
 
 void main() {
 
-  array projects = ({ Pike7_3() });
+  array projects = ({ PikeVersion("7.3"),
+		      PikeVersion("7.4"),
+		      PikeVersion("7.5") });
 
   while(1) {
     foreach(projects, object project) {
-      project->clean_out_dir(out_dir, dists_left);
-      project->clean_res_dir(result_dir, results_left);
+      project->info();
+      project->clean_out_dir();
+      project->clean_res_dir();
     }
     debug("Waiting...\n");
     sleep(gc_poll);
