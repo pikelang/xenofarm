@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.45 2002/12/08 19:20:42 grubba Exp $
+// $Id: server.pike,v 1.46 2003/01/10 23:08:52 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -211,7 +211,7 @@ void make_build(int timestamp)
 
   string fn = (build_name/"/")[-1];
 
-  if(!mv(build_name, web_dir+fn)) {
+  if(Process.create_process( ({ "mv", build_name, web_dir+fn }) ) {
     write("Unable to move %s to %s.\n", build_name, web_dir+fn);
     return;
   }
@@ -450,7 +450,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.45 2002/12/08 19:20:42 grubba Exp $\n";
+"$Id: server.pike,v 1.46 2003/01/10 23:08:52 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
