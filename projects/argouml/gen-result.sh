@@ -76,7 +76,7 @@ NF > 3 {
         contents = $10 $11;
         args = args " bgcolor=#FFCC00";
     }
-    contents = "<A HREF=\"'$url'" $1 "_" $3 "\" title=\"" sprintf("%02d:%02d:%02d", $12/3600, ($12/60)%60 , $12%60) "\" >" contents "</A>";
+    contents = "<A HREF=\"'$url'" $1 "_" $3 "/" $9 ".log.html\" title=\"" sprintf("%02d:%02d:%02d", $12/3600, ($12/60)%60 , $12%60) "\" >" contents "</A>";
     value[$14] = "<TD" args ">" contents "</TD>";
     after = "<TD>" $4 "(" $5 " "  $6 ")</TD></TR>";
 }

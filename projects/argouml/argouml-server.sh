@@ -56,7 +56,7 @@ for logfile in *.log
 do
     sed "s;`pwd`;ROOT;g" $logfile > $logfile.txt
     echo '<PRE>' > $logfile.html
-    sed 's/</\\&lt;/g' < $logfile.txt |
+    sed 's/</\&lt;/g' < $logfile.txt |
     sed 's;ROOT\([^:]*\.java\):;<a href="http://argouml.tigris.org/source/browse/argouml\1">&</a>;g' >> $logfile.html
     echo '</PRE>' >> $logfile.html
 done
