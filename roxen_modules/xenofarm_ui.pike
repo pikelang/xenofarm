@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.22 2002/11/18 01:31:55 mani Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.23 2002/11/18 23:25:05 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -236,6 +236,8 @@ static class Build {
 static class Project {
 
   array(Build) builds = ({});
+
+  // The build id of the corresponding build in builds.
   array build_indices = ({});
 
   mapping(int:string) platforms = ([]);
@@ -323,9 +325,17 @@ static class Project {
 	      "name" : machines[machine],
 	      "platform" : platforms[machine] ]);
   }
+
+  Build get_build(int id) {
+    id = search(build_indices, id);
+    if(id == -1) return 0;
+    return builds[id];
+  }
 }
 
-static mapping(string:Project) projects = ([]);
+// Really static, but we might want to access this variable
+// from the Hilfe protocol.
+mapping(string:Project) projects = ([]);
 
 static Project get_project(string db) {
   return projects[db] || ( projects[db]=Project() );
@@ -380,7 +390,7 @@ class TagEmitXF_Machine {
     Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
 
     // Remove machines whose last max-columns builds were all white
-    if(int maxcols = (int)m_delete(m, "max-columns"))
+    if(int maxcols = (int)m_delete(m, "recency"))
     {
       array(mapping) result = ({});
       foreach(sort(indices(p->machines)), int machine)
@@ -436,12 +446,14 @@ class TagEmitXF_Result {
     Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
     array res;
 
-    if(m->build && m->machine)
-      res = ({ p->builds[search(p->build_indices, (int)m->build)]->
-	       get_result_entities() });
-    else if(m->build)
-      res = p->builds[search(p->build_indices, (int)m->build)]->
-	get_result_entities();
+    if(m->build) {
+      Build b = p->get_build( (int)m->build );
+      if(!b) return ({});
+      if(m->machine)
+	res = ({ b->get_result_entities( (int)m->machine ) });
+      else
+	res = b->get_result_entities();
+    }
     else if(m->machine)
       res = p->builds->get_result_entities( (int)m->machine );
 
@@ -492,11 +504,9 @@ class TagXF_Details {
       else
 	RXML.parse_error("No build chosen (id or build+client).\n");
 
-      build = search(p->build_indices, build);
-      if(build==-1)
-	RXML.run_error("Selected build no longer available.\n");
-
-      vars = p->builds[build]->get_details(client);
+      Build b = p->get_build(build);
+      if(!b) RXML.run_error("Selected build no longer available.\n");
+      vars = b->get_details(client);
     }
   }
 }
@@ -504,12 +514,14 @@ class TagXF_Details {
 class TagXF_Files {
   inherit RXML.Tag;
   constant name = "xf-files";
+  constant flags = RXML.FLAG_EMPTY_ELEMENT;
 
   class Frame {
     inherit RXML.Frame;
 
     array(string) make_result(string path, RequestID id) {
       mapping a = id->conf->find_dir_stat(path,id);
+      if(!a) return ({});
       array res = ({});
       foreach(sort(indices(a)), string fn) {
 	if(a[fn]->isreg) {
@@ -597,8 +609,11 @@ constant tagdoc = ([
  output.
 </p>
 
-<attr name='db'><p>
- The database that contains the Xenofarm result table.
+<attr name='db' value='database URL'><p>
+ The database that contains the Xenofarm result table. Defaults to the database
+ set in as default database in the administration interface. The selected
+ database will propagate automatically to all other xf-tags inside the
+ xf-update tag, unless the tags has db attribute of their own.
 </p></attr>
 
 </desc>", ([
@@ -614,7 +629,19 @@ constant tagdoc = ([
   "emit#xf-machine":({ #"<desc type='plugin'>
 <p>
   Lists all the clients that are visible on the result table.
-</p></desc>", ([
+</p>
+
+<attr name='db' value='database URL'><p>
+ The database that contains the Xenofarm result table. Defaults to the database
+ set in the containing xf-update tag or, if such tag is missing, the default
+ database in the administration interface.
+</p></attr>
+
+<attr name='recency' value='int'><p>
+  If set, any machine with no returned result within the given number of builds
+  will be removed from the emit result.
+</p></attr>
+</desc>", ([
 
   "&_.id;":#"<desc type='entity'><p>
   The numeric id of the client.
@@ -627,14 +654,120 @@ constant tagdoc = ([
   "&_.platform;":#"<desc type='entity'><p>
   The system of the client.
 </p></desc>",
+]) }),
 
   // ------------------------------------------------------------
 
-  "emit#xf-build":"<desc type='plugin'></desc>",
+  "emit#xf-build":({ #"<desc type='plugin'>
+<p>
+  Lists all the builds that is in the result table, which size is limited by
+  the \"Number of results\" setting in the administration interface.
+</p>
+
+<attr name='db' value='database URL'><p>
+ The database that contains the Xenofarm result table. Defaults to the database
+ set in the containing xf-update tag or, if such tag is missing, the default
+ database in the administration interface.
+</p></attr>
+</desc>", ([
+
+  "&_.id;":#"<desc type='entity'><p>
+  The numeric id of the client.
+</p></desc>",
+
+  "&_.time;":#"<desc type='entuty'><p>
+  The time stamp of the build.
+</p></desc>",
+
+  "&_.summary;":#"<desc type='entity'><p>
+  The overall assessment of how well the build went, ie. a min() function
+  of all the plupps in this build. If one plupp is red the summary is red.
+  Can assume one of the values \"white\", \"red\", \"yellow\" and \"green\".
+</p></desc>",
+
+  "&_.source;":#"<desc type='entity'><p>
+  The result from the source package creation. Can assume one of the values
+  \"red\", \"yellow\" and \"green\".
+</p></desc>",
+
+  "&_.documentation;":#"<desc type='entity'><p>
+  The result from the documentation creation. Can assume one of the values
+  \"white\", \"red\", \"yellow\" and \"green\".
+</p></desc>",
+
+  // Project dependent
+
+  "&_.export;":#"<desc type='entity'><p>
+  The number of build results that passed the stage exported. Less than or equal
+  to \"verify\".
+</p></desc>",
+ 
+  "&_.verify;":#"<desc type='entity'><p>
+  The number of build results that passed the stage verify. Less than or equal
+  to \"build\".
+</p></desc>",
+
+  "&_.build;":#"<desc type='entity'><p>
+  The number of build results that passed the stage build.
+</p></desc>",
+
+  "&_.results;":#"<desc type='entity'><p>
+  The number of build results that received.
+</p></desc>",
+
+]) }),
 
   // ------------------------------------------------------------
 
-  "emit#xf-result":"<desc type='plugin'></desc>",
+  "emit#xf-result":({ #"<desc type='plugin'>
+<p>
+  Lists the results that maches the given search criterions. At least one of
+  the attributes build and machine must be given.
+</p>
+
+<attr name='db' value='database URL'><p>
+ The database that contains the Xenofarm result table. Defaults to the database
+ set in the containing xf-update tag or, if such tag is missing, the default
+ database in the administration interface.
+</p></attr>
+
+<attr name='build' value='int'><p>
+  The numerical id of a build.
+</p></attr>
+
+<attr name='machine' value='int'><p>
+  The numberical id of a machine.
+</p></attr>
+</desc>", ([
+
+  "&_.build;":#"<desc type='entity'><p>
+  The id of the build.
+</p></desc>",
+
+  "&_.system;":#"<desc type='entity'><p>
+  The id of the system.
+</p></desc>",
+
+  "&_.status;":#"<desc type='entity'><p>
+  The result status of the build on the current system. Can be any of
+  \"white\", \"red\", \"yellow\" and \"green\".
+</p></desc>",
+
+  // Only specified when machine is specified
+
+  "&_.time;":#"<desc type='entity'><p>
+  The time stamp of the build.
+</p></desc>",
+
+  "&_.timespan;":#"<desc type='entity'><p>
+  The time it took to complete the build on the client.
+</p></desc>",
+
+  "&_.warnings;":#"<desc type='entity'><p>
+  The number of warnings counted in the result build log.
+</p></desc>",
+
+]) }),
 
   // ------------------------------------------------------------
 
@@ -644,17 +777,23 @@ constant tagdoc = ([
  attribute id or the attribute build and client must be present.
 </p>
 
+<attr name='db' value='database URL'><p>
+ The database that contains the Xenofarm result table. Defaults to the database
+ set in the containing xf-update tag or, if such tag is missing, the default
+ database in the administration interface.
+</p></attr>
+
 <attr name='id'><p>
   An identification of the build in the form build_client, e.g.
   107_22.
 </p></attr>
 
-<attr name='build'><p>
+<attr name='build' value='int'><p>
   Which build to show details for. Must be used together with the
   attribute client.
 </p></attr>
 
-<attr name='client'><p>
+<attr name='client' value='int'><p>
   Which client to show details for. Must be used together with the
   attribute build.
 </p></attr>
@@ -680,6 +819,34 @@ constant tagdoc = ([
   The time spent during build.
 </p></desc>",
 ]) }),
+
+  // ------------------------------------------------------------
+
+  "xf-files":#"<desc type='tag'>
+<p>
+  Lists files in subdirectories named as build_client. It does not recurse
+  and list files in deeper directories.
+</p>
+
+<attr name='id'><p>
+  An identification of the build in the form build_client, e.g.
+  107_22.
+</p></attr>
+
+<attr name='build' value='int'><p>
+  Which build to list files for. Must be used together with the
+  attribute client.
+</p></attr>
+
+<attr name='client' value='int'><p>
+  Which client to list files for. Must be used together with the
+  attribute build.
+</p></attr>
+
+<attr name='dir' value='path' required='1'><p>
+  The \"root\" directory where the subdirectories are stored.
+</p></attr>
+</desc>",
 
 ]);
 #endif
