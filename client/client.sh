@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.13 2002/08/02 16:56:18 zino Exp $
+# $Id: client.sh,v 1.14 2002/08/02 17:44:22 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -35,6 +35,7 @@
 # 10: wget not found
 # 11: gzip not found
 
+#FIXME: Error codes are often cought in subshells
 #FIXME: use logger to put stuff in the syslog if available
 
 parse_args() {
@@ -53,8 +54,8 @@ EOF
 	exit 0
   ;;
   *)
-	echo Unsopported argument: $1
-	echo try --help
+	echo Unsopported argument: $1 1>&2
+	echo try --help 1>&2
 	exit 1
   esac
  done
@@ -108,31 +109,35 @@ pmkdir() {
 	    tmp_dir=`basename $rest`
 	    rest=`dirname $rest`
 	done
-	mkdir $rest/$tmp_dir || exit 6
+	mkdir $rest/$tmp_dir || clean_exit 6
     done
 }
 
 clean_exit() {
     rm -f $pidfile
-    exit 0
+    exit $1
 }
 
 sigint() {
-    echo "SIGINT recived. Cleaning up and exiting."
-    clean_exit
+    echo "SIGINT recived. Cleaning up and exiting." 1>&2
+    clean_exit 0
 }
 sighup() {
-    echo "SIGHUP recived. Cleaning up and exiting for now."
-    clean_exit
+    echo "SIGHUP recived. Cleaning up and exiting for now." 1>&2
+    clean_exit 0
 }
 
 missing_req() {
-    echo $1 not found 
-    rm -f $pidfile
-    exit $2
+    echo "$1 not found" 1>&2
+    clean_exit $2
 }
 
-#Execcution begins here.
+wget_exit() {
+    cat "wget_$target.log" 1>&2
+    clean_exit 5 
+}
+
+#Execution begins here.
 
 #Set up signal handlers
 trap sighup 1
@@ -154,10 +159,10 @@ pidfile="`pwd`/xenofarm-$node.pid"
 if [ -r $pidfile ]; then
     pid=`cat $pidfile`
     if `kill -0 $pid > /dev/null 2>&1`; then
-        echo "FATAL: Xenofarm client already running. pid: $pid"
+        echo "FATAL: Xenofarm client already running. pid: $pid" 1>&2
         exit 2
     else
-        echo "NOTE: Removing stale pid-file."
+        echo "NOTE: Removing stale pid-file." 1>&2
         rm -f $pidfile
     fi
 fi
@@ -171,9 +176,9 @@ if [ ! -x bin/put-$node ] ; then
     make clean
     make put
     if [ ! -x put ] ; then
-        echo "FATAL: Failed to compile put."
+        echo "FATAL: Failed to compile put." 1>&2
         rm $pidfile
-        exit 3
+        clean_exit 3
     else
 	mkdir bin 2>/dev/null
 	mv put bin/put-$node
@@ -211,16 +216,17 @@ grep -v \# projects.conf | ( while
     (cd "$dir" &&
      uncompressed=0
      NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
-     wget --dot-style=binary -N "$geturl" &&
+     #FIXME: get a tee >1 in here for better manual runs
+     wget --dot-style=binary -N "$geturl" > "wget_$target.log" 2>&1 &&
      if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         echo "NOTE: No newer snapshot for $project available."
-     fi || exit 5 
+     fi || wget_exit
      rm -rf buildtmp && mkdir buildtmp && 
      cd buildtmp &&
      for target in `echo $targets` ; do
         if [ \! -f "../last_$target" ] ||
            [ X != X`find ../snapshot.tar.gz -newer "../last_$target"` ] ; then
-        echo $hour:$minute > "../../current_$target";
+        echo $hour:$minute > "../current_$target";
         #FIXME: Check if the project configurable build delay has passed
         if `check_delay`; then
             if [ x"$uncompressed" = x0 ] ; then
@@ -230,7 +236,7 @@ grep -v \# projects.conf | ( while
               echo "done" &&
               uncompressed=1
               if [ ! x$uncompressed = x1 ] ; then
-                echo "FATAL: Unable to decompress snapshot!"
+                echo "FATAL: Unable to decompress snapshot!" 1>&2
                 #Will drop from the the second subshell to the while shell
                 exit 4
               fi
@@ -264,4 +270,4 @@ grep -v \# projects.conf | ( while
      done )
 done )
 
-clean_exit
+clean_exit $?
