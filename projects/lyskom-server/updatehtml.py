@@ -6,143 +6,8 @@ import time
 
 import MySQLdb
 
-# Configuration: things you must change.
-
-input = "/lysator/www/projects/xenofarm/lyskom-server/files"
-output = "/lysator/www/user-pages/ceder/xeno/"
-tmp = "/lysator/www/user-pages/ceder/xeno/tmp"
-
-url = "http://www.lysator.liu.se/xenofarm/lyskom-server/files"
-buttonurl = "pcl-"
-fullbuttonurl = "http://www.lysator.liu.se/~ceder/xeno/" + buttonurl
-
-dbname = "lyskom_server_xenofarm"
-dbuser = "ceder"
-dbhost = "lenin"
-dbpwdfile = "/home/ceder/.xeno-mysql-pwd"
-
-projectname = "lyskom-server"
-
-files_per_task = {
-    'cfg': ['configlog.txt', 'iscconfiglog.txt', 'configcache.txt',
-            'config-h.txt'],
-    'ckprg': ['lyskomd.log.txt', 'l2g.log.txt', 'leaks.log.txt'],
-    'install': ['installedfiles.txt'],
-    'id_tx': ['makeinfo.txt'],
-    }
-
-hidden_files = [
-    'index.html',
-    'buildid.txt',
-    ]
-            
-
-# Configuration: things you may change, but really don't have to.
-
-LATEST_PAGE = """<html>
-<head><title>%(project)s: latest Xenofarm results</title></head>
-<body>
-<a href="index.html">[build overview]</a>
-<h1>%(project)s: latest Xenofarm results</h1>
-This page collects the latest result for all machines that have ever
-reported a result.  Some of these results may be very old and
-obsolete.
-
-<p>The information on this page was collected
-%(now)s.
-
-<h1>Summary</h1>
-<table border=1>
-  <tr>
-    <th><img border=0 src="%(buttonurl)sgreen.gif"><br>(OK)</th>
-    <th><img border=0 src="%(buttonurl)syellow.gif"><br>(Warning)</th>
-    <th><img border=0 src="%(buttonurl)sred.gif"><br>(Failure)</th>
-    <th><img border=0 src="%(buttonurl)swhite.gif"><br>(not tested)</th>
-  </tr>
-  <tr>
-    <td>%(green)s</td>
-    <td>%(yellow)s</td>
-    <td>%(red)s</td>
-    <td>%(white)s</td>
-  </tr>
-</table>
-
-<h1>Per-machine overview</h1>
-
-<table border=1>
-  %(heading)s
-  %(content)s
-</table>
-
-</body>
-</html>
-"""
-
-RESULT_PAGE = """<html>
-<head>
-  <title>
-    %(project)s: Xenofarm build %(buildid)s %(hostname)s %(testname)s
-  </title>
-</head>
-<body>
-
-<a href="index.html">[build overview]</a>
-<h1>%(project)s: Xenofarm build %(buildid)s %(hostname)s %(testname)s</h1>
-
-<p>
-
-<table border=0>
-  <tr>
-    <td>
-      <table border=1>
-        <tr>
-          <td>Host:</td>
-          <td>%(hostname)s</td>
-        </tr>
-        <tr>
-          <td>OS &amp; hardware:</td>
-          <td>%(os_hw)s %(os_rel)s</td>
-        </tr>
-        <tr>
-          <td>Build ID:</td>
-          <td>%(buildid)d</td>
-        </tr>
-        <tr>
-          <td>Test name:</td>
-          <td>%(testname)s</td>
-        </tr>
-      </table>
-    </td>
-    <td>
-      <table border=1>
-        <tr>
-          <th><img border=0 src="%(buttonurl)sgreen.gif"><br>(OK)</th>
-          <th><img border=0 src="%(buttonurl)syellow.gif"><br>(Warning)</th>
-          <th><img border=0 src="%(buttonurl)sred.gif"><br>(Failure)</th>
-        </tr>
-        <tr>
-          <td>%(green)s</td>
-          <td>%(yellow)s</td>
-          <td>%(red)s</td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
-
-%(notdone)s
-%(tasklist)s
-
-<h1>Other files</h1>
-<pre>
-%(otherfiles)s
-</pre>
-
-<p>Page updated: %(now)s.
-
-</body>
-</html>
-"""
+import updatehtml_cfg
+import updatehtml_templates
 
 # End of configuration.
 
@@ -150,10 +15,13 @@ _DB = None
 
 def init():
     global _DB
-    pwd = open(dbpwdfile, "r").readline()
+    pwd = open(updatehtml_cfg.dbpwdfile, "r").readline()
     if pwd[-1] == "\n":
         pwd = pwd[:-1]
-    _DB = MySQLdb.connect(db=dbname, user=dbuser, host=dbhost, passwd=pwd)
+    _DB = MySQLdb.connect(db=updatehtml_cfg.dbname,
+                          user=updatehtml_cfg.dbuser,
+                          host=updatehtml_cfg.dbhost,
+                          passwd=pwd)
 
 
 def get_all_systems():
@@ -239,7 +107,7 @@ def latest_content_row(buildid, systemid, systemname, platform, plat_release,
     res = []
     res.append("  <tr>")
     res.append('    <td><a href="%s/%s_%s/">%s</a></td>' % (
-        url, buildid, systemid,
+        updatehtml_cfg.filesurl, buildid, systemid,
         platform + " " + plat_release + " " + testname))
 
     row_status = "white"
@@ -279,24 +147,24 @@ def latest_content_row(buildid, systemid, systemname, platform, plat_release,
         astart = ""
         aend = ""
         for link in logtypes:
-            if os.path.exists(os.path.join(input,
+            if os.path.exists(os.path.join(updatehtml_cfg.input,
                                            "%s_%s" % (buildid, systemid),
                                            taskname + link + ".txt")):
                 astart = '<a href="%s/%s_%s/%s%s.txt">' % (
-                    url, buildid, systemid, taskname, link)
+                    updatehtml_cfg.filesurl, buildid, systemid, taskname, link)
                 aend = '</a>'
                 break
         if astart != "" or color != "white":
             res.append('    <th>%s<img border=0 src="%s%s.gif">%s</th>' % (
-                astart, buttonurl, color, aend))
+                astart, updatehtml_cfg.buttonurl, color, aend))
         else:
             res.append('    <th>&nbsp;</th>')
 
     res.append('    <th><img border=0 src="%s%s.gif"></th>' % (
-        buttonurl, row_status))
+        updatehtml_cfg.buttonurl, row_status))
     
     res.append('    <td><a href="%s/%s_%s/">%s</a></td>' % (
-        url, buildid, systemid, systemname))
+        updatehtml_cfg.filesurl, buildid, systemid, systemname))
     res.append("  </tr>")
     return '\n'.join(res), row_status
 
@@ -308,13 +176,14 @@ def update_latest():
 
     (tbl, m) = latest_content(systems, tasks)
 
-    m["project"] = projectname
+    m["project"] = updatehtml_cfg.projectname
     m["now"] = time.strftime("%Y-%m-%d&nbsp;%H:%M:%S", time.localtime())
-    m["buttonurl"] = buttonurl
+    m["buttonurl"] = updatehtml_cfg.buttonurl
     m["heading"] = latest_heading_row(tasks)
     m["content"] = tbl
 
-    open(os.path.join(output, "latest.html"), "w").write(LATEST_PAGE % m)
+    open(os.path.join(updatehtml_cfg.output, "latest.html"), "w").write(
+        updatehtml_templates.LATEST_PAGE % m)
 
 class task_result:
     def __init__(self, name, status, warnings, time_spent):
@@ -381,15 +250,16 @@ def add_file(tl, files_left, dirname, fn, maxlen):
 
 def mkindex(buildid, systemid, force = 0):
 
-    dirname = os.path.join(input, "%d_%d" % (buildid, systemid))
+    dirname = os.path.join(updatehtml_cfg.input, "%d_%d" % (buildid, systemid))
     indexname = os.path.join(dirname, "index.html")
     if os.path.isfile(indexname) and not force:
         return 0
 
     m = {}
-    m["project"] = projectname
+    m["project"] = updatehtml_cfg.projectname
     m["now"] = time.strftime("%Y-%m-%d&nbsp;%H:%M:%S", time.localtime())
-    m["buttonurl"] = fullbuttonurl
+    m["buttonurl"] = updatehtml_cfg.fullbuttonurl
+    m["overviewurl"] = updatehtml_cfg.overviewurl
 
     m["buildid"] = buildid
     m["systemid"] = systemid
@@ -405,7 +275,7 @@ def mkindex(buildid, systemid, force = 0):
     files_left = {}
     for f in os.listdir(dirname):
         files_left[f] = None
-    for f in hidden_files:
+    for f in updatehtml_cfg.hidden_files:
         if files_left.has_key(f):
             del files_left[f]
     
@@ -432,7 +302,7 @@ def mkindex(buildid, systemid, force = 0):
     tl = []
     for t in tasks:
         tl.append('<p><img border=0 src="%s%s.gif"> ' % (
-            fullbuttonurl, t.color()))
+            updatehtml_cfg.fullbuttonurl, t.color()))
         tl.append(t.name)
         tl.append(" %d seconds" % t.time_spent)
         if t.warnings > 0:
@@ -440,7 +310,7 @@ def mkindex(buildid, systemid, force = 0):
         tl.append("<pre>")
         for suffix in ["log.txt", "warn.txt", "fail.txt"]:
             add_file(tl, files_left, dirname, t.name + suffix, maxlen)
-        for fn in files_per_task.get(t.name, []):
+        for fn in updatehtml_cfg.files_per_task.get(t.name, []):
             add_file(tl, files_left, dirname, fn, maxlen)
         tl.append("</pre>")
             
@@ -451,7 +321,7 @@ def mkindex(buildid, systemid, force = 0):
         fn = t + "log.txt"
         if files_left.has_key(fn):
             notdone.append('<p><img border=0 src="%swhite.gif"> ' % (
-                fullbuttonurl))
+                updatehtml_cfg.fullbuttonurl))
             notdone.append(t)
             notdone.append(' not done:<pre>')
             notdone.append(open(os.path.join(dirname, fn), "r").read())
@@ -467,7 +337,7 @@ def mkindex(buildid, systemid, force = 0):
         filelist.append(file_listing(dirname, f, maxlen))
 
     m["otherfiles"] = ''.join(filelist)
-    open(indexname, "w").write(RESULT_PAGE % m)
+    open(indexname, "w").write(updatehtml_templates.RESULT_PAGE % m)
     return 1
 
 def file_listing(dirname, filename, maxlen):
@@ -491,7 +361,7 @@ def mk_all_index():
     rows = cursor.fetchall()
     cursor.close()
     for (buildid, systemid) in rows:
-        if mkindex(buildid, systemid, 0):
+        if mkindex(buildid, systemid, 1):
             print "Generated index for", buildid, systemid
 
 init()
