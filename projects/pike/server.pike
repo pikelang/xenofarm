@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.19 2002/08/30 01:37:42 mani Exp $
+// $Id: server.pike,v 1.20 2002/08/31 00:41:03 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -69,13 +69,18 @@ string make_build_low() {
 		    pike_version))
     return 0;
   cd("Pike/"+pike_version);
-  if(Process.system("make xenofarm_export"))
-     return 0;
+  if(Process.system("make xenofarm_export")) {
+    latest_build = time();
+    xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'no')",
+		latest_build, project);
+    return 0;
+  }
 
   array potential_build_names = glob("Pike*", get_dir("."));
   if(!sizeof(potential_build_names)) {
+    latest_build = time();
     xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'no')",
-		time(), project);
+		latest_build, project);
     return 0;
   }
 
@@ -89,7 +94,7 @@ string make_build_low() {
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.19 2002/08/30 01:37:42 mani Exp $\n";
+"$Id: server.pike,v 1.20 2002/08/31 00:41:03 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Project defaults to pike7.3.
