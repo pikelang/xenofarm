@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.13 2002/08/14 16:54:35 ceder Exp $
+// $Id: result_parser.pike,v 1.14 2002/08/14 16:56:40 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -325,15 +325,18 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.13 2002/08/14 16:54:35 ceder Exp $\n";
+"$Id: result_parser.pike,v 1.14 2002/08/14 16:56:40 mani Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
---db         a
---dry-run    a
---help       a
---poll       a
---result-dir a
---verbose    a
---web-dir    a
---work-dir   a
+--db         The database URL, e.g. mysql://localhost/xenofarm.
+--dry-run    Do not store any results or alter any files outside
+             of the working directory.
+--help       Displays this text.
+--poll       How often the result directory is checked for new
+             result files.
+--result-dir Where incoming result files are read from.
+--verbose    Send messages about everything that happens to stdout.
+--web-dir    Where the contents of the result files chould be
+             copied to.
+--work-dir   Where temporary files should be put.
 ";
