@@ -1,3 +1,5 @@
+#! /usr/bin/env pike
+
 // Xenofarm lyskom server result parser
 
 inherit "../../result_parser.pike";
