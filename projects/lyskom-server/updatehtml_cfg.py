@@ -27,5 +27,3 @@ hidden_files = [
     'index.html',
     'buildid.txt',
     ]
-            
-
