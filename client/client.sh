@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.38 2002/09/01 12:19:59 ceder Exp $
+# $Id: client.sh,v 1.39 2002/09/02 11:39:47 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -65,7 +65,7 @@ EOF
 	exit 0
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.38 2002/09/01 12:19:59 ceder Exp $
+	echo \$Id: client.sh,v 1.39 2002/09/02 11:39:47 zino Exp $
 	exit 0
   ;;
   *)
@@ -133,7 +133,7 @@ missing_req() {
 }
 
 wget_exit() {
-    cat "wget_$test.log" 1>&2
+    cat "wget.log" 1>&2
     clean_exit 5 
 }
 
