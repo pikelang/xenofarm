@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.69 2003/01/18 19:14:54 ceder Exp $
+# $Id: client.sh,v 1.70 2003/01/18 21:08:42 zino Exp $
 # Distribution version: 1.1
 # License: GPL
 #
@@ -67,7 +67,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.69 2003/01/18 19:14:54 ceder Exp $
+	echo \$Id: client.sh,v 1.70 2003/01/18 21:08:42 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -563,9 +563,9 @@ if [ "x$limits" = "xno" ]; then :; else
   # NOTE: Limitations are per spawned process. You can still get plenty hurt.
   # TODO: Total time watchdog?
   # TODO: Remote compilation limits?
-  ulimit -d 204800 2>/dev/null || # data segment   < 200 MiB
+  ulimit -d 215040 2>/dev/null || # data segment   < 210 MiB
       echo "NOTE: Failed to limit data segment. Might already be lower."
-  ulimit -v 204800 2>/dev/null || # virtual memory < 200 MiB
+  ulimit -v 215040 2>/dev/null || # virtual memory < 210 MiB
       echo "NOTE: Failed to limit virtual mem. Might already be lower."
   ulimit -t 14400  2>/dev/null || # CPU            < 4h
       echo "NOTE: Failed to limit CPU time. Might already be lower."
