@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.10 2002/08/14 18:56:07 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.11 2002/08/14 19:28:36 jhs Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -31,6 +31,11 @@ void create()
 
   defvar("results", 10, "Number of results", TYPE_INT,
 	 "The maximum number of results" );
+
+  defvar("latency", 60, "Overview update latency", TYPE_INT,
+	 "The number of seconds between successive updates of the "
+	 "module's internal state from the Xenofarm database. The "
+	 "lower the value, the higher the load on your poor dbm.");
 }
 
 string default_db;
@@ -196,14 +201,21 @@ static mapping(int:string) platforms = ([]);
 static mapping(int:string) machines = ([]);
 static array(mapping(string:string)) machine_entities = ({});
 
-static int latest_update;
+static int next_update;
+
+//! Updates the module's internal state with recent activity by the
+//! packager daemons and the result parsers, as logged in the
+//! Xenofarm database of choice.
+//! @returns
+//!   The number of seconds left until the next update will happen.
 static void update_builds(Sql.Sql xfdb)
 {
   // Only update internal state once a minute.
-  if(latest_update < time(1))
-    latest_update = time()+60;
+  int now = time(1), latency = query("latency");
+  if(next_update < now)
+    next_update = time() + latency;
   else
-    return;
+    return next_update - now;
 
   // Add new builds
 
@@ -226,7 +238,7 @@ static void update_builds(Sql.Sql xfdb)
 		   int summary, docs, export = info->export == "yes";
 		   docs = ([ "yes":2, "no":1 ])[info->documentation];
 		   if(!export) summary = RED;
-		   return Build(id, t, summary, export, docs);
+		   return Build(id, summary, t, export, docs);
 		 }) + builds[..sizeof(builds)-sizeof(new)-1];
     build_indices = builds->id;
   }
@@ -240,7 +252,7 @@ static void update_builds(Sql.Sql xfdb)
 
   int changed = `+( @builds->update_results(xfdb) );
   if(!changed)
-    return;
+    return latency;
 
   // Update list of involved machines
 
@@ -267,6 +279,8 @@ static void update_builds(Sql.Sql xfdb)
 		"name":machines[machine],
 		"platform":platforms[machine] ]) });
   machine_entities = me;
+
+  return latency; // [until] next time, gadget...
 }
 
 //
