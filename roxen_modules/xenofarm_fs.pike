@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.22 2002/09/07 13:29:01 ceder Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.23 2002/11/18 01:30:48 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -25,11 +25,11 @@ void create() {
           "system." );
 
   defvar( "distpath", "NONE", "Dist search path",
-	  TYPE_DIR|VAR_INITIAL,
+	  TYPE_DIR|VAR_INITIAL|VAR_NO_DEFAULT,
 	  "The directory that contains the files to supply to the clients.");
 
   defvar( "resultpath", "NONE", "Result search path",
-	  TYPE_DIR|VAR_INITIAL,
+	  TYPE_DIR|VAR_INITIAL|VAR_NO_DEFAULT,
 	  "The directory where uploaded results will be stored." );
 }
 
@@ -240,6 +240,7 @@ mapping|Stdio.File find_file(string path, RequestID id) {
     if(id->data && sizeof(id->data))
       got_put_data( ({ to, id->my_fd, id }), id->data );
 
+    if(!id) return 0;
     if(id->clientprot == "HTTP/1.1")
       id->my_fd->write("HTTP/1.1 100 Continue\r\n");
 
