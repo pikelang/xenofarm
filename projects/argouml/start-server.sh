@@ -9,6 +9,7 @@ ROOT=/lysator/www/projects/xenofarm/argouml
 
 while true
 do
+    # Bygg dist
     ../../server.pike \
 	--repository=:pserver:guest@cvs.tigris.org:/cvs \
 	--update-opts=-d \
@@ -20,6 +21,7 @@ do
 	--once \
 	argouml
 
+    # Ta emot och packa upp resultat
     ../../result_parser.pike \
 	--db=$DBURL \
 	--web-dir=$ROOT/files \
@@ -27,7 +29,16 @@ do
 	--work-dir=$ROOT/work/res \
 	--once
 
+    SPARA_DAGAR=25
+    export SPARA_DAGAR
+
+    # Bygg hemsidan
     ./gen-result.sh
+
+    # Rensa bort gamla filer
+    ( cd $ROOT && find files -type d -mtime +$SPARA_DAGAR -exec rm -r "{}" ";" )
+    ( cd $ROOT && find export -mtime +$SPARA_DAGAR -exec rm "{}" ";" )
+
     sleep 1000
 done
 exit 0
