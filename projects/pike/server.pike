@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.21 2002/09/16 22:19:14 mani Exp $
+// $Id: server.pike,v 1.22 2002/10/14 16:20:29 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -13,13 +13,24 @@ inherit "../../server.pike";
 
 // Set default values to variables, so that we don't have to remember to give them
 // when starting the program.
+#ifdef NILSSON
+Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
+#else
 Sql.Sql xfdb = Sql.Sql("mysql://rw@:/pike/sw/roxen"
 		       "/configurations/_mysql/socket/xenofarm");
+#endif
+
 string project = "pike7.3";
+#ifdef NILSSON
+string web_dir = "/home/nilsson/xenofarm/projects/pike/out/";
+string work_dir = "/home/nilsson/xenofarm/projects/pike/out_work/";
+string repository = ":ext:nilsson@pike.ida.liu.se:/pike/data/cvsroot";
+#else
 string web_dir = "/pike/home/manual/pikefarm/out/";
 string work_dir = "/pike/home/manual/pikefarm/out_work/";
+string repository = "/pike/data/cvsroot";
+#endif
 string cvs_module = "(ignored)"; // Ignore this.
-string repository = "/pike/data/cvsroot"; // Ignore this.
 
 string pike_version = "7.3";
 
@@ -32,13 +43,10 @@ constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT P
 
 constant latest_pike73_checkin = "http://pike.ida.liu.se/development/cvs/latest-Pike-commit";
 
-// XXXX-YYYYMMDD-hhmmss.tar.gz
-int time_from_filename(string fn) {
-  catch {
-    if( sscanf(fn, "%*s-%s.", fn)!=2 ) return 0;
-    return Calendar.set_timezone("UTC")->parse("%d-%t", fn)->unix_time();
-  };
-  return 0;
+string make_export_name(int t) {
+  object o=Calendar.set_timezone("UTC")->Second("unix", t);
+  return sprintf("Pike%s-%s-%s", pike_version,
+		 o->format_ymd_short(), o->format_tod_short());
 }
 
 int get_latest_checkin()
@@ -66,37 +74,36 @@ int get_latest_checkin()
 string make_build_low() {
   cd(work_dir);
   Stdio.recursive_rm("Pike");
+
+  int t = time();
   if(Process.system("cvs -Q "+repository+" co Pike/"+
 		    pike_version))
     return 0;
+
+  string name = make_export_name(t);
   cd("Pike/"+pike_version);
   if(Process.system("make xenofarm_export "
-		    "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\"")) {
-    latest_build = time();
+#ifndef NILSSON
+    		    "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\" "
+#endif
+		    "EXPORT_NAME=\"" + name + "\"") ||
+     !file_stat(name+".tar.gz") ) {
+    if(!file_stat(name+".tar.gz"))
+       write("Could not find %O from %O.\n", name, getcwd());
     xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'no')",
-		latest_build, project);
+		t, project);
     return 0;
   }
 
-  array potential_build_names = glob("Pike*", get_dir("."));
-  if(!sizeof(potential_build_names)) {
-    latest_build = time();
-    xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'no')",
-		latest_build, project);
-    return 0;
-  }
-
-  int new_time = time_from_filename(potential_build_names[0]);
-  if(new_time)
-    latest_build = new_time;
+  latest_build = t;
   xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'yes')",
-	      latest_build, project);
+	      t, project);
 
-  return potential_build_names[0];
+  return name+".tar.gz";
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.21 2002/09/16 22:19:14 mani Exp $\n";
+"$Id: server.pike,v 1.22 2002/10/14 16:20:29 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Project defaults to pike7.3.
