@@ -36,6 +36,8 @@ parse_args $@
 
 #main loop
 while : ; do
-	./client.sh >debug.log 2>&1 &
+        echo "** Starting run at `date` *************************" >> debug.log
+        echo "Building. $DELAY seconds to the next round." >> debug.log
+	./client.sh >>debug.log 2>&1 &
 	sleep $DELAY
 done

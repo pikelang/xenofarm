@@ -4,6 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
+# $Id: client.sh,v 1.5 2002/05/17 10:42:43 zino Exp $
 # License: GPL
 #
 # Requirements:
@@ -33,7 +34,7 @@ If you encounter problems see the .BREAMEB. for requirements and help.
 
 EOF
     	tput 'rmso' 2>/dev/null
-	exit 0	
+	exit 0
   ;;
   *)
 	echo Unsopported argument: $1
@@ -42,46 +43,6 @@ EOF
   esac
  done
 }
-
-parse_args $@
-
-pidfile=autobuild-`uname -n`.pid
-if [ -r $pidfile ]; then
-    pid=`cat $pidfile`
-    if `kill -0 $pid`; then
-        echo "FATAL: Autobuild client already running. pid: $pid"
-        exit 2
-    else
-        echo "NOTE: Removing stale pid-file."
-        rm -f $pidfile
-    fi
-fi
-
-sigint() {
-    echo "SIGINT recived. Exiting."
-    rm $pidfile
-    exit 0    
-}
-sighup() {
-    echo "SIGHUP recived. Exiting for now."
-    rm $pidfile
-    exit 0
-}
-
-trap sighup 1
-trap sigint 2
-trap sigint 15
-
-echo $$ > $pidfile
-
-if [ ! -x put ]; then
-    make put
-    if [ ! -x put ]; then
-        echo "FATAL: No put command found."
-        rm $pidfile
-        exit 3
-    fi
-fi
 
 get_time() {
     hour=`LC_ALL="C" date | awk -F: '{ print $1 }' | awk '{ i=NF; print $i }'`
@@ -123,6 +84,49 @@ check_delay() {
     /bin/true 
 }
 
+sigint() {
+    echo "SIGINT recived. Exiting."
+    rm -f $pidfile
+    exit 0    
+}
+sighup() {
+    echo "SIGHUP recived. Exiting for now."
+    rm -f $pidfile
+    exit 0
+}
+
+#Execcution begins here.
+
+trap sighup 1
+trap sigint 2
+trap sigint 15
+
+parse_args $@
+
+pidfile="`pwd`/autobuild-`uname -n`.pid"
+if [ -r $pidfile ]; then
+    pid=`cat $pidfile`
+    if `kill -0 $pid`; then
+        echo "FATAL: Autobuild client already running. pid: $pid"
+        exit 2
+    else
+        echo "NOTE: Removing stale pid-file."
+        rm -f $pidfile
+    fi
+fi
+
+echo $$ > $pidfile
+
+if [ ! -x put ]; then
+    make put
+    if [ ! -x put ]; then
+        echo "FATAL: No put command found."
+        rm $pidfile
+        exit 3
+    fi
+fi
+
+basedir="`pwd`"
 grep -v \# projects.conf | ( while 
     read project ; do 
     read dir
@@ -132,7 +136,13 @@ grep -v \# projects.conf | ( while
     read delay
     read endmarker
 
-    echo "Building $project in $dir from $geturl with targets: $targets"
+    if [ x$dir = x ] ; then
+        echo "No more projects in projects.conf"
+        # This will drop from the subshell to the backend
+        exit 0;
+    else
+        echo "Building $project in $dir from $geturl with targets: $targets"
+    fi
 
     if [ ! -x "$dir" ]; then
         mkdir "$dir"
@@ -158,8 +168,8 @@ grep -v \# projects.conf | ( while
               echo "done" &&
               uncompressed=1
               if [ ! x$uncompressed = x1 ] ; then
-                #FIXME: Just abort this project
                 echo "FATAL: Unable to decompress snapshot!"
+                #Will drop from the the second subshell to the while shell
                 exit 4
               fi
             fi
@@ -168,7 +178,7 @@ grep -v \# projects.conf | ( while
             rm -rf "$resultdir" && mkdir "$resultdir" &&
             cp export.stamp "$resultdir/" &&
             echo "Building $target" &&
-            make $target 2>&1> "$resultdir/RESULT";
+            make $target >"$resultdir/RESULT" 2>&1;
             if [ -f autobuild_result.tar.gz ]; then
                 mv autobuild_result.tar.gz "$resultdir/"
             else
@@ -178,7 +188,7 @@ grep -v \# projects.conf | ( while
             fi
             get_time
             echo $hour:$minute > "../../last_$target";
-            ../../../put "$puturl" < "$resultdir/autobuild_result.tar.gz" &
+            $basedir/put "$puturl" < "$resultdir/autobuild_result.tar.gz" &
             cd ..
         else
             echo "NOTE: Build delay for $project not passed. Skipping."
