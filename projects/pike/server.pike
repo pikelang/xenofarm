@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.22 2002/10/14 16:20:29 mani Exp $
+// $Id: server.pike,v 1.23 2002/10/15 19:52:42 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -45,7 +45,7 @@ constant latest_pike73_checkin = "http://pike.ida.liu.se/development/cvs/latest-
 
 string make_export_name(int t) {
   object o=Calendar.set_timezone("UTC")->Second("unix", t);
-  return sprintf("Pike%s-%s-%s", pike_version,
+  return sprintf("Pike%s-%s-%s.tar.gz", pike_version,
 		 o->format_ymd_short(), o->format_tod_short());
 }
 
@@ -86,9 +86,9 @@ string make_build_low() {
 #ifndef NILSSON
     		    "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\" "
 #endif
-		    "EXPORT_NAME=\"" + name + "\"") ||
-     !file_stat(name+".tar.gz") ) {
-    if(!file_stat(name+".tar.gz"))
+		    "EXPORTARGS=\"--timestamp=" + t + "\"") ||
+     !file_stat(name) ) {
+    if(!file_stat(name))
        write("Could not find %O from %O.\n", name, getcwd());
     xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'no')",
 		t, project);
@@ -99,11 +99,11 @@ string make_build_low() {
   xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'yes')",
 	      t, project);
 
-  return name+".tar.gz";
+  return name;
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.22 2002/10/14 16:20:29 mani Exp $\n";
+"$Id: server.pike,v 1.23 2002/10/15 19:52:42 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Project defaults to pike7.3.
