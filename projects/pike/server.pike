@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.23 2002/10/15 19:52:42 mani Exp $
+// $Id: server.pike,v 1.24 2002/11/15 17:03:46 jhs Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -11,14 +11,14 @@
 
 inherit "../../server.pike";
 
-// Set default values to variables, so that we don't have to remember to give them
-// when starting the program.
+// Set default values to variables, so that we don't have to remember
+// to give them when starting the program unless we really want to.
 #ifdef NILSSON
 Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
-#else
+#else /* !NILSSON */
 Sql.Sql xfdb = Sql.Sql("mysql://rw@:/pike/sw/roxen"
 		       "/configurations/_mysql/socket/xenofarm");
-#endif
+#endif /* NILSSON */
 
 string project = "pike7.3";
 #ifdef NILSSON
@@ -26,11 +26,11 @@ string web_dir = "/home/nilsson/xenofarm/projects/pike/out/";
 string work_dir = "/home/nilsson/xenofarm/projects/pike/out_work/";
 string repository = ":ext:nilsson@pike.ida.liu.se:/pike/data/cvsroot";
 #else
-string web_dir = "/pike/home/manual/pikefarm/out/";
-string work_dir = "/pike/home/manual/pikefarm/out_work/";
+string web_dir = "/pike/data/pikefarm/out/";
+string work_dir = "/pike/data/pikefarm/out_work/";
 string repository = "/pike/data/cvsroot";
 #endif
-string cvs_module = "(ignored)"; // Ignore this.
+string cvs_module = "(ignored)"; // Not used.
 
 string pike_version = "7.3";
 
@@ -43,8 +43,9 @@ constant db_def = "CREATE TABLE build (id INT UNSIGNED NOT NULL AUTO_INCREMENT P
 
 constant latest_pike73_checkin = "http://pike.ida.liu.se/development/cvs/latest-Pike-commit";
 
-string make_export_name(int t) {
-  object o=Calendar.set_timezone("UTC")->Second("unix", t);
+string make_export_name(int latest_checkin)
+{
+  Calendar.TimeRange o = Calendar.ISO_UTC.Second(latest_checkin);
   return sprintf("Pike%s-%s-%s.tar.gz", pike_version,
 		 o->format_ymd_short(), o->format_tod_short());
 }
@@ -62,7 +63,7 @@ int get_latest_checkin()
   }
 
   err = catch {
-    int ts = Calendar.set_timezone("UTC")->dwim_time(timestamp)->unix_time();
+    int ts = Calendar.ISO_UTC.dwim_time(timestamp)->unix_time();
     return ts;
   };
 
@@ -71,39 +72,45 @@ int get_latest_checkin()
   return 0;
 }
 
-string make_build_low() {
+string make_build_low(int latest_checkin)
+{
   cd(work_dir);
   Stdio.recursive_rm("Pike");
 
-  int t = time();
-  if(Process.system("cvs -Q "+repository+" co Pike/"+
-		    pike_version))
-    return 0;
+  Calendar.TimeRange at = Calendar.ISO_UTC.Second(latest_checkin);
+  object checkout =
+    Process.create_process(({ "cvs", "-Q", "-d", repository, "co", "-D",
+			      at->set_timezone("localtime")->format_time(),
+			      "Pike/" + pike_version }),
+			   ([ "stdout" : Stdio.File("/dev/null", "cwt"),
+			      "stderr" : Stdio.File("/dev/null", "cwt") ]));
+  if(checkout->wait())
+    return 0; // something went wrong
 
-  string name = make_export_name(t);
+  string name = make_export_name(latest_checkin);
   cd("Pike/"+pike_version);
   if(Process.system("make xenofarm_export "
 #ifndef NILSSON
     		    "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\" "
 #endif
-		    "EXPORTARGS=\"--timestamp=" + t + "\"") ||
+		    "EXPORTARGS=\"--timestamp=" + latest_checkin + "\"") ||
      !file_stat(name) ) {
     if(!file_stat(name))
        write("Could not find %O from %O.\n", name, getcwd());
-    xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'no')",
-		t, project);
+    xfdb->query("INSERT INTO build (time, project, export) "
+		"VALUES (%d,%s,'no')", latest_checkin, project);
     return 0;
   }
 
-  latest_build = t;
+  latest_build = latest_checkin;
   xfdb->query("INSERT INTO build (time, project, export) VALUES (%d,%s,'yes')",
-	      t, project);
+	      latest_checkin, project);
 
   return name;
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.23 2002/10/15 19:52:42 mani Exp $\n";
+"$Id: server.pike,v 1.24 2002/11/15 17:03:46 jhs Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Project defaults to pike7.3.
