@@ -9,6 +9,7 @@
 # Files containing CVS ids follow.
 # Remove the corresponding line before committing
 # changes to these files.
+/client/Makefile.in foreign_ident
 /client/client.sh foreign_ident
 /client/put.c foreign_ident
 /gc.pike foreign_ident
