@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.16 2003/06/24 13:30:55 mani Exp $
+// $Id: pike_client.pike,v 1.17 2003/06/24 14:08:53 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -449,8 +449,11 @@ class Config {
 #else
     p = Process.create_process( ({ "/bin/sh", "-c", cmd }), data);
 #endif
-    if(!p->wait())
-      WERR("Build command failed.\n");
+    int ret = p->wait();
+    if(ret == -1)
+      WERR("Build command was killed.\n");
+    else if(ret != 0)
+      WERR("Build command failed, exit code %d.\n", ret);
 
     // We do not check the state for multimachine compilation here,
     // as is done in client.sh.
@@ -560,7 +563,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.16 2003/06/24 13:30:55 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.17 2003/06/24 14:08:53 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -618,7 +621,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.16 2003/06/24 13:30:55 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.17 2003/06/24 14:08:53 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
