@@ -5,13 +5,13 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.17 2002/08/12 08:30:57 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.18 2002/08/12 22:09:03 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
 constant module_doc  = #"This module provides a mount point from which build
 packages can be fetched by the clients. It also provides a redirect from
-<tt><i>moutpoint</i>/latest</tt> to the most recent build. The time stamps are
+<tt><i>mountpoint</i>/latest</tt> to the most recent build. The time stamps are
 parsed from the file names (project-YYYYMMDD-hhmmss.tar.gz) and not from file
 stats. At <tt><i>mountpoint</i>/result</tt> this module also accepts HTTP PUTs
 of finished results. These will be named as
