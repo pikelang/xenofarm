@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.26 2002/12/05 19:48:35 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.27 2003/01/11 23:53:15 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -235,7 +235,7 @@ mapping|Stdio.File find_file(string path, RequestID id) {
   if(path=="result") {
     file_counter = (file_counter+1)%10; // No more than 10 results at the same second...
     string fn = resultpath + "/tmp" + time() + "_" + file_counter + ".tar.gz";
-    Stdio.File to = Stdio.File( fn, "wct" );
+    Stdio.File to = Stdio.File( fn, "wct", 0775 );
 
     if(!to)
       return http_low_answer(403, "Open new file failed.");
@@ -244,10 +244,10 @@ mapping|Stdio.File find_file(string path, RequestID id) {
     chmod(fn, 0666);
 
     putting[id->my_fd] = id->misc->len;
+    uploaded[id->remoteaddr]++;
 
     if(id->data && sizeof(id->data))
       got_put_data( ({ to, id->my_fd, id }), id->data );
-    uploaded[id->remoteaddr]++;
 
     if(!id) return 0;
     if(id->clientprot == "HTTP/1.1")
