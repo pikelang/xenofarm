@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.5 2002/07/19 15:22:06 mani Exp $
+// $Id: result_parser.pike,v 1.6 2002/07/23 15:45:53 mani Exp $
 
 inherit "result_parser.pike";
 
@@ -40,7 +40,10 @@ void parse_build_id(string fn, mapping res) {
     file = Stdio.read_file("export.stamp");
     res->status = "failed";
   }
-  if(!file || !sizeof(file)) return;
+  if(!file || !sizeof(file)) {
+    debug("No %s nor export.stamp in result pkg.\n", fn);
+    return;
+  }
 
   int year;
   if( sscanf(file, "%*syear:%d", year)!=2 ) return;
