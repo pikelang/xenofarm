@@ -1,4 +1,4 @@
-// Xenofarm lyskom server result parser
+// Xenofarm Python result parser
 
 inherit "../../result_parser.pike";
 
