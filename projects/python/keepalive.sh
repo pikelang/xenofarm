@@ -26,3 +26,6 @@ check_alive stable/server.pike "--verbose" "$HOME/xlogs/server-stable.log"
 # Do the result parser live?
 check_alive devel/result_parser.pike "--verbose" "$HOME/xlogs/result-devel.log"
 check_alive stable/result_parser.pike "--verbose" "$HOME/xlogs/result-stable.log"
+
+check_alive devel/gc.pike "" "$HOME/xlogs/gc-devel.log"
+check_alive stable/gc.pike "" "$HOME/xlogs/gc-stable.log"
