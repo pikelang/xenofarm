@@ -5,12 +5,17 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.14 2002/07/31 22:37:37 mani Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.15 2002/08/11 13:51:22 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm I/O module";
-constant module_doc  = "...";
-constant module_unique = 1;
+constant module_doc  = #"This module provides a mount point from which the new build packages
+can be fetched by the clients. At also provides a redirect from <tt>moutpoint/latest</tt> to
+the latest build. The time stamps are taken from the file names (project-YYYYMMDD-hhmmss.tar.gz)
+and not from file stats. At <tt>mountpoint/result</tt> this module also accepts HTTP PUT of
+finished results. Results will be named as res&lt;timestamp&gt;-&lt;counter&gt.tar.gz, e.g.
+res1028172584_4.tar.gz. The counter wraps at 10.
+";
 
 void create() {
   defvar( "mountpoint", "/xenofarm/",
@@ -187,10 +192,18 @@ mapping|Stdio.File find_file(string path, RequestID id) {
     return http_redirect( out_converter(mountpoint+latest), id );
   }
 
+  // FIXME
   if(path=="latest-green") {
     Roxen.http_low_answer(404, "File not found.");
     string latestg;
     return http_redirect( out_converter(mountpoint+latestg), id );
+  }
+
+  // FIXME
+  if(path=="most-successful") {
+    Roxen.http_low_answer(404, "File not found.");
+    string msuccess;
+    return http_redirect( out_converter(mountpoint+msuccess), id );
   }
 
   if(path=="result") {
