@@ -5,7 +5,7 @@ inherit "module";
 inherit "roxenlib";
 #include <module.h>
 
-constant cvs_version = "$Id: xenofarm_fs.pike,v 1.16 2002/08/12 07:25:13 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_fs.pike,v 1.17 2002/08/12 08:30:57 mani Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_LOCATION;
 constant module_name = "Xenofarm: I/O module";
@@ -77,11 +77,13 @@ static string out_converter(string f) {
   return f + "/snapshot.tar.gz";
 }
 
-// XXXX-YYYYMMDD-hhmmss -> posix time
+// XXXX-YYYYMMDD-hhmmss.suffix -> posix time
 static int dist_mtime(string f) {
 #if constant(Calendar_I)
+  string ymd, hms;
   catch {
-    if( sscanf(f, "%*s-%s.", f)!=2 ) return 0;
+    if( sscanf( reverse(f), "%*s.%s-%s-", hms, ymd)!=3 ) return 0;
+    f = reverse(ymd)+"-"+reverse(hms);
     return Calendar.set_timezone("UTC")->parse("%d-%t", f)->unix_time();
   };
   return 0;
