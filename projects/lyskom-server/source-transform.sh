@@ -80,16 +80,60 @@ dotask 1 "unpack" "tar xf $BASE.tar"
 dotask 1 "configure" "cd $BASE && ./configure -C --prefix=$pfx"
 dotask 1 "make" "cd $BASE && make"
 
-# We need "grep -f" to be able to check the documentation.
+#
+# "make check" requirements
+#
+
+checkdocok=true
+checkprgok=true
+
+# We need "grep -f"
 (echo a;echo b;echo c) > input
 (echo a;echo b) > pattern
 if grep -v -f pattern input > output && test "`cat output`" = c
 then
+    :
+else
+    echo grep lacks -f support >> r/checkdoclog.txt
+    checkdocok=false
+fi
+
+# We need "tac".
+if tac < /dev/null
+then
+    :
+else
+    echo tac not found >> r/checkdoclog.txt
+    checkdocok=false
+fi
+
+# We need "python".
+if python -c ""
+then
+    :
+else
+    echo python not found >> r/checkdoclog.txt
+    echo python not found >> r/checkprglog.txt
+    checkdocok=false
+    checkprgok=false
+fi
+
+# We need "runtest".
+if runtest --version
+then
+    :
+else 
+    echo runtest not found >> r/checkprglog.txt
+    checkprgok=false
+fi
+
+
+if $checkdocok
+then
     dotask 0 "checkdoc" "cd $BASE/doc && make check"
 fi
 
-# We need "runtest" to be able to run the tests.
-if runtest --version
+if $checkprgok
 then
     dotask 0 "checkprg" "cd $BASE/src && make check"
 fi
