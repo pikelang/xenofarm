@@ -73,13 +73,28 @@ configuration. Note that the "test:" lines must come last in the
 configuration file. <testname> should be low on funny characters as it
 will be used in file and directory names.
 
-BUGS: Multiple adjacent spaces in a <test command> will be merged into
+If several build nodes share the same configuration file node specific
+tests can be specified by inserting lines _before_ the regular test
+directives, but after all other directives, on the format: 
+test-<nodename>: <testname> <test commands>
+
+<nodename> is the result of `uname -n`. The regular test: directives
+will be ignored on nodes that have one or more corresponding
+test-<nodename> directives.
+
+An alternative way of specifying node specific tests is by creating a
+separate configuration file with the filename
+<original.cfg>.<nodename>.  This configuration file has precedence
+over <original.cfg> and will not inherit any inherit any setting from
+that file.
+
+BUGS: Multiple adjacent spaces in a <test commands> will be merged into
       one space. Commands like `make CC="/odd/p    ath/cc" will therefor
       fail.
 
 Each client installation also has a config/contact.txt that should
-list a contact address for the person responsible for that particilar
-client installation. The client will automaticly ask for an email
+list a contact address for the person responsible for that particular
+client installation. The client will automatically ask for an email
 address the first time it starts up.
 
 
