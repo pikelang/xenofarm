@@ -1,7 +1,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.4 2002/05/25 00:15:26 mani Exp $
+// $Id: result_parser.pike,v 1.5 2002/06/17 17:32:34 mani Exp $
 
 constant db_def1 = "CREATE TABLE system (id INT UNSIGNED AUTO INCREMENT NOT NULL PRIMARY KEY, "
                    "name VARCHAR(255) NOT NULL, "
@@ -45,7 +45,7 @@ void parse_machine_id(string fn, mapping res) {
 }
 
 void parse_log(string fn, mapping res) {
-  res->status = "red";
+  res->status = "failed";
   string file = Stdio.read_file(fn);
   if(!file || !sizeof(file)) return;
   array parts = (file/"\n")/2;
@@ -80,55 +80,78 @@ void count_warnings(string fn, mapping res) {
 }
 
 void store_result(mapping res) {
-  write("%O\n", res);
+  werror("%O\n", res);
   return;
   array qres = xfdb->query("SELECT id FROM system WHERE name=%s && platform=%s",
 			   res->name, res->platform);
-  int id;
+
+  if(!res->name || !res->platform)
+    return;
+
+  int system_id;
   if(sizeof(qres))
-    id = qres[0]->id;
+    system_id = qres[0]->id;
   else {
     xfdb->query("INSERT INTO system (name, platform) VALUES (%s,%s)",
 		res->name, res->platform);
-    //    id = xfdb->query("SELECT")[0];
+    system_id = xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
+  res->system = system_id;
+
+  xfdb->query("INSERT INTO result (build,system,status,warnings,time_spent) "
+	      "values (%d,%d,%s,%d,%d)", res->build, res->system,
+	      res->status, res->warnings, res->time_spent);
 }
 
-void low_process_package() {
+mapping low_process_package() {
   mapping result = ([]);
 
   parse_build_id(build_id_file, result);
   if(!result->build) {
     write("Failed to parse build id.\n");
-    return;
+    return result;
   }
 
   parse_machine_id(machine_id_file, result);
   if(!result->host || !result->platform) {
     write("Failed to parse machine id.\n");
-    return;
+    return result;
   }
 
   parse_log(main_log_file, result);
   count_warnings(compilation_log_file, result);
   store_result(result);
+  return result;
 }
 
 void process_package(string fn) {
 
-  if(!Process.system("tar -xzf "+fn)) {
-    //    write("Unable to unpack %O to %O\n", fn, getcwd());
-    //    return;
+  // Clear working dir
+  if(sizeof(get_dir("."))) {
+    Process.system("rm *");
+    if(sizeof(get_dir("."))) {
+      write("Working dir not empty\n");
+      return;
+    }
   }
 
-  low_process_package();
+  Process.system("tar -xzf "+fn);
+  if(!sizeof(get_dir("."))) {
+    write("Unable to unpack %O to %O\n", fn, getcwd());
+    return;
+  }
 
-  // mv dir, webdir
+  mapping result = low_process_package();
+
+  if(result->build && result->system) {
+    mkdir(web_dir, result->build+"_"+result->system);
+    // mv dir, webdir
+  }
 
   //  if(!rm(fn))
   //    write("Unable to remove %O\n", fn);
   //  else
-  //    processed_result[fn]=1;
+  processed_results[fn]=1;
 }
 
 int main(int num, array(string) args) {

@@ -1,14 +1,14 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.2 2002/05/30 14:49:38 mani Exp $
+// $Id: result_parser.pike,v 1.3 2002/06/17 17:33:12 mani Exp $
 
 inherit "result_parser.pike";
 
 Sql.Sql xfdb = Sql.Sql("mysql://localhost/xenofarm");
 string result_dir = "/home/nilsson/xenofarm/in/";
 string work_dir = "/tmp/xtmp/";
-string web_dir = "/home/nilsson/html/angel/";
+string web_dir = "/home/nilsson/html/xenofarm_results/";
 
 string build_id_file = "exportstamp.txt";
 string machine_id_file = "machineid.txt";
@@ -40,7 +40,12 @@ void parse_build_id(string fn, mapping res) {
   int sec;
   if( sscanf(file, "%*ssecond:%d", sec)!=2 ) return;
 
-  res->build = sprintf("%04d%02d%02d-%02d%02d%02d",
-		    year, month, day, hour, min, sec);
+
+  int build_time = mktime(sec, min, hour, day, month-1, year-1900, 0, 0);
+  if(!build_time) return;
+
+  res->build = xfdb->query("SELECT id FROM build WHERE "
+			   "project='pike7.3' AND time=%d",
+			   build_time)[0]->id;
 }
 
