@@ -2,7 +2,7 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.29 2002/12/01 14:15:44 mani Exp $
+// $Id: server.pike,v 1.30 2002/12/05 19:47:52 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -78,7 +78,7 @@ int get_latest_checkin()
 
 string make_build_low(int t) {
   string ret = make_build_low_low(t);
-  array res = xfdb->query("SELECT id FROM build WHERE time=%d", t);
+  array res = persistent_query("SELECT id FROM build WHERE time=%d", t);
   if(!sizeof(res)) {
     debug("Id not found with time as key. Something is broken.\n");
     return ret;
@@ -118,19 +118,19 @@ string make_build_low_low(int latest_checkin)
      !file_stat(name) ) {
     if(!file_stat(name))
        write("Could not find %O from %O.\n", name, getcwd());
-    xfdb->query("INSERT INTO build (time export) VALUES (%d,'FAIL')",
-		latest_checkin);
+    persistent_query("INSERT INTO build (time, export) VALUES (%d,'FAIL')",
+		     latest_checkin);
     return 0;
   }
 
-  xfdb->query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
-	      latest_checkin);
+  persistent_query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
+		   latest_checkin);
 
   return name;
 }
 
 constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.29 2002/12/01 14:15:44 mani Exp $\n";
+"$Id: server.pike,v 1.30 2002/12/05 19:47:52 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Possible arguments:
