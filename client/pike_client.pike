@@ -1,6 +1,6 @@
 #! /usr/bin/env pike
 
-// $Id: pike_client.pike,v 1.11 2003/06/17 14:32:19 mani Exp $
+// $Id: pike_client.pike,v 1.12 2003/06/18 00:01:52 mani Exp $
 //
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.72.
@@ -474,7 +474,7 @@ void read_configs() {
     // FIXME: Is this correct interpretation of get_nodeconfig()?
     string nodeconfig = config_dir + "/" + f[..sizeof(f)-5] + "." +
       system->node;
-    string config_name = f[sizeof(f)-5..]; // Remove ".cfg" from f.
+    string config_name = f[..sizeof(f)-5]; // Remove ".cfg" from f.
     if(file_stat(nodeconfig))
       configs += ({ Config(Stdio.read_file(nodeconfig), config_name) });
     else
@@ -525,7 +525,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: $Id: pike_client.pike,v 1.11 2003/06/17 14:32:19 mani Exp $\n");
+  f->write("clientversion: $Id: pike_client.pike,v 1.12 2003/06/18 00:01:52 mani Exp $\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -583,7 +583,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "$Id: pike_client.pike,v 1.11 2003/06/17 14:32:19 mani Exp $\n"
+	exit(0, "$Id: pike_client.pike,v 1.12 2003/06/18 00:01:52 mani Exp $\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
