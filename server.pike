@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.51 2003/07/11 15:58:41 mani Exp $
+// $Id: server.pike,v 1.52 2005/11/22 07:38:51 nisse Exp $
 
 Sql.Sql xfdb;
 
@@ -253,7 +253,7 @@ array persistent_query( string q, mixed ... args ) {
       case 1:
 	write("Database query failed. Continue to try...\n");
 	if(arrayp(err) && sizeof(err) && stringp(err[0]))
-	  debug("(%s)\n", err[0][..sizeof(err)-2]);
+	  debug("(%s)\n", err[0][..sizeof(err[0])-2]);
 	break;
       case 2..5:
 	sleep(1);
@@ -624,7 +624,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.51 2003/07/11 15:58:41 mani Exp $\n";
+"$Id: server.pike,v 1.52 2005/11/22 07:38:51 nisse Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
