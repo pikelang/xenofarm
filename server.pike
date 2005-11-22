@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.52 2005/11/22 07:38:51 nisse Exp $
+// $Id: server.pike,v 1.53 2005/11/22 10:52:55 mani Exp $
 
 Sql.Sql xfdb;
 
@@ -624,7 +624,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.52 2005/11/22 07:38:51 nisse Exp $\n";
+"$Id: server.pike,v 1.53 2005/11/22 10:52:55 mani Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
