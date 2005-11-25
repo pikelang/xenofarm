@@ -41,7 +41,8 @@ def init_cfg():
 def get_systems_for_latest():
     cursor = _DB.cursor()
     cursor.execute("select -max(build.id),"
-                   "     concat(system.sysname, ' ', system.machine),"
+                   "     system.sysname,"
+                   "     system.machine,"
                    "     system.release,"
                    "     system.testname,"
                    "     system.name,"
@@ -61,7 +62,8 @@ def get_systems_for_latest():
 def get_systems_for_build(buildid):
     cursor = _DB.cursor()
     cursor.execute("select distinct"
-                   "     concat(system.sysname, ' ', system.machine),"
+                   "     system.sysname,"
+                   "     system.machine,"
                    "     system.release,"
                    "     system.testname,"
                    "     system.name,"
@@ -258,6 +260,10 @@ def update_latest():
     systems = get_systems_for_latest()
     tasks = get_all_tasks_for_builds([x.buildid for x in systems])
 
+    # tasks is a list of tuples (task, name)
+    if updatehtml_cfg.hidden_tasks:
+        tasks = filter(lambda t: t[1] not in updatehtml_cfg.hidden_tasks, tasks)
+
     (tbl, m) = latest_content(systems, tasks)
 
     m["project"] = updatehtml_cfg.projectname
@@ -306,7 +312,9 @@ def get_all_task_names():
     return rows
 
 class system:
-    def __init__(self, os_hw, os_rel, testname, hostname, systemid):
+    def __init__(self, sysname, machine, os_rel, testname, hostname, systemid):
+        os_hw = sysname + " " + machine
+        # print "system: os_hw: %s, os_rel: %s" % (repr(os_hw), repr(os_rel))
         self.os_hw = os_hw
         self.os_rel = os_rel
         self.testname = testname
@@ -317,7 +325,8 @@ class system:
 def get_system(systemid):
     cursor = _DB.cursor()
     cursor.execute("select"
-                   "     concat(system.sysname, ' ', system.machine),"
+                   "     system.sysname,"
+                   "     system.machine,"
                    "     system.release,"
                    "     system.testname,"
                    "     system.name,"
