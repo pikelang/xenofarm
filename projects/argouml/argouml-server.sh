@@ -8,7 +8,7 @@ cat << \E1OF > $working/doit.sh
 # Xenofarm build script
 LOG=mainlog.txt
 
-chmod +x tools/ant-1.4.1/bin/ant
+chmod +x tools/ant-1.6.2/bin/ant
 test -n "$JAVA_HOME" || {
     echo JAVA_HOME not set.;
     exit 1;
@@ -64,18 +64,24 @@ echo FORMAT 2 > $LOG
 DOTESTS=${DOTESTS-true}
 export DOTESTS
 
+# If you have a working display when running the clients you could set
+# DOGUITESTS to true. You should perhaps set DOTESTS to false then to avoid
+# running the tests twice.
+DOGUITESTS=${DOGUITESTS-false}
+export DOGUITESTS
+
 # Independant tasks!
 cat <<\EOF |
-package	cd src_new && ../tools/ant-1.4.1/bin/ant package
-tests	cd src_new && ../tools/ant-1.4.1/bin/ant compile-tests && JAVA_HOME=$DEPLOYMENT_JAVA_HOME ../tools/ant-1.4.1/bin/ant tests
-php	cd modules/php && ../../tools/ant-1.4.1/bin/ant package
-cpp	cd modules/cpp && ../../tools/ant-1.4.1/bin/ant package
-classfile	cd modules/classfile && ../../tools/ant-1.4.1/bin/ant package
-csharp	cd modules/csharp && ../../tools/ant-1.4.1/bin/ant package
-junit	cd modules/junit && ../../tools/ant-1.4.1/bin/ant package
-checkstyle	cd src_new && ../tools/ant-1.4.1/bin/ant delete-generated-for-checkstyle && ../tools/ant-1.4.1/bin/ant checkstyle | sed 's/:[0-9][0-9]*: /&warning /'
+package	cd src_new && ../tools/ant-1.6.2/bin/ant package
+tests	cd src_new && ../tools/ant-1.6.2/bin/ant compile-tests && JAVA_HOME=$DEPLOYMENT_JAVA_HOME ../tools/ant-1.6.2/bin/ant tests
+guitests	cd src_new && ../tools/ant-1.6.2/bin/ant compile-tests && JAVA_HOME=$DEPLOYMENT_JAVA_HOME ../tools/ant-1.6.2/bin/ant alltests
+php	cd modules/php && ../../tools/ant-1.6.2/bin/ant package
+cpp	cd modules/cpp && ../../tools/ant-1.6.2/bin/ant package
+classfile	cd modules/classfile && ../../tools/ant-1.6.2/bin/ant package
+checkstyle	cd src_new && ../tools/ant-1.6.2/bin/ant delete-generated-for-checkstyle && ../tools/ant-1.6.2/bin/ant checkstyle | sed 's/:[0-9][0-9]*: /&warning /'
 EOF
 if $DOTESTS; then cat; else egrep -v '^tests'; fi |
+if $DOGUITESTS; then cat; else egrep -v '^guitests'; fi |
 while read task command
 do
     echo BEGIN $task >> $LOG

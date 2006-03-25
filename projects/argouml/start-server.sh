@@ -69,6 +69,7 @@ trap "rm -f $lockfile $lock ; exit 0" 0 1 2 15
     # Rensa bort gamla filer
     ( cd $ROOT && find files -mindepth 1 -maxdepth 1 -type d -mtime +$SPARA_DAGAR -exec rm -r "{}" ";" )
     ( cd $ROOT && find export -mtime +$SPARA_DAGAR -exec rm "{}" ";" )
+    ( cd $ROOT && find results -size 0 -exec rm "{}" ";" )
     # packa upp tar-arkiv
     find $ROOT/files -type f -name junittesthtml.tar -print |
     while read filename
