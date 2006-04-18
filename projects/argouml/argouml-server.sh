@@ -78,7 +78,7 @@ guitests	cd src_new && ../tools/ant-1.6.2/bin/ant compile-tests && JAVA_HOME=$DE
 php	cd modules/php && ../../tools/ant-1.6.2/bin/ant package
 cpp	cd modules/cpp && ../../tools/ant-1.6.2/bin/ant package
 classfile	cd modules/classfile && ../../tools/ant-1.6.2/bin/ant package
-checkstyle	cd src_new && ../tools/ant-1.6.2/bin/ant delete-generated-for-checkstyle && ../tools/ant-1.6.2/bin/ant checkstyle | sed 's/:[0-9][0-9]*: /&warning /'
+checkstyle	cd src_new && ../tools/ant-1.6.2/bin/ant delete-generated-for-checkstyle && ../tools/ant-1.6.2/bin/ant checkstyle
 EOF
 if $DOTESTS; then cat; else egrep -v '^tests'; fi |
 if $DOGUITESTS; then cat; else egrep -v '^guitests'; fi |
