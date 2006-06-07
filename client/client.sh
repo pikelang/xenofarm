@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.78 2004/03/09 20:25:10 grubba Exp $
+# $Id: client.sh,v 1.79 2006/06/07 03:18:18 zino Exp $
 # Distribution version: 1.2
 # License: GPL
 #
@@ -62,13 +62,14 @@ If you encounter problems, see the .BREADMEB. for requirements and help.
       .B--helpB.:                  This information.
       .B--no-limitsB.:             Don't apply any ulimits.
       .B--versionB.:               Displays client version.
+      .B--nodenameB.:              Display hosts nodename.
 EOF
     	tput 'rmso' 2>/dev/null
 	exit 0
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.78 2004/03/09 20:25:10 grubba Exp $
+	echo \$Id: client.sh,v 1.79 2006/06/07 03:18:18 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -82,6 +83,10 @@ EOF
 	# Disable use of ulimit
 	# Needed on cc/AIX.
 	limits="no"
+  ;;
+  '--nodename')
+        longest_nodename
+        exit 0
   ;;
   *)
 	echo "Unsupported argument: $1" >&2
@@ -203,21 +208,28 @@ longest_nodename() {
     if kill -0 1 2>/dev/null; then
         echo "WARNING: You are running client.sh as root. Don't do that!" >&2
     else if hostname --fqdn >/dev/null 2>&1; then
-        cur_node=`hostname --fqdn`
+        tmp_node=`hostname --fqdn`
+        if [ X$tmp_node != Xlocalhost.localdomain ]; then
+            cur_node=$tmp_node
+        fi
     else
         t_hostname=`hostname`
         if [ `sizeof $cur_node` -lt `sizeof $t_hostname` ]; then
             cur_node=$t_hostname
         fi
+        #FIXME: nodename should be normalized to valid chars.
+        resolv_domain=`grep 'domain ' /etc/resolv.conf | head -1 | awk '{print $2}'`
         #This won't help for nodes that already have dots in their !domainnames
         if [ X`echo $cur_node|sed 's/\.//'` = X$cur_node ]; then
             if [ X`domainname 2>/dev/null` != X -a \
                  X`domainname 2>/dev/null` != "X(none)" ]; then
                 cur_node=$cur_node.`domainname`
+            else if [ X$resolv_domain != X ]; then
+                cur_node=$cur_node.$resolv_domain
             else if [ X`dnsdomainname 2>/dev/null` != X -a \
                       X`dnsdomainname 2>/dev/null` != "X(none)" ]; then
                 cur_node=$cur_node.`dnsdomainname`
-            fi; fi
+            fi; fi; fi
         fi
     fi; fi
 
@@ -522,6 +534,7 @@ run_test() {
 #Remove spaces in the beginning and end of a string.
 chomp_ends() {
     # No need to do anything exotic, since the shell does it for us.
+    #FIXME: Yes there is. This will remove spaces inside the string.
     echo $1
 }
 
@@ -535,6 +548,7 @@ get_nodeconfig() {
 }
 
 setup_put() {
+    echo $putname
     if [ ! -x $putname ] ; then
         spinlock
         rm -f config.cache
@@ -636,9 +650,9 @@ for projectconfig in $config_dir/*.cfg; do
     get_nodeconfig
 
     #TODO: Remove order dependency on settings.
-    sed -e '/^#/d' <$projectconfig | while read line; do
-        type=`echo $line | awk -F: '{ print $1 }'`
-        arguments=`echo $line | sed -e 's/[^:]*://'`
+    (sed -e '/^#/d' <$projectconfig; echo) | while read line; do
+        type=`echo "$line" | awk -F: '{ print $1 }'`
+        arguments=`echo "$line" | sed -e 's/[^:]*://'`
         arguments=`chomp_ends "$arguments"`
         case $type in
         configformat)
