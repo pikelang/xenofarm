@@ -63,6 +63,11 @@ Substantial contributors:
 
 Xenofarm is released under GNU GPL.
 
+Xenofarm initially only supported CVS.  It currently also supports
+Subversion and StarTeam, but the documentation is lacking somewhat for
+those version control systems.  See projects/lyskom-server for a
+sample project that uses Subversion.
+
 
 2. The Grand Design of Everything
 
