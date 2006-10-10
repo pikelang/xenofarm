@@ -5,6 +5,7 @@ stamp=$3
 
 exec > source-transform.log 2>&1
 
+PATH=/usr/local/bin:$PATH
 PATH=/i/autoconf/2.57/bin:/i/automake/1.7.6-ceder/bin:$PATH
 export PATH
 
