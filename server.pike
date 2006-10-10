@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.53 2005/11/22 10:52:55 mani Exp $
+// $Id: server.pike,v 1.54 2006/10/10 20:53:35 ceder Exp $
 
 Sql.Sql xfdb;
 
@@ -18,6 +18,7 @@ string project;
 string web_dir;
 string repository;
 string cvs_module;
+string svn_module;
 string work_dir;
 string source_transformer;
 array(string) update_opts = ({});
@@ -131,6 +132,78 @@ class CVSClient {
     array(string) log;
     log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
 		 lambda(string row) { return !has_prefix(row, "? "); });
+    latest_checkin = time_of_change(log, checkin_state_file,
+				    latest_checkin, now);
+    return latest_checkin;
+  }
+
+  void update_source(int timestamp) {
+    if(!latest_checkin || timestamp>latest_checkin)
+      get_latest_checkin();
+  }
+}
+
+class SVNClient {
+  inherit RepositoryClient; 
+  constant arguments =
+  "\nSVN specific arguments:\n\n"
+  "--svn-module   The Subversion module the server should use.\n";
+
+  void parse_arguments(array(string) args) {
+    foreach(Getopt.find_all_options(args, ({
+      ({ "svn_module",  Getopt.HAS_ARG, "--svn-module" }),}) ),array opt)
+      {
+	switch(opt[0])
+	{
+	  case "svn_module":
+	    svn_module = opt[1];
+	    break;
+	}
+      }
+  }
+
+  string module() {
+    return svn_module;
+  }
+
+  string name() {
+    return "SVN";
+  }
+
+  static int latest_checkin;
+
+  // The get_latest_checkin function should return the (UTC) unixtime of
+  // the latest check in. This version actually returns the time we last
+  // detected that something has been checked in. That is good enough.
+  int get_latest_checkin()
+  {
+    if(!file_stat(svn_module) || !file_stat(svn_module)->isdir) {
+      write("Please check out %O inside %O and re-run this script.\n", 
+	    svn_module, work_dir);
+      exit(1);
+    }
+    
+    debug("Running svn update.\n");
+    Calendar.TimeRange now = Calendar.Second();
+    object update =
+      Process.create_process(({ "svn", "update", 
+			        sprintf("-r{%s}", now->format_time()) }),
+			     ([ "cwd"    : svn_module,
+				"stdout" : Stdio.File("tmp/update.log", "cwt"),
+				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+    if(update->wait())
+    {
+	write("Failed to update SVN module %O in %O.\n", svn_module, getcwd());
+	exit(1);
+    }
+    
+    int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    array(string) log;
+    log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
+		 lambda(string row) {
+		   return !(has_prefix(row, "? ")
+			    ||has_prefix(row, "At revision"));
+		 });
     latest_checkin = time_of_change(log, checkin_state_file,
 				    latest_checkin, now);
     return latest_checkin;
@@ -458,15 +531,7 @@ int main(int num, array(string) args)
       switch(opt[0])
       {
       case "client_type":
-	switch(opt[1])
-	{
-	case "starteam":
-	  client = StarTeamClient();
-	  break;
-	case "cvs":
-	  client = CVSClient();
-	  break;
-	}
+	client_type = opt[1];
 	break;
 
       case "db":
@@ -531,8 +596,20 @@ int main(int num, array(string) args)
   if(!sizeof(update_opts))
     update_opts = ({ "-Pd" });
 
-  if(!client) {
+  if (!client_type)
+    client_type = "cvs";
+
+  switch(client_type)
+  {
+  case "starteam":
+    client = StarTeamClient();
+    break;
+  case "cvs":
     client = CVSClient();
+    break;
+  case "svn":
+    client = SVNClient();
+    break;
   }
 
   client->parse_arguments(args);
@@ -624,7 +701,7 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.53 2005/11/22 10:52:55 mani Exp $\n";
+"$Id: server.pike,v 1.54 2006/10/10 20:53:35 ceder Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
