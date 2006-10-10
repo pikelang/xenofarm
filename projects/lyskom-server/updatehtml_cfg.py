@@ -12,7 +12,7 @@ button_ext = ".gif"
 
 dbname = "lyskom_server_xenofarm"
 dbuser = "ceder"
-dbhost = "lenin"
+dbhost = "sherman"
 dbpwdfile = "/home/ceder/.xeno-mysql-pwd"
 
 projectname = "lyskom-server"
@@ -34,5 +34,7 @@ hidden_files = [
     'index.html',
     'buildid.txt',
     ]
+
+hidden_tasks = []
 
 hostname_maxlen = 20
