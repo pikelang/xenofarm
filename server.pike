@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.54 2006/10/10 20:53:35 ceder Exp $
+// $Id: server.pike,v 1.55 2007/11/14 09:13:31 norrby Exp $
 
 Sql.Sql xfdb;
 
@@ -61,7 +61,7 @@ class RepositoryClient {
   {
     if(sizeof(log))
     {
-      debug("Something changed: \n  %s", log * "\n  ");
+      debug("Something changed: \n  %s", log * "\n  " + "\n");
       latest_checkin = now->unix_time();
       Stdio.write_file(checkin_state_file, latest_checkin + "\n");
     }
@@ -290,6 +290,80 @@ class StarTeamClient {
     log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
 		 lambda(string row) {
 		   return has_suffix(row, ": checked out");});
+    latest_checkin = time_of_change(log, checkin_state_file,
+				    latest_checkin, now);
+    return latest_checkin;
+  }
+
+  void update_source(int timestamp) {
+    if(!latest_checkin || timestamp>latest_checkin)
+      get_latest_checkin();
+  }
+}
+
+class CustomClient {
+  inherit RepositoryClient;
+
+  string custom_module;
+  string prog;
+
+  constant arguments =
+  "\nCustom client specific arguments:\n\n"
+  "--custom_module module argument passed to custom program.\n"
+  "--program the custom program to run.\n"
+  "(the custom prg will also be passed -D <time>, like CVS)\n";
+
+  void parse_arguments(array(string) args) {
+    foreach(Getopt.find_all_options(args, ({
+      ({ "module",   Getopt.HAS_ARG, "--custom_module" }),
+      ({ "program",   Getopt.HAS_ARG, "--program" }), }) ),array opt)
+      {
+        switch(opt[0])
+        {
+          case "module":
+            custom_module = opt[1];
+            break;
+        }
+        switch(opt[0])
+        {
+          case "program":
+            prog = opt[1];
+            break;
+        }
+      }
+  }
+
+  string module() {
+    return custom_module;
+  }
+
+  string name() {
+    return "Custom";
+  }
+
+  static int latest_checkin;
+
+  int get_latest_checkin() {
+    debug("Running custom client.\n");
+    Calendar.TimeRange now = Calendar.Second();
+    string update_args;
+    array cmd = ({ prog, "-D", now->format_time(), custom_module });
+    object update =
+	Process.create_process( cmd,
+			     ([ "cwd"    : work_dir,
+				"stdout" : Stdio.File("tmp/update.log", "cwt"),
+				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+    string actual_command = sprintf("'%s'", cmd * "' '");
+    debug("Running custom checker %s\n", actual_command);
+    if(update->wait())
+    {
+	write("Failed to check for updates using: '%s'.\n", actual_command);
+	exit(1);
+    }
+    write("Checked for updates.\n");
+    int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    array(string) log;
+    log = Stdio.read_file("tmp/update.log")/"\n"  - ({ "" });
     latest_checkin = time_of_change(log, checkin_state_file,
 				    latest_checkin, now);
     return latest_checkin;
@@ -610,6 +684,9 @@ int main(int num, array(string) args)
   case "svn":
     client = SVNClient();
     break;
+  case "custom":
+    client = CustomClient();
+    break;
   }
 
   client->parse_arguments(args);
@@ -701,15 +778,15 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.54 2006/10/10 20:53:35 ceder Exp $\n";
+"$Id: server.pike,v 1.55 2007/11/14 09:13:31 norrby Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
 mandatory and the project is the name of the project.
 Possible arguments:
 
---client-type  The repository client to use, \"cvs\" or \"starteam\".
-               Defaults to \"cvs\".
+--client-type  The repository client to use, \"cvs\", \"svn\",
+               \"starteam\" or \"custom\". Defaults to \"cvs\".
 --db           The database URL, e.g. mysql://localhost/xenofarm.
 --force        Make a new build and exit.
 --help         Displays this text.
