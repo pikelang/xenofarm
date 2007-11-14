@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.38 2003/05/30 12:54:25 norrby Exp $
+// $Id: result_parser.pike,v 1.39 2007/11/14 09:06:48 norrby Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -53,7 +53,7 @@ array persistent_query( string q, mixed ... args ) {
       case 1:
 	write("Database query failed. Continue to try...\n");
 	if(arrayp(err) && sizeof(err) && stringp(err[0]))
-	  debug("(%s)\n", err[0][..sizeof(err)-2]);
+	  debug("(%s)\n", err[0..sizeof(err)-2] * ":");
 	break;
       case 2..5:
 	sleep(1);
@@ -352,7 +352,7 @@ void store_result(mapping res) {
   if(testname=="default") testname="";
 
   array qres = persistent_query("SELECT id FROM system WHERE name=%s && "
-				"sysname=%s && release=%s && version=%s "
+				"sysname=%s && `release`=%s && version=%s "
 				"&& machine=%s && testname=%s",
 				res->nodename, res->sysname||"",
 				res->release||"", res->version||"",
@@ -361,7 +361,7 @@ void store_result(mapping res) {
   if(sizeof(qres))
     res->system = (int)qres[0]->id;
   else {
-    xfdb->query("INSERT INTO system (name, sysname, release, version, "
+    xfdb->query("INSERT INTO system (name, sysname, `release`, version, "
 		"machine, testname) VALUES (%s,%s,%s,%s,%s,%s)",
 		res->nodename, res->sysname||"", res->release||"",
 		res->version||"", res->machine||"", testname);
@@ -657,7 +657,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.38 2003/05/30 12:54:25 norrby Exp $\n";
+"$Id: result_parser.pike,v 1.39 2007/11/14 09:06:48 norrby Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.

@@ -4,7 +4,7 @@
 #include <module.h>
 inherit "module";
 
-constant cvs_version = "$Id: xenofarm_ui.pike,v 1.41 2003/02/21 12:05:59 jhs Exp $";
+constant cvs_version = "$Id: xenofarm_ui.pike,v 1.42 2007/11/14 09:09:24 norrby Exp $";
 constant thread_safe = 1;
 constant module_type = MODULE_TAG;
 constant module_name = "Xenofarm: UI module";
@@ -475,7 +475,7 @@ static class Project
       else
 	m_delete(clients, client_no); // don't keep the info any more
 
-    foreach(xfdb->query("SELECT id,name,sysname,release,version,"
+    foreach(xfdb->query("SELECT id,name,sysname,`release`,version,"
 			"machine,testname FROM system"/*
 			"WHERE id IN (%s)", (array(string))m * ","*/),
 	    mapping info)
