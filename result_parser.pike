@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.39 2007/11/14 09:06:48 norrby Exp $
+// $Id: result_parser.pike,v 1.40 2008/03/08 00:53:52 grubba Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -311,7 +311,7 @@ class TaskOrderGenie {
       return max( @(array(int))res->sort_order )+1;
 
     res = filter(res, lambda(mapping in) { return state[in->name]; });
-    int order = max( @(array(int))res->sort_order );
+    int order = max( 0, @(array(int))res->sort_order );
     xfdb->query("UPDATE task SET sort_order=sort_order+1 WHERE parent=%d && "
 		"sort_order>%d", parent, order);
     return order+1;
@@ -657,7 +657,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.39 2007/11/14 09:06:48 norrby Exp $\n";
+"$Id: result_parser.pike,v 1.40 2008/03/08 00:53:52 grubba Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
