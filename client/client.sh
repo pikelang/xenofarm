@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.80 2008/06/29 12:52:55 zino Exp $
+# $Id: client.sh,v 1.81 2008/10/02 23:22:27 zino Exp $
 # Distribution version: 1.3
 # License: GPL
 #
@@ -69,7 +69,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.80 2008/06/29 12:52:55 zino Exp $
+	echo \$Id: client.sh,v 1.81 2008/10/02 23:22:27 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -179,15 +179,21 @@ get_email() {
 
 check_multimachinecompilation() {
     if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
-        if [ X"`uname -m 2>/dev/null`" = X ] ; then
-            #Don't send errors to stderr. The remote machines are
+        echo "Testing if remote machine is up..."
+        sprsh cmd /c dir 2>/dev/null 1>&2
+        res=$?
+        case $res in
+        '1')
+            #Don't send this error to stderr. The remote machines are
             #currently often down for good reasons.
             echo "FATAL: Unable to contact remote system using $REMOTE_METHOD."
+            exit 7;
+            ;;
+        esac
+        if [ $res -gt 0 ]; then
+            echo "FATAL: sprsh returned unknown error $res." 1>&2
             exit 7
-        else if [ X"`uname -s`" = X ] ; then
-            echo "FATAL: Possible permission problem or unmounted volume on remote system." >&2
-            exit 7
-        fi ; fi
+        fi
     fi
 }
 
