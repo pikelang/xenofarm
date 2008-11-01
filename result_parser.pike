@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.42 2008/03/26 21:57:43 grubba Exp $
+// $Id: result_parser.pike,v 1.43 2008/11/01 18:39:50 nisse Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -51,7 +51,15 @@ array persistent_query( string q, mixed ... args ) {
     if(err) {
       switch(try) {
       case 1:
-	write("Database query failed. Continue to try...\n");
+	write("Database query %s failed. Continue to try...\n",
+	      sprintf(q, @Array.map(args, lambda (mixed x) {
+					   if (intp(x))
+					     return x;
+					   else if (stringp(x))
+					     return "'" + xfdb->quote(x) + "'";
+					   else
+					     return "'" + xfdb->quote(sprintf("%O", x)) + "'";
+					 }) ));
 	if(arrayp(err) && sizeof(err) && stringp(err[0]))
 	  debug("(%s)\n", err[0..sizeof(err)-2] * ":");
 	break;
@@ -658,7 +666,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.42 2008/03/26 21:57:43 grubba Exp $\n";
+"$Id: result_parser.pike,v 1.43 2008/11/01 18:39:50 nisse Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
