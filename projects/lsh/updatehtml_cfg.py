@@ -3,10 +3,10 @@
 # These variables are documented in the top-level README file.
 
 # Formerly: "input".
-unpacked_results_dir = "/lysator/www/projects/xenofarm/lsh/files"
+unpacked_results_dir = "/lysator/lyswww/projects/roxen/xenofarm/lsh/files"
 
 # Formerly: "output"
-result_overview_dir = "/lysator/www/roxen-pages/nisse/xeno-lsh/"
+result_overview_dir = "/lysator/lyswww/users/roxen_only/nisse/xeno-lsh/"
 
 # Formerly: "filesurl"
 unpacked_results_url = "http://www.lysator.liu.se/xenofarm/lsh/files"
