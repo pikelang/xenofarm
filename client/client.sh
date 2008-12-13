@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.81 2008/10/02 23:22:27 zino Exp $
+# $Id: client.sh,v 1.82 2008/12/13 17:52:49 mast Exp $
 # Distribution version: 1.3
 # License: GPL
 #
@@ -45,6 +45,10 @@
 #
 # 14-30: Reserved for internal usage.
 
+msg() {
+  echo `date '+%b %e %H:%M:%S'` "$@"
+}
+
 parse_args() {
  while [ ! c"$1" = "c" ] ; do
   case "$1" in
@@ -69,7 +73,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.81 2008/10/02 23:22:27 zino Exp $
+	echo \$Id: client.sh,v 1.82 2008/12/13 17:52:49 mast Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -129,16 +133,16 @@ clean_exit() {
 }
 
 sigint() {
-    echo "SIGINT received. Cleaning up and exiting." >&2
+    msg "SIGINT received. Cleaning up and exiting." >&2
     clean_exit 0
 }
 sighup() {
-    echo "SIGHUP received. Cleaning up and exiting for now." >&2
+    msg "SIGHUP received. Cleaning up and exiting for now." >&2
     clean_exit 0
 }
 
 missing_req() {
-    echo "FATAL: $1 not found." >&2
+    msg "FATAL: $1 not found." >&2
     clean_exit $2
 }
 
@@ -148,7 +152,7 @@ wget_exit() {
 }
 
 mkdir_exit() {
-    echo "FATAL: Unable to create a fresh build directory. Skipping to the next project." >&2
+    msg "FATAL: Unable to create a fresh build directory. Skipping to the next project." >&2
     exit 14
 }
 
@@ -186,12 +190,12 @@ check_multimachinecompilation() {
         '1')
             #Don't send this error to stderr. The remote machines are
             #currently often down for good reasons.
-            echo "FATAL: Unable to contact remote system using $REMOTE_METHOD."
+            msg "FATAL: Unable to contact remote system using $REMOTE_METHOD."
             exit 7;
             ;;
         esac
         if [ $res -gt 0 ]; then
-            echo "FATAL: sprsh returned unknown error $res." 1>&2
+            msg "FATAL: sprsh returned unknown error $res." 1>&2
             exit 7
         fi
     fi
@@ -212,7 +216,7 @@ longest_nodename() {
 
     #To dangerous to fiddle with hostname switches if we are root.
     if kill -0 1 2>/dev/null; then
-        echo "WARNING: You are running client.sh as root. Don't do that!" >&2
+        msg "WARNING: You are running client.sh as root. Don't do that!" >&2
     else if hostname --fqdn >/dev/null 2>&1; then
         tmp_node=`hostname --fqdn`
         if [ X$tmp_node != Xlocalhost.localdomain ]; then
@@ -253,10 +257,10 @@ setup_pidfile() {
     if [ -r $pidfile ]; then
         pid=`cat $pidfile`
         if `kill -0 $pid > /dev/null 2>&1`; then
-            echo "NOTE: Xenofarm client already running. pid: $pid"
+            msg "NOTE: Xenofarm client already running. pid: $pid"
             exit 2
         else
-            echo "NOTE: Removing stale pid-file."
+            msg "NOTE: Removing stale pid-file."
             rm -f $pidfile
         fi
     fi
@@ -274,10 +278,10 @@ spinlock() {
         else 
             holder=`cat lock.tmp`
             if [ X$holder = X`uname -n` ] ; then
-                echo "Got compilation lock."
+                msg "Got compilation lock."
                 gotlock="true"
             else
-                echo "Waiting for $holder to release compilation lock."
+                msg "Waiting for $holder to release compilation lock."
                 sleep 60
             fi
         fi
@@ -291,7 +295,7 @@ releaselock() {
 
 #Called to prepare the project build environment. Not reapeated for each id.
 prepare_project() {
-    echo " First test in this project. Preparing build environment."
+    msg " First test in this project. Preparing build environment."
     dir="$dir/$node/"
     if [ ! -d "$dir" ]; then
         pmkdir "$dir"
@@ -299,12 +303,12 @@ prepare_project() {
 
     cd "$dir" &&
      NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
-     echo " Downloading $project snapshot..."
+     msg " Downloading $project snapshot..."
      #FIXME: Check for old broken wgets.
      wget --header="Referer: $node" --dot-style=binary -N "$geturl" \
         > "wget.log" 2>&1 &&
      if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
-        echo " NOTE: No newer snapshot for $project available."
+        msg " NOTE: No newer snapshot for $project available."
      else
         # The snapshot will have a time stamp synced to the server. To
         # compensate for drifting clocks (not time zones, that is
@@ -319,13 +323,13 @@ prepare_project() {
 }
 
 uncompress_exit() {
-    echo "Failed to uncompress snapshot. Removing possibly damaged file." >&2
+    msg "Failed to uncompress snapshot. Removing possibly damaged file." >&2
     rm -f $1
     exit 17
 }
 
 put_exit() {
-    echo "Failed to send result. Resending in the next client run." >&2
+    msg "Failed to send result. Resending in the next client run." >&2
     date=`date | sed -e 's/ //g' -e 's/://g'` &&
     (pmkdir "$basedir/$dir/rescue_$test/$date") &&
     mv "$resultdir/xenofarm_result.tar.gz" \
@@ -339,14 +343,14 @@ put_resume() {
     for x in rescue_$test/*; do
         tmp=""
         if [ -f $x/xenofarm_result.tar.gz ] ; then
-            echo "Resending $x/xenofarm_result.tar.gz."
+            msg "Resending $x/xenofarm_result.tar.gz."
             $basedir/$putname "$puturl" \
                 < "$x/xenofarm_result.tar.gz" || tmp="fail"
             if [ X$tmp != Xfail ] ; then
                 rm $x/xenofarm_result.tar.gz
                 rmdir $x
             else
-                echo "Failed to resend. Resending in the next client run." >&2
+                msg "Failed to resend. Resending in the next client run." >&2
             fi
         else
             rmdir $x 
@@ -373,7 +377,7 @@ check_test_environment() {
     if [ X"$configformat" = X ] || [ X"$project" = X ] || 
        [ X"$dir" = X ] || [ X"$geturl" = X ] || 
        [ X"$puturl" = X ] ; then
-        echo "FATAL: Missing options in $projectconfig." >&2
+        msg "FATAL: Missing options in $projectconfig." >&2
         exit 18
     fi
 }
@@ -381,21 +385,21 @@ check_test_environment() {
 #Run _one_ test
 run_test() {
     if [ -f dont_run ]; then
-	echo "FATAL: dont_run file found. Doing that." 1>&2
+	msg "FATAL: dont_run file found. Doing that." 1>&2
 	exit 5
     fi
 
     check_test_environment
 
 
-    echo "Building project \"$project\" from $geturl."
+    msg "Building project \"$project\" from $geturl."
     if [ X"$environment" != X ] ; then
         echo " Environment: \"$environment\"."
     fi    
     if [ X"$first_project_run" = Xtrue ] ; then
         prepare_project
     fi
-    echo " Running test \"$test\" in $dir."
+    msg " Running test \"$test\" in $dir."
 
     #Check for earlier results and try to send them
     put_resume
@@ -422,7 +426,7 @@ run_test() {
             echo $hour:$minute > "../current_$test";
             if `check_delay`; then
                 if [ $uncompressed != "true" ] ; then
-                    echo " Uncompressing archive..." &&
+                    msg " Uncompressing archive..." &&
                     rm -f "$basedir/$dir/snapshot.tar" &&
                     test -f "$basedir/$dir/snapshot.tar.gz" &&
                     #This will not fail on full disk, but the tar should
@@ -431,12 +435,12 @@ run_test() {
                             uncompress_exit "$basedir/$dir/snapshot.tar.gz"
                     uncompressed="true"
                 fi
-                echo "  Extracting archive..." &&
+                msg "  Extracting archive..." &&
                 test -f ../snapshot.tar &&
                 tar xf ../snapshot.tar || exit 22
 
                 cd */.
-                echo "  Building and running test \"$test\": \"$command\""
+                msg "  Building and running test \"$test\": \"$command\""
                 resultdir="../../result_$test"
                 rm -rf "$resultdir" && mkdir "$resultdir" || exit 19
 
@@ -492,20 +496,20 @@ run_test() {
                     ) || exit 25
                 fi
                 mv "../../current_$test" "../../last_$test";
-                echo "  Sending results for \"$project\": \"$test\"."
+                msg "  Sending results for \"$project\": \"$test\"."
                 $basedir/$putname "$puturl" \
                     < "$resultdir/xenofarm_result.tar.gz" || put_exit
                 cd "$basedir/$dir/buildtmp"
             else
-                echo " NOTE: Build delay for \"$project\" not passed. Skipping."
+                msg " NOTE: Build delay for \"$project\" not passed. Skipping."
             fi
         else
-            echo "  NOTE: Already built \"$project\": \"$test\". Skipping."
+            msg "  NOTE: Already built \"$project\": \"$test\". Skipping."
         fi
     )
     last=$?
     if [ X"$last" != X0 ] ; then
-        echo "Project \"$project\" failed with exit code $last" >&2
+        msg "Project \"$project\" failed with exit code $last" >&2
         # 14-30: Reserved for internal usage.
         # 14: Unable to create build directory.
         # 15: Unknown config format.
@@ -522,16 +526,16 @@ run_test() {
         #Be more verbose in some common cases:
         case $last in
         '20')
-            echo "FATAL: Failed to find buildid.txt in snapshot!" >&2
+            msg "FATAL: Failed to find buildid.txt in snapshot!" >&2
             ;;
         '22')
-            echo "FATAL: Unable to extract \"$project\" snapshot!" >&2
+            msg "FATAL: Unable to extract \"$project\" snapshot!" >&2
             ;;
         '23')
-            echo "FATAL: Failed to download \"$project\" snapshot!" >&2
+            msg "FATAL: Failed to download \"$project\" snapshot!" >&2
             ;;
         '24')
-            echo "FATAL: Failed to send result package to $puturl!" >&2
+            msg "FATAL: Failed to send result package to $puturl!" >&2
             ;;
         esac
     fi
@@ -549,7 +553,7 @@ chomp_ends() {
 get_nodeconfig() {
     if [ -f "$projectconfig.$node" ] ; then
         projectconfig="$projectconfig.$node";
-        echo "NOTE: Found node config file: $projectconfig"
+        msg "NOTE: Found node config file: $projectconfig"
     fi
 }
 
@@ -562,7 +566,7 @@ setup_put() {
         make clean
         make put
         if [ ! -x put ] ; then
-            echo "FATAL: Failed to compile put." >&2
+            msg "FATAL: Failed to compile put." >&2
             clean_exit 3
         else
             mkdir bin 2>/dev/null
@@ -579,7 +583,7 @@ setup_put() {
 
 #Exit if there is a file called "dont_run".
 if [ -f dont_run ]; then
-    echo "FATAL: dont_run file found. Doing that." 1>&2
+    msg "FATAL: dont_run file found. Doing that." 1>&2
     exit 5
 fi
 
@@ -604,7 +608,7 @@ limits=yes
 parse_args $@
 
 if [ -d "$config_dir/." ]; then :; else
-    echo "FATAL: Configuration directory \"$config_dir\" does not exist." >&2
+    msg "FATAL: Configuration directory \"$config_dir\" does not exist." >&2
     exit 12
 fi
 
@@ -614,11 +618,11 @@ if [ "x$limits" = "xno" ]; then :; else
   # TODO: Total time watchdog?
   # TODO: Remote compilation limits?
   ulimit -d 215040 2>/dev/null || # data segment   < 210 MiB
-      echo "NOTE: Failed to limit data segment. Might already be lower."
+      msg "NOTE: Failed to limit data segment. Might already be lower."
   ulimit -v 215040 2>/dev/null || # virtual memory < 210 MiB
-      echo "NOTE: Failed to limit virtual mem. Might already be lower."
+      msg "NOTE: Failed to limit virtual mem. Might already be lower."
   ulimit -t 14400  2>/dev/null || # CPU            < 4h
-      echo "NOTE: Failed to limit CPU time. Might already be lower."
+      msg "NOTE: Failed to limit CPU time. Might already be lower."
 fi
 
 get_email
@@ -663,7 +667,7 @@ for projectconfig in $config_dir/*.cfg; do
         case $type in
         configformat)
             if [ X"$arguments" != X2 -a X"$arguments" != X3 ] ; then
-                echo "Unknown configformat $arguments in $projectconfig" >&2
+                msg "Unknown configformat $arguments in $projectconfig" >&2
                 exit 15
             fi
             configformat="$arguments"
@@ -680,7 +684,7 @@ for projectconfig in $config_dir/*.cfg; do
             delay=$arguments    ;;
         environment)
             if [ $configformat = 2 ] ; then
-                echo "environment: not supported in config format v2."
+                msg "environment: not supported in config format v2."
                 exit 16;
             else
                 environment="$environment $arguments"
@@ -689,7 +693,7 @@ for projectconfig in $config_dir/*.cfg; do
         test-$node)
             if [ X$running_default_tests = X -o \
                  X$running_default_tests = Xfalse ] ; then
-                echo "NOTE: Found node specific tests in \"$projectconfig\"." 
+                msg "NOTE: Found node specific tests in \"$projectconfig\"." 
                 running_default_tests="false"
                 test=`echo $arguments | awk '{ print $1 }'`
                 command=`echo $arguments | sed -e 's/[^ ]* //'`
@@ -697,7 +701,7 @@ for projectconfig in $config_dir/*.cfg; do
                 run_test
                 first_project_run="false"                
             else
-                echo " FATAL: Node specific tests must be before the standard tests." >&2
+                msg " FATAL: Node specific tests must be before the standard tests." >&2
                 exit 18
             fi
             ;;
@@ -712,7 +716,7 @@ for projectconfig in $config_dir/*.cfg; do
                 run_test
                 first_project_run="false"
             else
-                echo " NOTE: Skipped standard test overridden by node test."
+                msg " NOTE: Skipped standard test overridden by node test."
             fi
             ;;
         test-*) #Configurations for some other node. Ignore.
@@ -720,7 +724,7 @@ for projectconfig in $config_dir/*.cfg; do
         "")
             : ;;
         *)
-            echo "Unknown parameter \"$line\" in $projectfile." >&2
+            msg "Unknown parameter \"$line\" in $projectfile." >&2
             exit 16
         esac
     done
@@ -730,6 +734,6 @@ for projectconfig in $config_dir/*.cfg; do
 )
 done
 
-echo "All projects built. Exiting."
+msg "All projects built. Exiting."
 
 clean_exit $?
