@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.82 2008/12/13 17:52:49 mast Exp $
+# $Id: client.sh,v 1.83 2008/12/13 23:22:40 mast Exp $
 # Distribution version: 1.3
 # License: GPL
 #
@@ -73,7 +73,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.82 2008/12/13 17:52:49 mast Exp $
+	echo \$Id: client.sh,v 1.83 2008/12/13 23:22:40 mast Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -296,12 +296,12 @@ releaselock() {
 #Called to prepare the project build environment. Not reapeated for each id.
 prepare_project() {
     msg " First test in this project. Preparing build environment."
-    dir="$dir/$node/"
-    if [ ! -d "$dir" ]; then
-        pmkdir "$dir"
+    fulldir="$fulldir/$node"
+    if [ ! -d "$fulldir/." ]; then
+        pmkdir "$fulldir"
     fi  
 
-    cd "$dir" &&
+    cd "$fulldir" &&
      NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
      msg " Downloading $project snapshot..."
      #FIXME: Check for old broken wgets.
@@ -331,14 +331,14 @@ uncompress_exit() {
 put_exit() {
     msg "Failed to send result. Resending in the next client run." >&2
     date=`date | sed -e 's/ //g' -e 's/://g'` &&
-    (pmkdir "$basedir/$dir/rescue_$test/$date") &&
+    (pmkdir "$fulldir/rescue_$test/$date") &&
     mv "$resultdir/xenofarm_result.tar.gz" \
-       "$basedir/$dir/rescue_$test/$date/xenofarm_result.tar.gz"
+       "$fulldir/rescue_$test/$date/xenofarm_result.tar.gz"
     exit 24
 }
 
 put_resume() {
-    cd "$basedir/$dir"
+    cd "$fulldir"
     ls rescue_$test/* >/dev/null 2>&1 &&
     for x in rescue_$test/*; do
         tmp=""
@@ -375,7 +375,7 @@ make_machineid() {
 
 check_test_environment() {
     if [ X"$configformat" = X ] || [ X"$project" = X ] || 
-       [ X"$dir" = X ] || [ X"$geturl" = X ] || 
+       [ X"$fulldir" = X ] || [ X"$geturl" = X ] || 
        [ X"$puturl" = X ] ; then
         msg "FATAL: Missing options in $projectconfig." >&2
         exit 18
@@ -399,12 +399,12 @@ run_test() {
     if [ X"$first_project_run" = Xtrue ] ; then
         prepare_project
     fi
-    msg " Running test \"$test\" in $dir."
+    msg " Running test \"$test\" in $fulldir."
 
     #Check for earlier results and try to send them
     put_resume
 
-    (   cd "$basedir/$dir"
+    (   cd "$fulldir"
 	if [ -d buildtmp/. ]; then
 	  if rm -rf buildtmp 2>/dev/null; then :; else
 	    # Possibly locked by .nfs lock files.
@@ -427,12 +427,12 @@ run_test() {
             if `check_delay`; then
                 if [ $uncompressed != "true" ] ; then
                     msg " Uncompressing archive..." &&
-                    rm -f "$basedir/$dir/snapshot.tar" &&
-                    test -f "$basedir/$dir/snapshot.tar.gz" &&
+                    rm -f "$fulldir/snapshot.tar" &&
+                    test -f "$fulldir/snapshot.tar.gz" &&
                     #This will not fail on full disk, but the tar should
-                    gzip -cd "$basedir/$dir/snapshot.tar.gz" \
-                        > "$basedir/$dir/snapshot.tar" || 
-                            uncompress_exit "$basedir/$dir/snapshot.tar.gz"
+                    gzip -cd "$fulldir/snapshot.tar.gz" \
+                        > "$fulldir/snapshot.tar" || 
+                            uncompress_exit "$fulldir/snapshot.tar.gz"
                     uncompressed="true"
                 fi
                 msg "  Extracting archive..." &&
@@ -499,7 +499,7 @@ run_test() {
                 msg "  Sending results for \"$project\": \"$test\"."
                 $basedir/$putname "$puturl" \
                     < "$resultdir/xenofarm_result.tar.gz" || put_exit
-                cd "$basedir/$dir/buildtmp"
+                cd "$fulldir/buildtmp"
             else
                 msg " NOTE: Build delay for \"$project\" not passed. Skipping."
             fi
@@ -675,7 +675,12 @@ for projectconfig in $config_dir/*.cfg; do
         project)
             project=$arguments  ;;
         projectdir)
-            dir=$arguments      ;;
+            dir=$arguments      
+	    case "$dir" in
+		/*) fulldir="$dir" ;;
+		*) fulldir="$basedir/$dir" ;;
+	    esac
+	    ;;
         snapshoturl)
             geturl=$arguments   ;;
         resulturl)
@@ -729,7 +734,7 @@ for projectconfig in $config_dir/*.cfg; do
         esac
     done
     #On to the next project
-    configformat="" ; project="" ; dir=""
+    configformat="" ; project="" ; dir=""   ; fulldir=""
     geturl=""       ; puturl=""  ; delay="" ; environment=""
 )
 done
