@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.83 2008/12/13 23:22:40 mast Exp $
+# $Id: client.sh,v 1.84 2008/12/13 23:24:54 mast Exp $
 # Distribution version: 1.3
 # License: GPL
 #
@@ -73,7 +73,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.83 2008/12/13 23:22:40 mast Exp $
+	echo \$Id: client.sh,v 1.84 2008/12/13 23:24:54 mast Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -183,7 +183,7 @@ get_email() {
 
 check_multimachinecompilation() {
     if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
-        echo "Testing if remote machine is up..."
+	msg "Testing if remote machine is up..."
         sprsh cmd /c dir 2>/dev/null 1>&2
         res=$?
         case $res in
@@ -394,7 +394,7 @@ run_test() {
 
     msg "Building project \"$project\" from $geturl."
     if [ X"$environment" != X ] ; then
-        echo " Environment: \"$environment\"."
+	msg " Environment: \"$environment\"."
     fi    
     if [ X"$first_project_run" = Xtrue ] ; then
         prepare_project
