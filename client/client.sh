@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.84 2008/12/13 23:24:54 mast Exp $
+# $Id: client.sh,v 1.85 2008/12/13 23:26:51 mast Exp $
 # Distribution version: 1.3
 # License: GPL
 #
@@ -73,7 +73,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.84 2008/12/13 23:24:54 mast Exp $
+	echo \$Id: client.sh,v 1.85 2008/12/13 23:26:51 mast Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -627,11 +627,11 @@ fi
 
 get_email
 
-#Make sure the remote nodes are up in a multi machine compilation setup
-check_multimachinecompilation
-
 #Check and handle the pidfile for this node
 setup_pidfile
+
+#Make sure the remote nodes are up in a multi machine compilation setup
+check_multimachinecompilation
 
 #If we are running a sprshd build the put command should be on the local node
 if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
