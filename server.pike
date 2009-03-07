@@ -3,7 +3,7 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.55 2007/11/14 09:13:31 norrby Exp $
+// $Id: server.pike,v 1.56 2009/03/07 13:12:38 grubba Exp $
 
 Sql.Sql xfdb;
 
@@ -15,11 +15,13 @@ int checkin_poll = 60;
 int checkin_latency = 60*5;
 
 string project;
-string web_dir;
-string repository;
-string cvs_module;
-string svn_module;
-string work_dir;
+string web_dir;		// --web-dir
+string repository;	// --repository
+string cvs_module;	// --cvs-module
+string svn_module;	// --svn-module
+string branch;		// --branch
+string tag_format;	// --tag
+string work_dir;	// --work-dir
 string source_transformer;
 array(string) update_opts = ({});
 
@@ -140,6 +142,101 @@ class CVSClient {
   void update_source(int timestamp) {
     if(!latest_checkin || timestamp>latest_checkin)
       get_latest_checkin();
+  }
+}
+
+class GitClient {
+  inherit RepositoryClient; 
+  constant arguments =
+    "\nGit specific arguments:\n\n"
+    "--branch       The branch of the repository to monitor.\n";
+
+  void parse_arguments(array(string) args) {
+    foreach(Getopt.find_all_options(args, ({
+      ({ "branch",  Getopt.HAS_ARG, "--branch" }),}) ),array opt)
+      {
+	switch(opt[0])
+	{
+	  case "branch":
+	    branch = opt[1];
+	    break;
+	}
+      }
+  }
+
+  string module() {
+    return branch;
+  }
+
+  string name() {
+    return "Git";
+  }
+
+  static int latest_checkin;
+  static string commit_id;
+
+  // The get_latest_checkin function should return the (UTC) unixtime of
+  // the latest check in. This version actually returns the time we last
+  // detected that something has been checked in. That is good enough.
+  int get_latest_checkin()
+  {
+    if(!file_stat(".git") || !file_stat(".git")->isdir) {
+      write("Please clone %O to the %O directory and re-run this script.\n", 
+	    project, work_dir);
+      exit(1);
+    }
+    
+    debug("Running git pull.\n");
+    object update =
+      Process.create_process(({ "git", "pull", "-q" }),
+			     ([ "stdout" : Stdio.File("tmp/update.log", "cwt"),
+				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+    if(update->wait())
+    {
+      write("Failed to update Git in %O for project %O.\n", getcwd(), project);
+      exit(1);
+    }
+    
+    debug("Running git show.\n");
+    object stat =
+      Process.create_process(({ "git", "show", "--pretty=format:%H%x00%ct%x00",
+				branch||"HEAD" }),
+			     ([ "stdout" : Stdio.File("tmp/stat.log", "cwt"),
+				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+    if(stat->wait())
+    {
+      write("Failed to stat Git branch %O in %O.\n",
+	    branch||"HEAD", getcwd());
+      exit(1);
+    }
+
+    array(string) a = Stdio.read_file("tmp/stat.log")/"\0";
+    commit_id = a[0];
+
+    return latest_checkin = (int)a[1];
+  }
+
+  void update_source(int timestamp) {
+    if(!latest_checkin || timestamp>latest_checkin)
+      get_latest_checkin();
+  }
+
+  void tag_source(int buildno) {
+    debug("Running git tag.\n");
+    object tag =
+      Process.create_process(({ "git", "tag",
+				sprintf(tag_format, buildno),
+				commit_id }),
+			     ([ "stdout" : Stdio.File("tmp/tag.log", "cwt"),
+				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+    if(tag->wait())
+    {
+      write("Failed to tag Git commit %O as %O on branch %O in %O.\n",
+	    commit_id, sprintf(tag_format, buildno), branch||"HEAD", getcwd());
+      exit(1);
+    }
+    
+    // FIXME: Optional push of the tag?
   }
 }
 
@@ -480,17 +577,23 @@ string make_build_low(int latest_checkin)
   persistent_query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
 		   latest_build);
 
-  string buildid;
+  int buildid;
   mixed err = catch {
-    buildid = xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+      buildid = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   };
   if(err) {
     catch(xfdb->query("DELETE FROM build WHERE time=%d", latest_build));
     return 0;
   }
 
-  if (!transform_source(client->module(), name, buildid)) {
-    persistent_query("UPDATE build SET export='FAIL' WHERE id=%d", (int)buildid);
+  if (tag_format && client->tag_source) {
+    // FIXME: Consider formatting the tag label here
+    //        instead of in the tag_source() function.
+    client->tag_source(buildid);
+  }
+
+  if (!transform_source(client->module(), name, (string)buildid)) {
+    persistent_query("UPDATE build SET export='FAIL' WHERE id=%d", buildid);
     return 0;
   }
 
@@ -566,6 +669,11 @@ void check_settings() {
     exit(1);
   }
 
+  if (tag_format && !client->tag_source) {
+    write("Tagging not supported with the %s client.\n", client->name());
+    exit(1);
+  }
+
   if(verbose) {
     write("Client:    : %s\n", client->name());
     write("Database   : %s\n", xfdb->host_info());
@@ -595,6 +703,7 @@ int main(int num, array(string) args)
     ({ "once",        Getopt.NO_ARG,  "--once"         }),
     ({ "poll",        Getopt.HAS_ARG, "--poll"         }),
     ({ "repository",  Getopt.HAS_ARG, "--repository"   }),
+    ({ "tag",         Getopt.HAS_ARG, "--tag"          }),
     ({ "verbose",     Getopt.NO_ARG,  "--verbose"      }),
     ({ "webdir",      Getopt.HAS_ARG, "--web-dir"      }),
     ({ "workdir",     Getopt.HAS_ARG, "--work-dir"     }),
@@ -646,6 +755,10 @@ int main(int num, array(string) args)
 	repository = opt[1];
 	break;
 
+      case "tag":
+	tag_format = opt[1];
+	break;
+
       case "verbose":
 	verbose = 1;
 	break;
@@ -680,6 +793,9 @@ int main(int num, array(string) args)
     break;
   case "cvs":
     client = CVSClient();
+    break;
+  case "git":
+    client = GitClient();
     break;
   case "svn":
     client = SVNClient();
@@ -778,14 +894,14 @@ int main(int num, array(string) args)
 }
 
 constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.55 2007/11/14 09:13:31 norrby Exp $\n";
+"$Id: server.pike,v 1.56 2009/03/07 13:12:38 grubba Exp $\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are
 mandatory and the project is the name of the project.
 Possible arguments:
 
---client-type  The repository client to use, \"cvs\", \"svn\",
+--client-type  The repository client to use, \"cvs\", \"git\", \"svn\",
                \"starteam\" or \"custom\". Defaults to \"cvs\".
 --db           The database URL, e.g. mysql://localhost/xenofarm.
 --force        Make a new build and exit.
@@ -798,6 +914,7 @@ Possible arguments:
 --once         Run just once.
 --poll         How often the the repository client is queried for new check ins.
                Defaults to every 60 seconds.
+--tag          Tag the builds.
 --transformer  Program that builds the source package (see README).
 --verbose      Send messages about everything that happens to stdout.
 --web-dir      Where the outgoing build packages should be put.
