@@ -4,7 +4,7 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.85 2008/12/13 23:26:51 mast Exp $
+# $Id: client.sh,v 1.86 2009/07/19 13:13:56 zino Exp $
 # Distribution version: 1.3
 # License: GPL
 #
@@ -73,7 +73,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.85 2008/12/13 23:26:51 mast Exp $
+	echo \$Id: client.sh,v 1.86 2009/07/19 13:13:56 zino Exp $
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)
@@ -219,7 +219,7 @@ longest_nodename() {
         msg "WARNING: You are running client.sh as root. Don't do that!" >&2
     else if hostname --fqdn >/dev/null 2>&1; then
         tmp_node=`hostname --fqdn`
-        if [ X$tmp_node != Xlocalhost.localdomain ]; then
+        if [ X$tmp_node != Xlocalhost.localdomain -o X$tmp_node != Xlocalhost ]; then
             cur_node=$tmp_node
         fi
     else
