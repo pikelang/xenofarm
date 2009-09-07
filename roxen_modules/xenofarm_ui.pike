@@ -151,7 +151,7 @@ static class Build
     switch(t) {
     case 'O': return sprintf("Build(%d, %d /* %s */,\n%s      %s, %O)",
 		      id, build_datetime, str_build_datetime,
-		      export, project);
+                             export, project, project);
     case 't': return "Build";
     }
   }
