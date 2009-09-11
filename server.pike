@@ -685,6 +685,26 @@ void check_settings() {
   }
 }
 
+RepositoryClient get_client()
+{
+  switch(client_type)
+  {
+  case "starteam":
+    return StarTeamClient();
+  case "cvs":
+    return CVSClient();
+  case "git":
+    return GitClient();
+  case "svn":
+    return SVNClient();
+  case "custom":
+    return CustomClient();
+  default:
+    return CVSClient();
+  }
+}
+
+
 int main(int num, array(string) args)
 {
   write(prog_id);
@@ -782,27 +802,7 @@ int main(int num, array(string) args)
   if(!sizeof(update_opts))
     update_opts = ({ "-Pd" });
 
-  if (!client_type)
-    client_type = "cvs";
-
-  switch(client_type)
-  {
-  case "starteam":
-    client = StarTeamClient();
-    break;
-  case "cvs":
-    client = CVSClient();
-    break;
-  case "git":
-    client = GitClient();
-    break;
-  case "svn":
-    client = SVNClient();
-    break;
-  case "custom":
-    client = CustomClient();
-    break;
-  }
+  client = get_client();
 
   client->parse_arguments(args);
   args -= ({ 0 });
