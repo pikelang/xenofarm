@@ -815,7 +815,7 @@ int main(int num, array(string) args)
 
   if(force_build)
   {
-    make_build(time());
+    make_build(client->get_latest_checkin());
     exit(0);
   }
 
