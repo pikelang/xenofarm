@@ -443,7 +443,6 @@ class CustomClient {
   int get_latest_checkin() {
     debug("Running custom client.\n");
     Calendar.TimeRange now = Calendar.Second();
-    string update_args;
     array cmd = ({ prog, "-D", now->format_time(), custom_module });
     object update =
 	Process.create_process( cmd,
