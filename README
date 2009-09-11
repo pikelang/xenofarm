@@ -1177,9 +1177,8 @@ this checklist may be incorrect.
     the database.
 
  8. Use either (or both!) of the available result interfaces to make
-    the results visible on the web. See "8. The Result Interface
-    using xenofarm_ui.pike" and "9. The Result Interface using
-    updatehtml.py".
+    the results visible on the web. See "8. The Result Interface using
+    Roxen WebServer" and "9. The Result Interface using updatehtml".
 
  9. Now that you have seen that everything works, you can start
     server.pike without the --force option. It will continue to run,
