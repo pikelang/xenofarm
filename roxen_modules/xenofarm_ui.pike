@@ -953,7 +953,7 @@ constant tagdoc = ([
   the \"Number of results\" setting in the administration interface. A sum
   of the number of non-failing results for each task is available in an
   entity with the task name. E.g. the number of returned, non-failing results
-  for build/compile is available in &_.build-compile;.
+  for build/compile is available in &amp;_.build-compile;.
 </p>
 
 <attr name='db' value='database URL'><p>
