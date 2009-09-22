@@ -70,7 +70,9 @@ int get_latest_checkin()
 
 string make_build_low(int t) {
   string ret = make_build_low_low(t);
-  array res = persistent_query("SELECT id FROM build WHERE time=%d", t);
+  array res = persistent_query("SELECT id FROM build "
+			       "WHERE time=%d AND project=%s AND branch=%s",
+			       t, project, branch);
   if(!sizeof(res)) {
     debug("Id not found with time as key. Something is broken.\n");
     return ret;
@@ -155,8 +157,9 @@ string make_build_low_low(int latest_checkin)
       status="FAIL";
   }
 
-  persistent_query("INSERT INTO build (time, export) VALUES (%d,'"+status+"')",
-		   latest_checkin);
+  persistent_query("INSERT INTO build (time, project, branch, export) "
+		   "VALUES (%d, %s, %s, '"+status+"')",
+		   latest_checkin, project, branch);
   if(status == "FAIL")
     return 0;
 

@@ -8,8 +8,11 @@
 
 CREATE TABLE build (
   id      INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  project VARCHAR(255) NOT NULL,
+  branch  VARCHAR(255) NOT NULL,
   time    INT UNSIGNED NOT NULL,
-  export  ENUM('FAIL','WARN','PASS') NOT NULL DEFAULT 'FAIL'
+  export  ENUM('FAIL','WARN','PASS') NOT NULL DEFAULT 'FAIL',
+  INDEX(project, branch, time)
 );
 
 

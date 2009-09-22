@@ -113,13 +113,15 @@ class PikeRepositoryClient {
        !file_stat(name) ) {
       if(!file_stat(name))
 	write("Could not find %O from %O.\n", name, getcwd());
-      persistent_query("INSERT INTO build (time, export) VALUES (%d,'FAIL')",
-		       latest_checkin);
+      persistent_query("INSERT INTO build (time, project, branch, export) "
+		       "VALUES (%d, %s, %s, 'FAIL')",
+		       latest_checkin, project, branch);
       return 0;
     }
 
-    persistent_query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
-		     latest_checkin);
+    persistent_query("INSERT INTO build (time, project, branch, export) "
+		     "VALUES (%d, %s, %s, 'PASS')",
+		     latest_checkin, project, branch);
 
     last_name = name;
   }
@@ -127,7 +129,9 @@ class PikeRepositoryClient {
 
 
 string make_build_low(int t) {
-  array res = persistent_query("SELECT id FROM build WHERE time=%d", t);
+  array res = persistent_query("SELECT id FROM build "
+			       "WHERE time=%d AND project=%s AND branch=%s",
+			       t, project, branch);
   if(!sizeof(res)) {
     debug("Id not found with time as key. Something is broken.\n");
     return client->last_name;

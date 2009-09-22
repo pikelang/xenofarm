@@ -528,7 +528,10 @@ string fmt_time(int t) {
 int get_latest_build()
 {
   array res = persistent_query("SELECT time AS latest_build, export "
-			       "FROM build ORDER BY -time LIMIT 1");
+			       "FROM build "
+			       "WHERE project = %s AND branch = %s "
+			       "ORDER BY time DESC LIMIT 1",
+			       project, branch);
   if(!res || !sizeof(res)) return 0;
   latest_state = res[0]->export;
   return (int)(res[0]->latest_build);
@@ -573,15 +576,18 @@ string make_build_low(int latest_checkin)
   string name = sprintf("%s-%s-%s", project,
 			at->format_ymd_short(),
 			at->format_tod_short());
-  persistent_query("INSERT INTO build (time, export) VALUES (%d,'PASS')",
-		   latest_build);
+  persistent_query("INSERT INTO build (time, export, project, branch) "
+		   "VALUES (%d, 'PASS', %s, %s)",
+		   latest_build, project, branch);
 
   int buildid;
   mixed err = catch {
       buildid = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   };
   if(err) {
-    catch(xfdb->query("DELETE FROM build WHERE time=%d", latest_build));
+    catch(xfdb->query("DELETE FROM build "
+		      "WHERE project=%s AND branch=%s AND time=%d",
+		      project, branch, latest_build));
     return 0;
   }
 

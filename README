@@ -662,6 +662,9 @@ plugins so that the result pages can be highly customized. If you are
 interested in static pages instead, skip to the "The Result Interface
 using updatehtml" chapter.
 
+Note that the Xenofarm UI module has not yet been updated to support
+more than one project or branch in the same database.
+
 
 8.1. RXML Tag documentation
 
@@ -932,6 +935,9 @@ a configuration file with simple variable assignments. It is actually
 written in the Python language, but you don't need to know Python to
 edit the file. projects/lyskom-server/updatehtml_cfg.py contains a
 sample file that you can start to edit. See the next section.
+
+Note that updatehtml has not yet been updated to support more than one
+project or branch in the same database.
 
 If you want to do minor changes to the HTML code, you can copy and
 edit the updatehtml_templates.py file.
