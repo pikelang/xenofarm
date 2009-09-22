@@ -3,3 +3,11 @@ alter table build add column branch varchar(255) not null default "FIXME" after 
 alter table build alter project drop default,
       	    	  alter branch drop default,
 		  add index(project, branch, time);
+
+CREATE TABLE server_status (
+  project     VARCHAR(255) NOT NULL,
+  branch      VARCHAR(255) NOT NULL,
+  updated     TIMESTAMP NOT NULL,
+  message     VARCHAR(255) NOT NULL,
+  PRIMARY KEY (project, branch)
+);

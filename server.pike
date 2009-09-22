@@ -117,6 +117,7 @@ class CVSClient {
     }
     
     debug("Running cvs update.\n");
+    set_status("Running cvs update.");
     Calendar.TimeRange now = Calendar.Second();
     object update =
       Process.create_process(({ "cvs", "-q", "update", "-D",
@@ -187,6 +188,7 @@ class GitClient {
     }
     
     debug("Running git pull.\n");
+    set_status("Running git pull.");
     object update =
       Process.create_process(({ "git", "pull", "-q" }),
 			     ([ "stdout" : Stdio.File("tmp/update.log", "cwt"),
@@ -281,6 +283,7 @@ class SVNClient {
     }
     
     debug("Running svn update.\n");
+    set_status("Running svn update.");
     Calendar.TimeRange now = Calendar.Second();
     object update =
       Process.create_process(({ "svn", "update", 
@@ -365,6 +368,7 @@ class StarTeamClient {
       exit(1);
     }
     debug("Running stcmd co.\n");
+    set_status("Running stcmd co.");
     Calendar.TimeRange now = Calendar.Second();
     object update =
       Process.create_process(({ "stcmd", "co", "-nologo", "-is", "-p",
@@ -451,6 +455,7 @@ class CustomClient {
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
     string actual_command = sprintf("'%s'", cmd * "' '");
     debug("Running custom checker %s\n", actual_command);
+    set_status("Running custom checker " + actual_command + ".");
     if(update->wait())
     {
 	write("Failed to check for updates using: '%s'.\n", actual_command);
@@ -594,9 +599,11 @@ string make_build_low(int latest_checkin)
   if (tag_format && client->tag_source) {
     // FIXME: Consider formatting the tag label here
     //        instead of in the tag_source() function.
+    set_status("Tagging the source code.");
     client->tag_source(buildid);
   }
 
+  set_status("Creating source code dist.");
   if (!transform_source(client->module(), name, (string)buildid)) {
     persistent_query("UPDATE build SET export='FAIL' WHERE id=%d", buildid);
     return 0;
@@ -609,6 +616,7 @@ void make_build(int timestamp)
 {
   debug("Making new build.\n");
 
+  set_status("Updating the source tree.");
   client->update_source(timestamp);
   string build_name = make_build_low(timestamp);
   if(!build_name) {
@@ -708,6 +716,27 @@ RepositoryClient get_client()
   default:
     return CVSClient();
   }
+}
+
+
+void set_status(string intent, void|int when)
+{
+  if( when )
+    intent = sprintf(intent, Calendar.Second(time() + when)->format_time());
+
+  array res = persistent_query("SELECT count(*) AS count"
+			       " FROM server_status"
+			       " WHERE project = %s AND branch = %s",
+			       project, branch);
+  if( (int)res[0]->count > 0 )
+    xfdb->query("UPDATE server_status"
+		" SET updated = NOW(), message = %s"
+		" WHERE project = %s AND branch = %s",
+		intent, project, branch);
+  else
+    xfdb->query("INSERT INTO server_status (project, branch, updated, message)"
+		" VALUES (%s, %s, NOW(), %s)",
+		project, branch, intent);
 }
 
 
@@ -821,7 +850,9 @@ int main(int num, array(string) args)
 
   if(force_build)
   {
+    set_status("Making a forced build.");
     make_build(client->get_latest_checkin());
+    set_status("Exiting.");
     exit(0);
   }
 
@@ -847,6 +878,7 @@ int main(int num, array(string) args)
       debug("Enforcing minimum build distance. Quarantine left: %s.\n",
 	    fmt_time(sleep_for));
       sit_quietly = 0;
+      set_status("Waiting until %s to enforce build distance.", sleep_for);
     }
     else // After the next commit + inactivity cycle it's time for a new build
     {
@@ -877,6 +909,8 @@ int main(int num, array(string) args)
 	else // Enforce minimum time of inactivity after a commit
 	{
 	  sleep_for = latest_checkin + checkin_latency - now;
+	  set_status("Will create new build at %s unless new commits found.",
+		     sleep_for);
 	  debug("A new build is scheduled to run in %s.\n",
 		fmt_time(sleep_for));
 	}
@@ -886,6 +920,7 @@ int main(int num, array(string) args)
       {
 	sit_quietly = 1; // until something happens in the repository
 	sleep_for = checkin_poll; // poll frequency
+	set_status("Idle; waiting for new commits.");
       }
     }
 

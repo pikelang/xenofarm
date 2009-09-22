@@ -57,3 +57,14 @@ CREATE TABLE task_result (
   time_spent  INT UNSIGNED NOT NULL,
   PRIMARY KEY (build, system, task)
 );
+
+
+# Table with status information from server.pike.
+
+CREATE TABLE server_status (
+  project     VARCHAR(255) NOT NULL,
+  branch      VARCHAR(255) NOT NULL,
+  updated     TIMESTAMP NOT NULL,
+  message     VARCHAR(255) NOT NULL,
+  PRIMARY KEY (project, branch)
+);
