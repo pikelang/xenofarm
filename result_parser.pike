@@ -13,6 +13,7 @@ string web_dir;
 string build_id_file = "buildid.txt";
 string machine_id_file = "machineid.txt";
 string main_log_file = "mainlog.txt";
+string compilation_step_name = "build/compile";
 string compilation_log_file = "compilelog.txt";
 string post_script;
 
@@ -427,7 +428,7 @@ mapping low_process_package() {
     }
     else
       foreach(result->tasks, array x) {
-	if(x[0]=="build/compile")
+	if(x[0]==compilation_step_name)
 	  x[3] = count_warnings(compilation_log_file);
       }
   }
