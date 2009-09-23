@@ -261,6 +261,14 @@ void parse_log(string fn, mapping res)
       res->status = badness ? "WARN" : "PASS";
 }
 
+void count_compilation_warnings(mapping result)
+{
+  foreach(result->tasks, array x) {
+    if(x[0]==compilation_step_name)
+      x[3] = count_warnings(compilation_log_file);
+  }
+}
+
 //! Reads the file @[fn] and counts how many warnings it contains. A
 //! warning is a line that contains the string "warning" or "(w)" (in
 //! any case) and does not match any of the globs listed in the array
@@ -423,14 +431,10 @@ mapping low_process_package() {
 
   if(!result->status) {
     parse_log(main_log_file, result);
-    if(!result->tasks) {
+    if(!result->tasks)
       write("No tasks found in result log.\n");
-    }
     else
-      foreach(result->tasks, array x) {
-	if(x[0]==compilation_step_name)
-	  x[3] = count_warnings(compilation_log_file);
-      }
+      count_compilation_warnings(result);
   }
 
   if(!dry_run)
