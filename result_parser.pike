@@ -19,6 +19,7 @@ string post_script;
 
 int(0..1) verbose;
 int(0..1) dry_run;
+int(0..1) keep_going = 1;
 
 multiset(string) processed_results = (<>);
 array(string) ignored_warnings = ({});
@@ -595,6 +596,12 @@ void check_settings(void|int(0..1) no_result_dir) {
   }
 }
 
+void got_termination_request(int sig)
+{
+  keep_going = 0;
+  debug("Initiating a clean shutdown.  This can take some time...\n");
+}
+
 int main(int num, array(string) args) {
   int (0..1) once_only = 0;
   write(prog_id);
@@ -663,7 +670,10 @@ int main(int num, array(string) args) {
 
   check_settings();
 
-  while(1) {
+  signal(signum("TERM"), got_termination_request);
+  signal(signum("INT"), got_termination_request);
+
+  while(keep_going) {
     int(0..1) got_any;
     foreach(filter(get_dir(result_dir), has_prefix, "res"), string fn) {
       fn = result_dir + fn;
@@ -680,7 +690,8 @@ int main(int num, array(string) args) {
     if (once_only)
 	return 0;
 
-    sleep(result_poll);
+    sleep(result_poll, 1);
+    sleep(0);
   }
 
 }
