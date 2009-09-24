@@ -29,6 +29,8 @@ int(0..1) verbose;
 int latest_build;
 string latest_state="FAIL";
 
+int(0..1) keep_going = 1;
+
 //
 // Repository classes
 //
@@ -740,6 +742,12 @@ void set_status(string intent, void|int when)
 }
 
 
+void got_termination_request(int sig)
+{
+  keep_going = 0;
+  debug("Initiating a clean shutdown.  This can take some time...\n");
+}
+
 int main(int num, array(string) args)
 {
   write(prog_id);
@@ -848,6 +856,9 @@ int main(int num, array(string) args)
 
   check_settings();
 
+  signal(signum("TERM"), got_termination_request);
+  signal(signum("INT"), got_termination_request);
+
   if(force_build)
   {
     set_status("Making a forced build.");
@@ -864,7 +875,7 @@ int main(int num, array(string) args)
 
   int sleep_for;
   int(0..1) sit_quietly;
-  while(1)
+  while(keep_going)
   {
     int now = Calendar.now()->unix_time();
     int delta = now - latest_build;
@@ -929,7 +940,13 @@ int main(int num, array(string) args)
 
     if(!sit_quietly)
       debug("Sleeping for %d seconds...\n", sleep_for);
-    sleep(sleep_for);
+    sleep(sleep_for, 1);
+
+    // This sleep(0) is here to enforce Pike running the signal
+    // handler got_term() before it evaluates the while loop
+    // condition.  Without this, if the sleep is interrupted, Pike
+    // would still run the loop one more time.
+    sleep(0);
   }
 }
 
