@@ -948,6 +948,8 @@ int main(int num, array(string) args)
     // would still run the loop one more time.
     sleep(0);
   }
+
+  set_status("Server stopped.");
 }
 
 constant prog_id = "Xenofarm generic server\n"
