@@ -11,3 +11,5 @@ CREATE TABLE server_status (
   message     VARCHAR(255) NOT NULL,
   PRIMARY KEY (project, branch)
 );
+
+alter table build add index(project, branch, id);

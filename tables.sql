@@ -12,7 +12,8 @@ CREATE TABLE build (
   branch  VARCHAR(255) NOT NULL,
   time    INT UNSIGNED NOT NULL,
   export  ENUM('FAIL','WARN','PASS') NOT NULL DEFAULT 'FAIL',
-  INDEX(project, branch, time)
+  INDEX(project, branch, time),
+  INDEX(project, branch, id)
 );
 
 
