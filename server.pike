@@ -894,6 +894,8 @@ int main(int num, array(string) args)
     else // After the next commit + inactivity cycle it's time for a new build
     {
       int latest_checkin = client->get_latest_checkin();
+      if(!latest_checkin && !keep_going)
+	break;
 
       if(!sit_quietly) {
 	debug("Latest check in was %s ago.\n", fmt_time(now - latest_checkin));
