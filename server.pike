@@ -897,6 +897,9 @@ int main(int num, array(string) args)
       if(!latest_checkin && !keep_going)
 	break;
 
+      // Refresh the time in case get_latest_checkin() takes a very long time.
+      now = Calendar.now()->unix_time();
+
       if(!sit_quietly) {
 	debug("Latest check in was %s ago.\n", fmt_time(now - latest_checkin));
 	sit_quietly = 1;
