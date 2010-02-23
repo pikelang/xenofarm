@@ -867,6 +867,7 @@ int main(int num, array(string) args)
     exit(0);
   }
 
+  set_status("Starting up...");
   latest_build = get_latest_build();
   if(latest_build)
     debug("Latest build was %s ago.\n", fmt_time(time()-latest_build));
