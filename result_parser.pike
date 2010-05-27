@@ -111,7 +111,9 @@ void parse_machine_id(string fn, mapping res)
   if (!f->open(fn, "r")) return;
 
   foreach(f->line_iterator(1);;string pair) {
-    sscanf(pair, "%s: %s", string key, string value);
+    string key = 0;
+    string value = 0;
+    sscanf(pair, "%s: %s", key, value);
     if(key && value)
       res[key] = String.trim_all_whites(value);
   }
