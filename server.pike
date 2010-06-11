@@ -58,6 +58,32 @@ class RepositoryClient {
   // Should return the name of the repository client.
   string name();
 
+}
+
+// Base class for version control systems that cannot check out the
+// code as it was at a certain time.  This class instead performs a
+// full checkout in get_latest_checkin() and returns the current time,
+// and update_source essentially becomes a no-op or a call to
+// get_latest_checkin().
+class FakeTimeClient {
+  inherit RepositoryClient;
+
+  static int latest_checkin;
+
+  // The get_latest_checkin function should return the (UTC) unixtime of
+  // the latest check in. This version actually returns the time we last
+  // detected that something has been checked in. That is good enough.
+  int get_latest_checkin()
+  {
+    check_work_dir();
+    Calendar.TimeRange now = Calendar.Second();
+    array(string) log = update_to_current_source();
+    latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    latest_checkin = time_of_change(log, checkin_state_file,
+				    latest_checkin, now);
+    return latest_checkin;
+  }
+
   int time_of_change(array(string) log,
 		     string checkin_state_file,
 		     int latest_checkin,
@@ -72,7 +98,7 @@ class RepositoryClient {
     else {
       debug("Nothing changed\n");
     }
-    
+
     // Handle a missing checkin_state_file file.  This should only happen
     // the first time server.pike is run.
     if(latest_checkin == 0)
@@ -81,13 +107,26 @@ class RepositoryClient {
 	latest_checkin = now->unix_time();
 	Stdio.write_file(checkin_state_file, latest_checkin + "\n");
     }
-    
+
     return latest_checkin;
   }
+
+  void update_source(int timestamp) {
+    if(!latest_checkin || timestamp>latest_checkin)
+      get_latest_checkin();
+  }
+
+  // Check that we have a working copy of the source tree.  Do exit(1)
+  // otherwise.
+  void check_work_dir();
+
+  // Do "cvs update" or the corresponding command.  Return a non-empty
+  // log file if anything changed.
+  array(string) update_to_current_source();
 }
 
 class CVSClient {
-  inherit RepositoryClient; 
+  inherit FakeTimeClient;
   constant arguments =
   "\nCVS specific arguments:\n\n"
   "--cvs-module   The CVS module the server should use.\n"
@@ -105,22 +144,19 @@ class CVSClient {
     return "CVS";
   }
 
-  static int latest_checkin;
-
-  // The get_latest_checkin function should return the (UTC) unixtime of
-  // the latest check in. This version actually returns the time we last
-  // detected that something has been checked in. That is good enough.
-  int get_latest_checkin()
+  void check_work_dir()
   {
     if(!file_stat(cvs_module) || !file_stat(cvs_module)->isdir) {
       write("Please check out %O inside %O and re-run this script.\n", 
 	    cvs_module, work_dir);
       exit(1);
     }
-    
+  }
+
+  array(string) update_to_current_source()
+  {
     debug("Running cvs update.\n");
     set_status("Running cvs update.");
-    Calendar.TimeRange now = Calendar.Second();
     object update =
       Process.create_process(({ "cvs", "-q", "update",
 				@update_opts }),
@@ -132,24 +168,14 @@ class CVSClient {
 	write("Failed to update CVS module %O in %O.\n", cvs_module, getcwd());
 	exit(1);
     }
-    
-    latest_checkin = (int)Stdio.read_file(checkin_state_file);
-    array(string) log;
-    log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
-		 lambda(string row) { return !has_prefix(row, "? "); });
-    latest_checkin = time_of_change(log, checkin_state_file,
-				    latest_checkin, now);
-    return latest_checkin;
-  }
 
-  void update_source(int timestamp) {
-    if(!latest_checkin || timestamp>latest_checkin)
-      get_latest_checkin();
+    return filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
+		  lambda(string row) { return !has_prefix(row, "? "); });
   }
 }
 
 class GitClient {
-  inherit RepositoryClient; 
+  inherit FakeTimeClient;
   constant arguments =
     "\nGit specific arguments:\n\n"
     "--branch       The branch of the repository to monitor.\n";
@@ -175,8 +201,6 @@ class GitClient {
     return "Git";
   }
 
-  static int latest_checkin;
-
   string current_commit_id()
   {
     Stdio.File stdout = Stdio.File();
@@ -195,17 +219,17 @@ class GitClient {
     return String.trim_all_whites(stdout.read());
   }
 
-  // The get_latest_checkin function should return the (UTC) unixtime of
-  // the latest check in. This version actually returns the time we last
-  // detected that something has been checked in. That is good enough.
-  int get_latest_checkin()
+  void check_work_dir()
   {
     if(!file_stat(".git") || !file_stat(".git")->isdir) {
       write("Please clone %O to the %O directory and re-run this script.\n", 
 	    project, work_dir);
       exit(1);
     }
+  }
 
+  array(string) update_to_current_source()
+  {
     string before = current_commit_id();
 
     debug("Running git pull.\n");
@@ -238,16 +262,7 @@ class GitClient {
       }
       log_lines = Stdio.read_file("tmp/log.log") / "\n";
     }
-
-    latest_checkin = (int)Stdio.read_file(checkin_state_file);
-    latest_checkin = time_of_change(log, checkin_state_file,
-				    latest_checkin, now);
-    return latest_checkin;
-  }
-
-  void update_source(int timestamp) {
-    if(!latest_checkin || timestamp>latest_checkin)
-      get_latest_checkin();
+    return log_lines;
   }
 
   void tag_source(int buildno) {
@@ -271,7 +286,7 @@ class GitClient {
 }
 
 class SVNClient {
-  inherit RepositoryClient; 
+  inherit FakeTimeClient;
   constant arguments =
   "\nSVN specific arguments:\n\n"
   "--svn-module   The Subversion module the server should use.\n";
@@ -297,19 +312,17 @@ class SVNClient {
     return "SVN";
   }
 
-  static int latest_checkin;
-
-  // The get_latest_checkin function should return the (UTC) unixtime of
-  // the latest check in. This version actually returns the time we last
-  // detected that something has been checked in. That is good enough.
-  int get_latest_checkin()
+  void check_work_dir()
   {
     if(!file_stat(svn_module) || !file_stat(svn_module)->isdir) {
       write("Please check out %O inside %O and re-run this script.\n", 
 	    svn_module, work_dir);
       exit(1);
     }
-    
+  }
+
+  array(string) update_to_current_source()
+  {
     debug("Running svn update.\n");
     set_status("Running svn update.");
     object update =
@@ -322,27 +335,17 @@ class SVNClient {
 	write("Failed to update SVN module %O in %O.\n", svn_module, getcwd());
 	exit(1);
     }
-    
-    latest_checkin = (int)Stdio.read_file(checkin_state_file);
-    array(string) log;
-    log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
-		 lambda(string row) {
-		   return !(has_prefix(row, "? ")
-			    ||has_prefix(row, "At revision"));
-		 });
-    latest_checkin = time_of_change(log, checkin_state_file,
-				    latest_checkin, now);
-    return latest_checkin;
-  }
 
-  void update_source(int timestamp) {
-    if(!latest_checkin || timestamp>latest_checkin)
-      get_latest_checkin();
+    return filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
+		  lambda(string row) {
+		    return !(has_prefix(row, "? ")
+			     ||has_prefix(row, "At revision"));
+		  });
   }
 }
 
 class StarTeamClient {
-  inherit RepositoryClient;
+  inherit FakeTimeClient;
 
   string st_module;
   string st_project;
@@ -384,18 +387,20 @@ class StarTeamClient {
     return "StarTeam";
   }
 
-  static int latest_checkin;
-
-  int get_latest_checkin() {
+  void check_work_dir()
+  {
     //check out into work-dir/st_module
     if(!file_stat(module()) || !file_stat(module())->isdir) {
       write("Please check out %O inside %O and re-run this script.\n", 
 	    module(), work_dir);
       exit(1);
     }
+  }
+
+  array(string) update_to_current_source()
+  {
     debug("Running stcmd co.\n");
     set_status("Running stcmd co.");
-    Calendar.TimeRange now = Calendar.Second();
     object update =
       Process.create_process(({ "stcmd", "co", "-nologo", "-is", "-p",
 				st_project, "-pwdfile", st_pwdfile, "-fp",
@@ -412,24 +417,14 @@ class StarTeamClient {
 	exit(1);
     }
 
-    latest_checkin = (int)Stdio.read_file(checkin_state_file);
-    array(string) log;
-    log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
-		 lambda(string row) {
-		   return has_suffix(row, ": checked out");});
-    latest_checkin = time_of_change(log, checkin_state_file,
-				    latest_checkin, now);
-    return latest_checkin;
-  }
-
-  void update_source(int timestamp) {
-    if(!latest_checkin || timestamp>latest_checkin)
-      get_latest_checkin();
+    return filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
+		  lambda(string row) {
+		    return has_suffix(row, ": checked out");});
   }
 }
 
 class CustomClient {
-  inherit RepositoryClient;
+  inherit FakeTimeClient;
 
   string custom_module;
   string prog;
@@ -468,9 +463,13 @@ class CustomClient {
     return "Custom";
   }
 
-  static int latest_checkin;
+  void check_work_dir()
+  {
+    // We assume that the user knows what he is doing, so no checks here.
+  }
 
-  int get_latest_checkin() {
+  array(string) update_to_current_source()
+  {
     debug("Running custom client.\n");
     Calendar.TimeRange now = Calendar.Second();
     array cmd = ({ prog, "-D", now->format_time(), custom_module });
@@ -488,17 +487,7 @@ class CustomClient {
 	exit(1);
     }
     write("Checked for updates.\n");
-    latest_checkin = (int)Stdio.read_file(checkin_state_file);
-    array(string) log;
-    log = Stdio.read_file("tmp/update.log")/"\n"  - ({ "" });
-    latest_checkin = time_of_change(log, checkin_state_file,
-				    latest_checkin, now);
-    return latest_checkin;
-  }
-
-  void update_source(int timestamp) {
-    if(!latest_checkin || timestamp>latest_checkin)
-      get_latest_checkin();
+    return Stdio.read_file("tmp/update.log")/"\n"  - ({ "" });
   }
 }
 
