@@ -26,7 +26,6 @@ string source_transformer;
 array(string) update_opts = ({});
 
 int(0..1) verbose;
-int latest_build;
 string latest_state="FAIL";
 
 int(0..1) keep_going = 1;
@@ -913,7 +912,7 @@ int main(int num, array(string) args)
   }
 
   set_status("Starting up...");
-  latest_build = get_latest_build();
+  int latest_build = get_latest_build();
   if(latest_build)
     debug("Latest build was %s ago.\n", fmt_time(time()-latest_build));
   else
