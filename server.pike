@@ -286,10 +286,8 @@ class SVNClient {
     
     debug("Running svn update.\n");
     set_status("Running svn update.");
-    Calendar.TimeRange now = Calendar.Second();
     object update =
-      Process.create_process(({ "svn", "update", 
-			        sprintf("-r{%s}", now->format_time()) }),
+      Process.create_process(({ "svn", "update" }),
 			     ([ "cwd"    : svn_module,
 				"stdout" : Stdio.File("tmp/update.log", "cwt"),
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
