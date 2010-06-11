@@ -35,6 +35,14 @@ class CommitId
 {
   int unix_time();
   int create_build_id();
+
+  string dist_name()
+  {
+    object at = Calendar.ISO_UTC.Second("unix", unix_time());
+    return sprintf("%s-%s-%s", project,
+                  at->format_ymd_short(),
+                  at->format_tod_short());
+  }
 }
 
 class TimeStampCommitId
@@ -632,12 +640,8 @@ int(0..1) transform_source(string module, string name, string buildid) {
 
 string make_build_low(CommitId latest_checkin)
 {
-  int latest_build = latest_checkin->unix_time();
-  object at = Calendar.ISO_UTC.Second("unix", latest_build);
-  string name = sprintf("%s-%s-%s", project,
-			at->format_ymd_short(),
-			at->format_tod_short());
   int buildid = latest_checkin->create_build_id();
+  string name = latest_checkin->dist_name();
 
   if (tag_format && client->tag_source) {
     // FIXME: Consider formatting the tag label here
