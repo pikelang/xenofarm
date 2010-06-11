@@ -122,8 +122,8 @@ class CVSClient {
     set_status("Running cvs update.");
     Calendar.TimeRange now = Calendar.Second();
     object update =
-      Process.create_process(({ "cvs", "-q", "update", "-D",
-				now->format_time(), @update_opts }),
+      Process.create_process(({ "cvs", "-q", "update",
+				@update_opts }),
 			     ([ "cwd"    : cvs_module,
 				"stdout" : Stdio.File("tmp/update.log", "cwt"),
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
