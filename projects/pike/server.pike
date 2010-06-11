@@ -69,7 +69,7 @@ class PikeRepositoryClient {
   string module() { return pike_version; }
   string name() { return "PikeRepository"; }
 
-  int get_latest_checkin() {
+  TimeStampCommitId get_latest_checkin() {
     string timestamp;
     array err = catch {
       timestamp = Protocols.HTTP.get_url_data(latest_pike_checkin);
@@ -82,7 +82,7 @@ class PikeRepositoryClient {
 
     err = catch {
       int ts = Calendar.ISO_UTC.dwim_time(timestamp)->unix_time();
-      return ts;
+      return TimeStampCommitId(ts);
     };
 
     if(err)
@@ -91,11 +91,11 @@ class PikeRepositoryClient {
   }
 
   string last_name;
-  void update_source(int latest_checkin) {
+  void update_source(TimeStampCommitId latest_checkin) {
     cd(work_dir);
     Stdio.recursive_rm("Pike");
 
-    Calendar.TimeRange at = Calendar.ISO_UTC.Second(latest_checkin);
+    Calendar.TimeRange at = Calendar.ISO_UTC.Second(latest_checkin->unix_time());
     object checkout =
       Process.create_process(({ "cvs", "-Q", "-d", repository, "co", "-D",
 				at->set_timezone("localtime")->format_time(),
@@ -103,35 +103,35 @@ class PikeRepositoryClient {
     if(checkout->wait())
       return 0; // something went wrong
 
-    string name = make_export_name(latest_checkin);
+    string name = make_export_name(latest_checkin->unix_time());
     cd("Pike/"+pike_version);
     if(Process.system("make xenofarm_export "
 #ifndef NILSSON
 		      "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\" "
 #endif
-		      "EXPORTARGS=\"--timestamp=" + latest_checkin + "\"") ||
+		      "EXPORTARGS=\"--timestamp=" + latest_checkin->unix_time() + "\"") ||
        !file_stat(name) ) {
       if(!file_stat(name))
 	write("Could not find %O from %O.\n", name, getcwd());
       persistent_query("INSERT INTO build (time, project, branch, export) "
 		       "VALUES (%d, %s, %s, 'FAIL')",
-		       latest_checkin, project, branch);
+		       latest_checkin->unix_time(), project, branch);
       return 0;
     }
 
     persistent_query("INSERT INTO build (time, project, branch, export) "
 		     "VALUES (%d, %s, %s, 'PASS')",
-		     latest_checkin, project, branch);
+		     latest_checkin->unix_time(), project, branch);
 
     last_name = name;
   }
 }
 
 
-string make_build_low(int t) {
+string make_build_low(TimeStampCommitId t) {
   array res = persistent_query("SELECT id FROM build "
 			       "WHERE time=%d AND project=%s AND branch=%s",
-			       t, project, branch);
+			       t->unix_time(), project, branch);
   if(!sizeof(res)) {
     debug("Id not found with time as key. Something is broken.\n");
     return client->last_name;

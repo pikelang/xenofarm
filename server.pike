@@ -31,6 +31,28 @@ string latest_state="FAIL";
 
 int(0..1) keep_going = 1;
 
+class CommitId
+{
+  int unix_time();
+}
+
+class TimeStampCommitId
+{
+  inherit CommitId;
+
+  int timestamp;
+
+  void create(int timestamp)
+  {
+    this->timestamp = timestamp;
+  }
+
+  int unix_time()
+  {
+    return timestamp;
+  }
+}
+
 //
 // Repository classes
 //
@@ -38,11 +60,11 @@ string client_type;
 class RepositoryClient {
 
   // Returns the posix time when the latest checkin was committed.
-  int get_latest_checkin();
+  CommitId get_latest_checkin();
 
   // This method gets called when the local source tree should
   // be updated.
-  void update_source(int timestamp);
+  void update_source(CommitId commit_id);
 
   // A string with descriptions of the special arguments this repository
   // client accepts.
@@ -73,7 +95,7 @@ class FakeTimeClient {
   // The get_latest_checkin function should return the (UTC) unixtime of
   // the latest check in. This version actually returns the time we last
   // detected that something has been checked in. That is good enough.
-  int get_latest_checkin()
+  TimeStampCommitId get_latest_checkin()
   {
     check_work_dir();
     Calendar.TimeRange now = Calendar.Second();
@@ -81,7 +103,7 @@ class FakeTimeClient {
     latest_checkin = (int)Stdio.read_file(checkin_state_file);
     latest_checkin = time_of_change(log, checkin_state_file,
 				    latest_checkin, now);
-    return latest_checkin;
+    return TimeStampCommitId(latest_checkin);
   }
 
   int time_of_change(array(string) log,
@@ -111,8 +133,8 @@ class FakeTimeClient {
     return latest_checkin;
   }
 
-  void update_source(int timestamp) {
-    if(!latest_checkin || timestamp>latest_checkin)
+  void update_source(TimeStampCommitId when) {
+    if(!latest_checkin || when->unix_time() > latest_checkin)
       get_latest_checkin();
   }
 
@@ -589,9 +611,9 @@ int(0..1) transform_source(string module, string name, string buildid) {
   return 1;
 }
 
-string make_build_low(int latest_checkin)
+string make_build_low(CommitId latest_checkin)
 {
-  int latest_build = latest_checkin;
+  int latest_build = latest_checkin->unix_time();
   object at = Calendar.ISO_UTC.Second("unix", latest_build);
   string name = sprintf("%s-%s-%s", project,
 			at->format_ymd_short(),
@@ -627,7 +649,7 @@ string make_build_low(int latest_checkin)
   return name+".tar.gz";
 }
 
-void make_build(int timestamp)
+void make_build(CommitId timestamp)
 {
   debug("Making new build.\n");
 
@@ -907,7 +929,7 @@ int main(int num, array(string) args)
     }
     else // After the next commit + inactivity cycle it's time for a new build
     {
-      int latest_checkin = client->get_latest_checkin();
+      CommitId latest_checkin = client->get_latest_checkin();
       if(!latest_checkin && !keep_going)
 	break;
 
@@ -915,12 +937,13 @@ int main(int num, array(string) args)
       now = Calendar.now()->unix_time();
 
       if(!sit_quietly) {
-	debug("Latest check in was %s ago.\n", fmt_time(now - latest_checkin));
+	debug("Latest check in was %s ago.\n",
+	      fmt_time(now - latest_checkin->unix_time()));
 	sit_quietly = 1;
       }
-      if(latest_checkin > latest_build)
+      if(latest_checkin->unix_time() > latest_build)
       {
-	if(latest_checkin + checkin_latency <= now)
+	if(latest_checkin->unix_time() + checkin_latency <= now)
 	{
 	  sleep_for = 0;
 	  make_build(latest_checkin);
@@ -928,7 +951,7 @@ int main(int num, array(string) args)
 	}
 	else // Enforce minimum time of inactivity after a commit
 	{
-	  sleep_for = latest_checkin + checkin_latency - now;
+	  sleep_for = latest_checkin->unix_time() + checkin_latency - now;
 	  set_status("Will create new build at %s unless new commits found.",
 		     sleep_for);
 	  debug("A new build is scheduled to run in %s.\n",

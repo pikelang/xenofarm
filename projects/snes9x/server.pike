@@ -46,7 +46,7 @@ string make_export_name(int latest_checkin)
 		 o->format_ymd_short(), o->format_tod_short());
 }
 
-int get_latest_checkin()
+TimeStampCommitId get_latest_checkin()
 {
   string timestamp;
   array err = catch {
@@ -60,7 +60,7 @@ int get_latest_checkin()
 
   err = catch {
     int ts = Calendar.ISO_UTC.dwim_time(timestamp)->unix_time();
-    return ts;
+    return TimeStampCommitId(ts);
   };
 
   if(err)
@@ -68,11 +68,11 @@ int get_latest_checkin()
   return 0;
 }
 
-string make_build_low(int t) {
-  string ret = make_build_low_low(t);
+string make_build_low(TimeStampCommitId t) {
+  string ret = make_build_low_low(t->unix_time());
   array res = persistent_query("SELECT id FROM build "
 			       "WHERE time=%d AND project=%s AND branch=%s",
-			       t, project, branch);
+			       t->unix_time(), project, branch);
   if(!sizeof(res)) {
     debug("Id not found with time as key. Something is broken.\n");
     return ret;
