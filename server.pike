@@ -377,12 +377,13 @@ class GitClient {
 
     object stat =
       Process.create_process(({ "git", "rev-parse", "HEAD" }),
-			     ([ "stdout" : stdout.pipe(),
+			     ([ "cwd": module(),
+				"stdout" : stdout.pipe(),
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
     if(stat->wait())
     {
       write("Failed to stat Git branch %O in %O.\n",
-	    branch||"HEAD", getcwd());
+	    branch||"HEAD", combine_path(getcwd(), module()));
       exit(1);
     }
 
@@ -432,7 +433,8 @@ class GitClient {
     object logproc =
       Process.create_process( ({ "git", "log", "--name-only",
 				 "--pretty=format:%x00%H %P" }),
-			      ([ "stdout": stdout.pipe() ]) );
+			      ([ "cwd": module(),
+				 "stdout": stdout.pipe() ]) );
 
     Thread.Fifo node_queue = Thread.Fifo();
 
@@ -485,9 +487,11 @@ class GitClient {
 
   void check_work_dir()
   {
-    if(!file_stat(".git") || !file_stat(".git")->isdir) {
+    if(!file_stat(module()) || !file_stat(module())->isdir
+       || !file_stat(combine_path(module(), ".git"))
+       || !file_stat(combine_path(module(), ".git"))->isdir) {
       write("Please clone %O to the %O directory and re-run this script.\n", 
-	    project, work_dir);
+	    project, combine_path(work_dir, module()));
       exit(1);
     }
   }
@@ -496,7 +500,8 @@ class GitClient {
   {
     object symref =
       Process.create_process( ({ "git", "symbolic-ref", "-q", "HEAD" }),
-			      ([ "stdout": Stdio.File("/dev/null", "cwt") ]) );
+			      ([ "cwd": module(),
+				 "stdout": Stdio.File("/dev/null", "cwt") ]) );
     switch( symref->wait() )
       {
       case 0:
@@ -522,11 +527,13 @@ class GitClient {
     set_status("Running git pull.");
     object update =
       Process.create_process(({ "git", "pull", "-q" }),
-			     ([ "stdout" : Stdio.File("tmp/update.log", "cwt"),
+			     ([ "cwd": module(),
+				"stdout" : Stdio.File("tmp/update.log", "cwt"),
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
     if(update->wait())
     {
-      write("Failed to update Git in %O for project %O.\n", getcwd(), project);
+      write("Failed to update Git in %O for project %O.\n",
+	    combine_path(getcwd(), module()), project);
       exit(1);
     }
 
@@ -545,11 +552,12 @@ class GitClient {
       object log =
           Process.create_process(
               ({ "git", "log", before + ".." + after }),
-              ([ "stdout": Stdio.File("tmp/log.log", "cwt")]));
+              ([ "cwd": module(),
+		 "stdout": Stdio.File("tmp/log.log", "cwt")]));
       if(log->wait())
       {
         write("Failed to get Git log in %O for project %O.\n",
-              getcwd(), project);
+              combine_path(getcwd(), module()), project);
         exit(1);
       }
       log_lines = Stdio.read_file("tmp/log.log") / "\n";
@@ -561,7 +569,8 @@ class GitClient {
   {
     object stat =
       Process.create_process(({ "git", "checkout", commit_id }),
-			     ([ "stdout" : Stdio.File("tmp/co.log", "cwt"),
+			     ([ "cwd": module(),
+				"stdout" : Stdio.File("tmp/co.log", "cwt"),
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
     if(stat->wait())
     {
@@ -594,7 +603,8 @@ class GitClient {
       Process.create_process(({ "git", "tag",
 				sprintf(tag_format, buildno),
 				commit_id }),
-			     ([ "stdout" : Stdio.File("tmp/tag.log", "cwt"),
+			     ([ "cwd": module(),
+				"stdout" : Stdio.File("tmp/tag.log", "cwt"),
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
     if(tag->wait())
     {
