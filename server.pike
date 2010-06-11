@@ -34,6 +34,7 @@ int(0..1) keep_going = 1;
 class CommitId
 {
   int unix_time();
+  int create_build_id();
 }
 
 class TimeStampCommitId
@@ -50,6 +51,24 @@ class TimeStampCommitId
   int unix_time()
   {
     return timestamp;
+  }
+
+  int create_build_id()
+  {
+    persistent_query("INSERT INTO build (time, export, project, branch) "
+                    "VALUES (%d, 'PASS', %s, %s)",
+                    unix_time(), project, branch);
+    int buildid;
+    mixed err = catch {
+       buildid = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+      };
+    if(err) {
+      catch(xfdb->query("DELETE FROM build "
+                       "WHERE project=%s AND branch=%s AND time=%d",
+                       project, branch, unix_time()));
+      return 0;
+    }
+    return buildid;
   }
 }
 
@@ -618,20 +637,7 @@ string make_build_low(CommitId latest_checkin)
   string name = sprintf("%s-%s-%s", project,
 			at->format_ymd_short(),
 			at->format_tod_short());
-  persistent_query("INSERT INTO build (time, export, project, branch) "
-		   "VALUES (%d, 'PASS', %s, %s)",
-		   latest_build, project, branch);
-
-  int buildid;
-  mixed err = catch {
-      buildid = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
-  };
-  if(err) {
-    catch(xfdb->query("DELETE FROM build "
-		      "WHERE project=%s AND branch=%s AND time=%d",
-		      project, branch, latest_build));
-    return 0;
-  }
+  int buildid = latest_checkin->create_build_id();
 
   if (tag_format && client->tag_source) {
     // FIXME: Consider formatting the tag label here
