@@ -325,6 +325,8 @@ class GitClient {
     "\nGit specific arguments:\n\n"
     "--branch       The branch of the repository to monitor.\n";
 
+  string last_commit;
+
   void parse_arguments(array(string) args) {
     foreach(Getopt.find_all_options(args, ({
       ({ "branch",  Getopt.HAS_ARG, "--branch" }),}) ),array opt)
@@ -419,6 +421,12 @@ class GitClient {
     }
 
     string after = current_commit_id();
+
+    if( after != last_commit )
+      {
+	last_commit = after;
+	debug("HEAD is currently at %s\n", last_commit);
+      }
 
     array(string) log_lines = ({ });
 
