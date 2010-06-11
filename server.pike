@@ -133,7 +133,7 @@ class CVSClient {
 	exit(1);
     }
     
-    int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    latest_checkin = (int)Stdio.read_file(checkin_state_file);
     array(string) log;
     log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
 		 lambda(string row) { return !has_prefix(row, "? "); });
@@ -299,7 +299,7 @@ class SVNClient {
 	exit(1);
     }
     
-    int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    latest_checkin = (int)Stdio.read_file(checkin_state_file);
     array(string) log;
     log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
 		 lambda(string row) {
@@ -388,7 +388,7 @@ class StarTeamClient {
 	exit(1);
     }
 
-    int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    latest_checkin = (int)Stdio.read_file(checkin_state_file);
     array(string) log;
     log = filter(Stdio.read_file("tmp/update.log") / "\n" - ({ "" }),
 		 lambda(string row) {
@@ -464,7 +464,7 @@ class CustomClient {
 	exit(1);
     }
     write("Checked for updates.\n");
-    int latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    latest_checkin = (int)Stdio.read_file(checkin_state_file);
     array(string) log;
     log = Stdio.read_file("tmp/update.log")/"\n"  - ({ "" });
     latest_checkin = time_of_change(log, checkin_state_file,
