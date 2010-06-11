@@ -28,6 +28,8 @@ array(string) update_opts = ({});
 int(0..1) verbose;
 string latest_state="FAIL";
 
+array(string) ignored_globs = ({ });
+
 int(0..1) keep_going = 1;
 
 class CommitId
@@ -319,6 +321,27 @@ class CVSClient {
   }
 }
 
+class GitCommitNode {
+  string id;
+  array(string) parents;
+  array(string) files;
+
+  void create(string block)
+  {
+    array(string) lines = block / "\n";
+    if(sizeof(lines) < 1)
+      error("Broken Git log output: '%O'.\n", block);
+
+    array(string) fields = lines[0] / " ";
+    if(sizeof(fields) < 1)
+      error("Broken Git log output: '%O'.\n", block);
+
+    id = fields[0];
+    parents = fields[1..];
+    files = lines[1..] - ({ "" });
+  }
+}
+
 class GitClient {
   inherit RepositoryClient;
   constant arguments =
@@ -370,7 +393,94 @@ class GitClient {
   {
     check_work_dir();
     update_to_current_source();
-    return Sha1CommitId(current_commit_id(), 0);
+    string commit = first_wanted_commit();
+    if(!commit)
+      return 0;
+    return Sha1CommitId(commit, 0);
+  }
+
+  // Return false if all the files in the node are ignored,
+  // true otherwise.
+  int commit_wanted(GitCommitNode node)
+  {
+    foreach(node->files, string file)
+      {
+	int ignored = 0;
+
+	foreach(ignored_globs, string glb)
+	  if(glob(glb, file))
+	    ignored = 1;
+
+	if(!ignored)
+	  return 1;
+      }
+    return 0;
+  }
+
+  // Run "git log" and return the first commit that contains
+  // "interesting" changes, skipping changes that only changes files
+  // that match the global ignored_globs variable.
+  //
+  // If a merge is found, it will either return the merge commit, or a
+  // commit from the time before the development forked.  If there are
+  // any interesting changes during the forked development, the merge
+  // commit will be returned.
+  string first_wanted_commit()
+  {
+    Stdio.File stdout = Stdio.File();
+
+    object logproc =
+      Process.create_process( ({ "git", "log", "--name-only",
+				 "--pretty=format:%x00%H %P" }),
+			      ([ "stdout": stdout.pipe() ]) );
+
+    Thread.Fifo node_queue = Thread.Fifo();
+
+    Thread.Thread parser = thread_create() {
+      string buf = "";
+
+      while(string x = stdout.read(8096, 1)) {
+	if( !strlen(x) )
+	  break;
+	buf += x;
+	array(string) blocks = buf / "\0";
+	[buf, blocks] = Array.pop(blocks);
+	foreach( blocks, string block ) {
+	  if( strlen(block) > 0 ) {
+	    node_queue->write(GitCommitNode(block));
+	  }
+	}
+      }
+
+      if( has_value("\n", buf) )
+	node_queue->write(GitCommitNode(buf));
+      node_queue->write(0); // Signal end-of-stream.
+    };
+
+    Thread.Thread worker = thread_create() {
+
+      string last_single = 0;
+      multiset(string) pending_commits = (< >);
+
+      while(GitCommitNode node = node_queue->read()) {
+	pending_commits[node->id] = 0;
+	if(sizeof(pending_commits) == 0)
+	  last_single = node->id;
+	foreach( node->parents, string parent )
+	  pending_commits[parent] = 1;
+	if( commit_wanted(node) ) {
+	  logproc->kill(9);
+	  parser->kill();
+	  return last_single;
+	}
+      }
+
+      return last_single;
+    };
+
+    logproc->wait(9);
+    parser->wait();
+    return worker->wait();
   }
 
   void check_work_dir()
