@@ -947,7 +947,7 @@ int main(int num, array(string) args)
 
       if(!sit_quietly) {
 	debug("Latest check in was %s ago.\n",
-	      fmt_time(now - latest_checkin->unix_time()));
+	      fmt_time(time() - latest_checkin->unix_time()));
 	sit_quietly = 1;
       }
       if(latest_checkin->unix_time() > latest_build)
