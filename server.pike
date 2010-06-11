@@ -176,7 +176,24 @@ class GitClient {
   }
 
   static int latest_checkin;
-  static string commit_id;
+
+  string current_commit_id()
+  {
+    Stdio.File stdout = Stdio.File();
+
+    object stat =
+      Process.create_process(({ "git", "rev-parse", "HEAD" }),
+			     ([ "stdout" : stdout.pipe(),
+				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+    if(stat->wait())
+    {
+      write("Failed to stat Git branch %O in %O.\n",
+	    branch||"HEAD", getcwd());
+      exit(1);
+    }
+
+    return String.trim_all_whites(stdout.read());
+  }
 
   // The get_latest_checkin function should return the (UTC) unixtime of
   // the latest check in. This version actually returns the time we last
@@ -188,7 +205,9 @@ class GitClient {
 	    project, work_dir);
       exit(1);
     }
-    
+
+    string before = current_commit_id();
+
     debug("Running git pull.\n");
     set_status("Running git pull.");
     object update =
@@ -200,24 +219,30 @@ class GitClient {
       write("Failed to update Git in %O for project %O.\n", getcwd(), project);
       exit(1);
     }
-    
-    debug("Running git show.\n");
-    object stat =
-      Process.create_process(({ "git", "show", "--pretty=format:%H%x00%ct%x00",
-				branch||"HEAD" }),
-			     ([ "stdout" : Stdio.File("tmp/stat.log", "cwt"),
-				"stderr" : Stdio.File("/dev/null", "cwt") ]));
-    if(stat->wait())
+
+    string after = current_commit_id();
+
+    array(string) log_lines = ({ });
+
+    if( after != before )
     {
-      write("Failed to stat Git branch %O in %O.\n",
-	    branch||"HEAD", getcwd());
-      exit(1);
+      object log =
+          Process.create_process(
+              ({ "git", "log", before + ".." + after }),
+              ([ "stdout": Stdio.File("tmp/log.log", "cwt")]));
+      if(log->wait())
+      {
+        write("Failed to get Git log in %O for project %O.\n",
+              getcwd(), project);
+        exit(1);
+      }
+      log_lines = Stdio.read_file("tmp/log.log") / "\n";
     }
 
-    array(string) a = Stdio.read_file("tmp/stat.log")/"\0";
-    commit_id = a[0];
-
-    return latest_checkin = (int)a[1];
+    latest_checkin = (int)Stdio.read_file(checkin_state_file);
+    latest_checkin = time_of_change(log, checkin_state_file,
+				    latest_checkin, now);
+    return latest_checkin;
   }
 
   void update_source(int timestamp) {
@@ -227,6 +252,7 @@ class GitClient {
 
   void tag_source(int buildno) {
     debug("Running git tag.\n");
+    string commit_id = current_commit_id();
     object tag =
       Process.create_process(({ "git", "tag",
 				sprintf(tag_format, buildno),
