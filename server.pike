@@ -33,6 +33,7 @@ int(0..1) keep_going = 1;
 class CommitId
 {
   int unix_time();
+  int unix_time_available();
   int create_build_id();
   int build_needed(CommitId new_commit);
   int pending_latency();
@@ -60,6 +61,11 @@ class TimeStampCommitId
   int unix_time()
   {
     return timestamp;
+  }
+
+  int unix_time_available()
+  {
+    return true;
   }
 
   int build_needed(CommitId new_commit)
@@ -94,6 +100,83 @@ class TimeStampCommitId
   }
 }
 
+string last_sha1_seen = 0;
+int last_sha1_first_seen = 0;
+class Sha1CommitId
+{
+  inherit CommitId;
+
+  string commit_id;
+  int build_time;
+
+  void create(string commit_id,
+	      int build_time)
+  {
+    this->commit_id = commit_id;
+    this->build_time = build_time;
+    if(!build_time && last_sha1_seen != commit_id)
+      {
+	last_sha1_seen = commit_id;
+	last_sha1_first_seen = time();
+      }
+  }
+
+  int unix_time()
+  {
+    if( !build_time )
+      error("build_time not yet set on Git commit %s\n", commit_id);
+    return build_time;
+  }
+
+  int unix_time_available()
+  {
+    return !!build_time;
+  }
+
+  int build_needed(CommitId new_commit)
+  {
+    return new_commit->commit_id != commit_id;
+  }
+
+  int pending_latency()
+  {
+    if(last_sha1_seen == commit_id)
+      {
+	int rv = last_sha1_first_seen + checkin_latency - time();
+	if(rv < 0)
+	  rv = 0;
+	return rv;
+      }
+    // This should never happen.
+    debug("Commits all mixed up; no latency (%s != %s).\n",
+	  commit_id, last_sha1_seen);
+    return 0;
+  }
+
+  int create_build_id()
+  {
+    if(build_time == 0)
+      build_time = time();
+
+    persistent_query("INSERT INTO build\n"
+		     "SET time = %d, export='PASS', commit_id = %s,\n"
+		     "    project = %s, branch = %s",
+		     unix_time(), commit_id, project, branch);
+    int buildid;
+    mixed err = catch {
+	buildid = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+      };
+    if(err) {
+      catch(xfdb->query("DELETE FROM build\n"
+			"WHERE project=%s AND branch=%s\n"
+			"      AND time=%d AND commit_id=%s",
+			project, branch, unix_time(), commit_id));
+      return 0;
+    }
+    return buildid;
+  }
+}
+
 //
 // Repository classes
 //
@@ -120,7 +203,6 @@ class RepositoryClient {
 
   // Should return the name of the repository client.
   string name();
-
 }
 
 // Base class for version control systems that cannot check out the
@@ -238,7 +320,7 @@ class CVSClient {
 }
 
 class GitClient {
-  inherit FakeTimeClient;
+  inherit RepositoryClient;
   constant arguments =
     "\nGit specific arguments:\n\n"
     "--branch       The branch of the repository to monitor.\n";
@@ -282,6 +364,13 @@ class GitClient {
     return String.trim_all_whites(stdout.read());
   }
 
+  Sha1CommitId get_latest_checkin()
+  {
+    check_work_dir();
+    update_to_current_source();
+    return Sha1CommitId(current_commit_id(), 0);
+  }
+
   void check_work_dir()
   {
     if(!file_stat(".git") || !file_stat(".git")->isdir) {
@@ -291,8 +380,30 @@ class GitClient {
     }
   }
 
+  int working_on_a_branch()
+  {
+    object symref =
+      Process.create_process( ({ "git", "symbolic-ref", "-q", "HEAD" }),
+			      ([ "stdout": Stdio.File("/dev/null", "cwt") ]) );
+    switch( symref->wait() )
+      {
+      case 0:
+	return 1;
+      case 1:
+	return 0;
+      default:
+	write("Failed to run git symbolic-ref.\n");
+	exit(1);
+      }
+  }
+
   array(string) update_to_current_source()
   {
+    // If the latest update_source() put us on a detached head, move
+    // back to the branch we came from.
+    if( !working_on_a_branch() )
+      checkout("@{-1}");
+
     string before = current_commit_id();
 
     debug("Running git pull.\n");
@@ -326,6 +437,36 @@ class GitClient {
       log_lines = Stdio.read_file("tmp/log.log") / "\n";
     }
     return log_lines;
+  }
+
+  void checkout(string commit_id)
+  {
+    object stat =
+      Process.create_process(({ "git", "checkout", commit_id }),
+			     ([ "stdout" : Stdio.File("tmp/co.log", "cwt"),
+				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+    if(stat->wait())
+    {
+      write("Failed to check out %O.\n", commit_id);
+      exit(1);
+    }
+  }
+
+  void update_source(Sha1CommitId commit_id)
+  {
+    // Shortcut for the common case that we already have the requested
+    // version.
+    if(current_commit_id() == commit_id->commit_id)
+      return;
+
+    checkout(commit_id->commit_id);
+
+    if(current_commit_id() == commit_id->commit_id)
+      return;
+
+    write("FATAL: Failed to update tree to %s: got %s.\n",
+	  commit_id->commit_id, current_commit_id());
+    exit(1);
   }
 
   void tag_source(int buildno) {
@@ -610,15 +751,20 @@ string fmt_time(int t) {
 // this project.
 CommitId get_latest_build()
 {
-  array res = persistent_query("SELECT time AS latest_build, export "
-			       "FROM build "
-			       "WHERE project = %s AND branch = %s "
+  array res = persistent_query("SELECT time AS latest_build,\n"
+			       "  export, commit_id\n"
+			       "FROM build\n"
+			       "WHERE project = %s AND branch = %s\n"
 			       "ORDER BY time DESC LIMIT 1",
 			       project, branch);
-  if(!res || !sizeof(res)) return 0;
+  if(!res || !sizeof(res))
+    return 0;
   latest_state = res[0]->export;
   int ts = (int)(res[0]->latest_build);
-  return TimeStampCommitId(ts);
+  if( res[0]->commit_id )
+    return Sha1CommitId(res[0]->commit_id, ts);
+  else
+    return TimeStampCommitId(ts);
 }
 
 // Return true on success, false on error.
@@ -967,11 +1113,18 @@ int main(int num, array(string) args)
 	break;
 
       if(!sit_quietly) {
-	debug("Latest check in was %s ago.\n",
-	      fmt_time(time() - latest_checkin->unix_time()));
+	if(!latest_checkin)
+	  debug("No checkin available\n");
+	else if(latest_checkin->unix_time_available()) {
+	  debug("Latest check in was %s ago.\n",
+		fmt_time(time() - latest_checkin->unix_time()));
+	} else {
+	  debug("Latest commit was %s.\n", latest_checkin->commit_id);
+	}
 	sit_quietly = 1;
       }
-      if(latest_build ? latest_build->build_needed(latest_checkin) : 1)
+      if(latest_checkin &&
+	 (latest_build ? latest_build->build_needed(latest_checkin) : 1))
       {
 	sleep_for = latest_checkin->pending_latency();
 	if(sleep_for == 0)

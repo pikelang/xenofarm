@@ -11,8 +11,11 @@ CREATE TABLE build (
   project VARCHAR(255) NOT NULL,
   branch  VARCHAR(255) NOT NULL,
   time    INT UNSIGNED NOT NULL,
+  commit_id CHAR(40) NULL, -- Large enough for the SHA-1 of Git.
+
   export  ENUM('FAIL','WARN','PASS') NOT NULL DEFAULT 'FAIL',
   INDEX(project, branch, time),
+  INDEX(project, branch, commit_id),
   INDEX(project, branch, id)
 );
 
