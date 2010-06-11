@@ -923,17 +923,7 @@ int main(int num, array(string) args)
 	if(latest_checkin + checkin_latency <= now)
 	{
 	  sleep_for = 0;
-	  int timestamp = time();
-	  if(checkin_latency) {
-	    // Put the timestamp between latest check in and now
-	    // to avoid mid check ins.
-	    timestamp = timestamp - checkin_latency + 1;
-	  }
-	  if(timestamp < latest_checkin) {
-	    debug("System time < latest check in!\n");
-	    timestamp = latest_checkin;
-	  }
-	  make_build(timestamp);
+	  make_build(latest_checkin);
 	  latest_build = get_latest_build();
 	}
 	else // Enforce minimum time of inactivity after a commit
