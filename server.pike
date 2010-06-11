@@ -34,6 +34,8 @@ class CommitId
 {
   int unix_time();
   int create_build_id();
+  int build_needed(CommitId new_commit);
+  int pending_latency();
 
   string dist_name()
   {
@@ -58,6 +60,19 @@ class TimeStampCommitId
   int unix_time()
   {
     return timestamp;
+  }
+
+  int build_needed(CommitId new_commit)
+  {
+    return new_commit->unix_time() > unix_time();
+  }
+
+  int pending_latency()
+  {
+    int rv = unix_time() + checkin_latency - time();
+    if(rv < 0)
+      rv = 0;
+    return rv;
   }
 
   int create_build_id()
@@ -593,7 +608,7 @@ string fmt_time(int t) {
 
 // Should return the (UTC) unixtime of the latest build package made for
 // this project.
-int get_latest_build()
+CommitId get_latest_build()
 {
   array res = persistent_query("SELECT time AS latest_build, export "
 			       "FROM build "
@@ -602,7 +617,8 @@ int get_latest_build()
 			       project, branch);
   if(!res || !sizeof(res)) return 0;
   latest_state = res[0]->export;
-  return (int)(res[0]->latest_build);
+  int ts = (int)(res[0]->latest_build);
+  return TimeStampCommitId(ts);
 }
 
 // Return true on success, false on error.
@@ -912,9 +928,10 @@ int main(int num, array(string) args)
   }
 
   set_status("Starting up...");
-  int latest_build = get_latest_build();
+  CommitId latest_build = get_latest_build();
   if(latest_build)
-    debug("Latest build was %s ago.\n", fmt_time(time()-latest_build));
+    debug("Latest build was %s ago.\n",
+          fmt_time(time()-latest_build->unix_time()));
   else
     debug("No previous builds found.\n");
 
@@ -922,8 +939,15 @@ int main(int num, array(string) args)
   int(0..1) sit_quietly;
   while(keep_going)
   {
-    int now = Calendar.now()->unix_time();
-    int delta = now - latest_build;
+    int delta;
+    if(latest_build)
+      delta = time() - latest_build->unix_time();
+    else
+      {
+	debug("First build. No quarantine.\n");
+	delta = min_build_distance;
+      }
+
     int min_distance = min_build_distance;
 
     if (latest_state == "FAIL") min_distance /= fail_build_divisor;
@@ -942,25 +966,21 @@ int main(int num, array(string) args)
       if(!latest_checkin && !keep_going)
 	break;
 
-      // Refresh the time in case get_latest_checkin() takes a very long time.
-      now = Calendar.now()->unix_time();
-
       if(!sit_quietly) {
 	debug("Latest check in was %s ago.\n",
 	      fmt_time(time() - latest_checkin->unix_time()));
 	sit_quietly = 1;
       }
-      if(latest_checkin->unix_time() > latest_build)
+      if(latest_build ? latest_build->build_needed(latest_checkin) : 1)
       {
-	if(latest_checkin->unix_time() + checkin_latency <= now)
+	sleep_for = latest_checkin->pending_latency();
+	if(sleep_for == 0)
 	{
-	  sleep_for = 0;
 	  make_build(latest_checkin);
 	  latest_build = get_latest_build();
 	}
 	else // Enforce minimum time of inactivity after a commit
 	{
-	  sleep_for = latest_checkin->unix_time() + checkin_latency - now;
 	  set_status("Will create new build at %s unless new commits found.",
 		     sleep_for);
 	  debug("A new build is scheduled to run in %s.\n",
