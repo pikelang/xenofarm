@@ -23,10 +23,12 @@
 /projects/pike/result_parser_7.4.pike foreign_ident
 /projects/pike/result_parser_7.6.pike foreign_ident
 /projects/pike/result_parser_7.7.pike foreign_ident
+/projects/pike/result_parser_7.8.pike foreign_ident
 /projects/pike/server.pike foreign_ident
 /projects/pike/server_7.4.pike foreign_ident
 /projects/pike/server_7.6.pike foreign_ident
 /projects/pike/server_7.7.pike foreign_ident
+/projects/pike/server_7.8.pike foreign_ident
 /projects/pike/start.sh foreign_ident
 /projects/snes9x/result_parser.pike foreign_ident
 /projects/snes9x/server.pike foreign_ident

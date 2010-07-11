@@ -1,7 +1,7 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.25 2002/12/13 16:23:01 mani Exp $
+// $Id: result_parser.pike,v 1.26 2010/07/11 14:22:37 zino Exp $
 
 inherit "../../result_parser.pike";
 
@@ -61,6 +61,7 @@ constant removed_warnings = ({
 });
 
 void parse_build_id(string fn, mapping res) {
+  //TODO: pelix had a local hack to limit this to 65k  
   string file = Stdio.read_file(fn);
   if(!file || !sizeof(file)) {
     debug("No %s in result package.\n", fn);
@@ -102,11 +103,16 @@ void parse_log(string fn, mapping res)
 
     if(task[0]=="post_build/verify") {
       // We don't consider verify passed if there was a leak.
-      string log = Stdio.read_file("verifylog.txt");
-      if(log && has_value(log, "==LEAK==")) {
-	task[1] = "FAIL";
-	return;
+      object(Stdio.File) f = Stdio.File();
+      if (f->open("verifylog.txt", "r")) {
+	foreach(f->line_iterator();; string line) {
+          if(has_value(line, "==LEAK==")) {
+	    task[1] = "FAIL";
+	    return;
+	  }
+	}
       }
+      f->close();
     }
 
   }
@@ -116,30 +122,42 @@ int count_warnings(string fn) {
 
   // Highlight warnings.
   if(file_stat("compilelog.txt")) {
-    array lines = Stdio.read_file("compilelog.txt")/"\n";
-  newline:
-    foreach(lines; int n; string line) {
-      string lc_line=lower_case(line);
-      if(!(has_value(lc_line, "warning") ||
-	   has_value(lc_line, "(W)"))) {
-	lines[n]=_Roxen.html_encode_string(line);
-	continue;
-      }
-      foreach(removed_warnings, string remove)
-	if(glob(remove,lc_line)) {
-	  lines[n]=0;
-	  continue newline;
-	}
-      foreach(ignored_warnings, string ignore)
-	if(glob(ignore,lc_line)) continue newline;
-      lines[n]="<font style='background: #ff8080'>"+
-	_Roxen.html_encode_string(line)+"</font>";
+    object(Stdio.File) f = Stdio.File();
+    if (!f->open("compilelog.txt", "r")) return 0;
+
+    object(Stdio.File) out = Stdio.File();
+    if (!out->open("makelog.html", "twc")) {
+      f->close();
+      return ::count_warnings(fn);
     }
-    lines -= ({0});
-    if(Stdio.write_file("makelog.html",
-			 "<pre><a href='#bottom'>Bottom of file</a>\n"+
-			lines*"\n"+"\n<a name='bottom'></a></pre>\n"))
-      rm("makelog.txt");
+    out->write("<pre><a href='#bottom'>Bottom of file</a>\n");
+
+  newline:
+    foreach(f->line_iterator(1); int n; string line) {
+      string lc_line=lower_case(line);
+      line = _Roxen.html_encode_string(line);
+      
+      if(has_value(lc_line, "warning") ||
+	 has_value(lc_line, "(W)")) {
+	foreach(removed_warnings, string remove)
+	  if(glob(remove,lc_line)) {
+	    continue newline;
+	  }
+	int ignore_warn;
+	foreach(ignored_warnings, string ignore)
+	  if(glob(ignore,lc_line)) {
+	    ignore_warn = 1;
+	    break;
+	  }
+	if (!ignore_warn) {
+	  line = "<font style='background: #ff8080'>" + line + "</font>";
+	}
+      }
+      out->write(line + "\n");
+    }
+    f->close();
+    out->write("<a name='bottom'></a></pre>\n");
+    out->close();
   }
 
   return ::count_warnings(fn);
