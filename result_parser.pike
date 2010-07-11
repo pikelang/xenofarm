@@ -2,7 +2,7 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.43 2008/11/01 18:39:50 nisse Exp $
+// $Id: result_parser.pike,v 1.44 2010/07/11 13:40:06 zino Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -53,13 +53,13 @@ array persistent_query( string q, mixed ... args ) {
       case 1:
 	write("Database query %s failed. Continue to try...\n",
 	      sprintf(q, @Array.map(args, lambda (mixed x) {
-					   if (intp(x))
-					     return x;
-					   else if (stringp(x))
-					     return "'" + xfdb->quote(x) + "'";
-					   else
-					     return "'" + xfdb->quote(sprintf("%O", x)) + "'";
-					 }) ));
+					    if (intp(x))
+					      return x;
+					    else if (stringp(x))
+					      return "'" + xfdb->quote(x) + "'";
+					    else
+					      return "'" + xfdb->quote(sprintf("%O", x)) + "'";
+					  }) ));
 	if(arrayp(err) && sizeof(err) && stringp(err[0]))
 	  debug("(%s)\n", err[0..sizeof(err)-2] * ":");
 	break;
@@ -84,6 +84,7 @@ array persistent_query( string q, mixed ... args ) {
 //! on the first line of the file to the @[res] mapping under the key
 //! "build". The value will be casted to an int.
 void parse_build_id(string fn, mapping res) {
+  //TODO: pelix had a local hack to limit this to 65k
   string file = Stdio.read_file(fn);
   if(!file || !sizeof(file)) return;
   file = String.trim_all_whites( (file/"\n")[0] );
@@ -102,15 +103,17 @@ void parse_build_id(string fn, mapping res) {
 //! a key platform will be added containing the expected output from
 //! "uname -s -r -m" concatenated with the test name, unless the test name
 //! is "default".
-void parse_machine_id(string fn, mapping res) {
-  string file = Stdio.read_file(fn);
-  if(!file || !sizeof(file)) return;
+void parse_machine_id(string fn, mapping res)
+{
+  object(Stdio.File) f = Stdio.File();
+  if (!f->open(fn, "r")) return;
 
-  foreach(file/"\n", string pair) {
+  foreach(f->line_iterator(1);;string pair) {
     sscanf(pair, "%s: %s", string key, string value);
     if(key && value)
       res[key] = String.trim_all_whites(value);
   }
+  f->close();
 
   if(res->sysname=="AIX" && res->version && res->release)
     res->release = res->version + "." + res->release;
@@ -149,83 +152,88 @@ void parse_machine_id(string fn, mapping res) {
 //! @tt{"total_time"@} in @[res] will be set to the time it took to
 //! complete all tasks, calculated as the sum of the time it took for
 //! all the top level tasks to complete.
-void parse_log(string fn, mapping res) {
+void parse_log(string fn, mapping res)
+{
   res->status = "FAIL";
-  string file = Stdio.read_file(fn);
   res->tasks=({});
-  if(!file || !sizeof(file)) return;
-  array lines = file/"\n";
 
-  if(lines[0]!="FORMAT 2") {
-    debug("Log format not \"FORMAT 2\" (%O).\n", lines[0]);
-    return;
-  }
+  object(Stdio.File) f = Stdio.File();
+
+  if (!f->open(fn, "r")) return;
 
   multiset done_tasks = (<>);
 
   Stack begin = Stack();
   Stack tasks = Stack();
 
-  int pos=1;
-  while(pos<sizeof(lines)) {
-    string line = lines[pos++];
-
-    if(line=="END") break;
-
-    if(has_prefix(line, "BEGIN")) {
-      if(pos==sizeof(lines)) {
-	debug("BEGIN in last line of main log.\n");
+  int push_next;
+  string pending_pop;
+  foreach(f->line_iterator(1);int pos; string line) {
+    if (!pos) {
+      if (line != "FORMAT 2") {
+	debug("Log format not \"FORMAT 2\" (%O).\n", line);
 	return;
       }
-      string task;
-      sscanf(line, "BEGIN %s", task);
-      if(!task || !sizeof(task)) {
-	debug("Empty/missing task name in main log.\n");
-	return;
-      }
-      if(has_value(task, "/")) {
-	debug("Task contains forbidden character '/'.\n");
-	return;
-      }
-      tasks->push(task);
-      begin->push(lines[pos++]);
       continue;
-    }
-
-    if(line=="PASS" || line=="FAIL" || has_prefix(line, "WARN")) {
+    } if (push_next) {
+      begin->push(line);
+      push_next = 0;
+      continue;
+    } if (pending_pop) {
       int warnings;
-      sscanf(line, "%s %d", line, warnings);
-      if(pos==sizeof(lines)) {
-	debug(line+" in last line of main log.\n");
-	return;
-      }
+      sscanf(pending_pop, "%s %d", pending_pop, warnings);
 
       string begun = begin->pop();
       int time;
-      if(catch(time = Calendar.ISO.dwim_time(lines[pos++])->unix_time()
-	            - Calendar.ISO.dwim_time(begun)->unix_time())
-         || time < 0)
-      {
-	debug("Error parsing time (%O %O).\n", begun, lines[pos-1]);
-	time = 0;
-      }
+      if(catch(time = Calendar.ISO.dwim_time(line)->unix_time()
+	       - Calendar.ISO.dwim_time(begun)->unix_time())
+      || time < 0)
+        {
+	  debug("Error parsing time (%O %O).\n", begun, line);
+	  time = 0;
+        }
 
       string task = values(tasks)*"/";
       tasks->pop();
 
       if(done_tasks[task]) {
 	debug("Task %O present twice.\n", task);
+	pending_pop = 0;
 	continue;
       }
 
       done_tasks[ task ] = 1;
-      res->tasks += ({ ({ task, line, time, warnings }) });
+      res->tasks += ({ ({ task, pending_pop, time, warnings }) });
+      pending_pop = 0;
       continue;
+    } else {
+      if(line=="END") break;
+
+      if(has_prefix(line, "BEGIN")) {
+        string task;
+        sscanf(line, "BEGIN %s", task);
+        if(!task || !sizeof(task)) {
+	  debug("Empty/missing task name in main log.\n");
+	  return;
+        }
+        if(has_value(task, "/")) {
+	  debug("Task contains forbidden character '/'.\n");
+	  return;
+        }
+        tasks->push(task);
+	push_next = 1;
+        continue;
+      }
+
+      if(line=="PASS" || line=="FAIL" || has_prefix(line, "WARN")) {
+	pending_pop = line;
+	continue;
+      }
+      debug("Error in main log: %O.\n", line);
+      break;
     }
-    debug("Error in main log.\n");
-    // Clean up and bail out.
-    break;
   }
+  f->close();
 
   while(sizeof(tasks)) {
     string task = values(tasks)*"/";
@@ -256,12 +264,16 @@ void parse_log(string fn, mapping res) {
 //! warning is a line that contains the string "warning" or "(w)" (in
 //! any case) and does not match any of the globs listed in the array
 //! ignored_warnings.
-int count_warnings(string fn) {
-  if(!file_stat(fn)) return 0;
+int count_warnings(string fn)
+{
+  object(Stdio.File) f = Stdio.File();
+
+  if (!f->open(fn, "r")) return 0;
 
   int warnings;
+
  newline:
-  foreach(Stdio.read_file(fn)/"\n", string line) {
+  foreach(f->line_iterator();;string line) {
     line = lower_case(line);
     if( has_value(line, "warning")||has_value(line, "(w)") ) {
       foreach(ignored_warnings, string ignore)
@@ -269,6 +281,7 @@ int count_warnings(string fn) {
         warnings++;
     }
   }
+  f->close();
   return warnings;
 }
 
@@ -361,7 +374,7 @@ void store_result(mapping res) {
   if(testname=="default") testname="";
 
   array qres = persistent_query("SELECT id FROM system WHERE name=%s && "
-				"sysname=%s && `release`=%s && version=%s "
+				"sysname=%s && release=%s && version=%s "
 				"&& machine=%s && testname=%s",
 				res->nodename, res->sysname||"",
 				res->release||"", res->version||"",
@@ -370,7 +383,7 @@ void store_result(mapping res) {
   if(sizeof(qres))
     res->system = (int)qres[0]->id;
   else {
-    xfdb->query("INSERT INTO system (name, sysname, `release`, version, "
+    xfdb->query("INSERT INTO system (name, sysname, release, version, "
 		"machine, testname) VALUES (%s,%s,%s,%s,%s,%s)",
 		res->nodename, res->sysname||"", res->release||"",
 		res->version||"", res->machine||"", testname);
@@ -496,9 +509,11 @@ void process_package(string fn) {
     mkdir(dest);
 
     int fail;
-    foreach(get_dir("."), string f)
-      if( Process.create_process( ({"mv", f, dest+"/"+f}), ([]) )->wait() )
+    foreach(get_dir("."), string f) {
+      if (!mv(f, dest+"/"+f) &&
+          Process.create_process( ({"mv", f, dest+"/"+f}), ([]) )->wait() )
 	fail = 1;
+    }
     if(fail)
       write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
 
@@ -666,7 +681,7 @@ int main(int num, array(string) args) {
 }
 
 constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.43 2008/11/01 18:39:50 nisse Exp $\n";
+"$Id: result_parser.pike,v 1.44 2010/07/11 13:40:06 zino Exp $\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.
