@@ -6,6 +6,7 @@
 
 Sql.Sql xfdb;
 int result_poll = 60;
+string project;
 string result_dir;
 string work_dir;
 string web_dir;
@@ -335,8 +336,9 @@ class TaskOrderGenie {
     if(state[task[-1]])
       error("Task is already stored.\n%O\n%O\n", state, task);
 
-    array res = xfdb->query("SELECT name,sort_order FROM task WHERE parent=%d",
-			    parent);
+    array res = xfdb->query("SELECT name,sort_order FROM task\n"
+			    "WHERE project = %s AND parent=%d",
+			    project, parent);
 
     if(!sizeof(res))
       return 1;
@@ -346,8 +348,9 @@ class TaskOrderGenie {
 
     res = filter(res, lambda(mapping in) { return state[in->name]; });
     int order = max( 0, @(array(int))res->sort_order );
-    xfdb->query("UPDATE task SET sort_order=sort_order+1 WHERE parent=%d && "
-		"sort_order>%d", parent, order);
+    xfdb->query("UPDATE task SET sort_order=sort_order+1\n"
+		"WHERE project = %s AND parent=%d AND sort_order>%d",
+		project, parent, order);
     return order+1;
   }
 }
@@ -365,13 +368,15 @@ int get_task_id(array(string)|string tasks, TaskOrderGenie gen) {
     parent = get_task_id( tasks[..sizeof(tasks)-2], gen );
   string task = tasks[-1];
 
-  array res = xfdb->query("SELECT id FROM task WHERE name=%s && parent=%d",
-			  task, parent);
+  array res = xfdb->query("SELECT id FROM task\n"
+			  "WHERE project = %s AND name=%s AND parent=%d",
+			  project, task, parent);
 
   if(sizeof(res)) return (int)res[0]->id;
 
-  xfdb->query("INSERT INTO task (sort_order, parent, name) VALUES "
-	      "(%d, %d, %s)", gen->get_order(tasks, parent), parent, task);
+  xfdb->query("INSERT INTO task\n"
+	      "SET sort_order = %d, project = %s, parent = %d, name = %s",
+	      gen->get_order(tasks, parent), project, parent, task);
 
   return (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
 }

@@ -14,3 +14,6 @@ CREATE TABLE server_status (
   message     VARCHAR(255) NOT NULL,
   PRIMARY KEY (project, branch)
 );
+
+alter table task add column project varchar(255) not null default "FIXME" after parent;
+alter table task alter project drop default;
