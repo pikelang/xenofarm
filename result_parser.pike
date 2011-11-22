@@ -688,6 +688,8 @@ int main(int num, array(string) args) {
       debug("Found new result %O\n", fn);
       process_package(fn);
       got_any = 1;
+      if (once_only || !keep_going)
+	break;
     }
 
     if (post_script && got_any && Process.system(post_script)) {
