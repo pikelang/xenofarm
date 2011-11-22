@@ -682,7 +682,7 @@ int main(int num, array(string) args) {
 
   while(keep_going) {
     int(0..1) got_any;
-    foreach(filter(get_dir(result_dir), has_prefix, "res"), string fn) {
+    foreach(sort(filter(get_dir(result_dir), has_prefix, "res")), string fn) {
       fn = result_dir + fn;
       if(processed_results[fn]) continue;
       debug("Found new result %O\n", fn);
