@@ -1145,6 +1145,7 @@ int main(int num, array(string) args)
 
       case "once":
 	once_only = 1;
+	break;
 
       case "poll":
 	checkin_poll = (int)opt[1];
