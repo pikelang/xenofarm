@@ -10,6 +10,7 @@ string project;
 string result_dir;
 string work_dir;
 string web_dir;
+bool multi_project = false;
 
 string build_id_file = "buildid.txt";
 string machine_id_file = "machineid.txt";
@@ -420,10 +421,30 @@ void store_result(mapping res) {
   }
 }
 
+// When result_parser.pike is set up to handle results from more than
+// one project (or branch), this function is called when a result
+// package has been unpacked.  It should identify the project (and
+// branch) and set up project, web_dir (if used), and possibly other
+// global variables so that the rest of result_parser.pike can process
+// the package properly.
+//
+// In normal use, everything is set up when the result_parser starts,
+// so there is nothing to do.  Derived result_parser can override
+// this.
+bool configure_project(int buildid)
+{
+  return true;
+}
+
 mapping low_process_package() {
   mapping result = ([]);
 
   parse_build_id(build_id_file, result);
+  if( !configure_project(result->build) ) {
+    write("Failed to set up project.\n");
+    return result;
+  }
+
   if(!result->build) {
     write("Failed to parse build id.\n");
     return result;
@@ -450,6 +471,11 @@ mapping low_process_package() {
   return result;
 }
 
+
+string compute_dest_dir(mapping result)
+{
+  return web_dir + result->build+"_"+result->system;
+}
 
 //
 // Main functions
@@ -512,7 +538,7 @@ void process_package(string fn) {
   rm("tmp");
 
   if(result->build && result->system) {
-    string dest = web_dir + result->build+"_"+result->system;
+    string dest = compute_dest_dir(result);
 
     if(Stdio.is_dir(dest)) {
       debug("Result dir %O already exists.\n", dest);
@@ -565,7 +591,7 @@ void check_settings(void|int(0..1) no_result_dir) {
     exit(1);
   }
 
-  if(!dry_run) {
+  if(!dry_run && !multi_project) {
     if(!web_dir) {
       write("No web dir found.\n");
       exit(1);
@@ -599,7 +625,7 @@ void check_settings(void|int(0..1) no_result_dir) {
   if(verbose) {
     if(xfdb) write("Database   : %s\n", xfdb->host_info());
     write("Work dir   : %s\n", work_dir);
-    if(web_dir) write("Web dir    : %s\n", web_dir);
+    if(web_dir && !multi_project) write("Web dir    : %s\n", web_dir);
     if(result_dir) write("Result dir : %s\n", result_dir);
     write("\n");
   }
