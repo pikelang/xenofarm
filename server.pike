@@ -14,7 +14,7 @@ int fail_build_divisor = 2*6;
 int checkin_poll = 60;
 int checkin_latency = 60*5;
 
-string project;
+string project;         // --project
 string web_dir;		// --web-dir
 string repository;	// --repository
 string cvs_module;	// --cvs-module
@@ -387,16 +387,21 @@ class GitClient {
   constant arguments =
     "\nGit specific arguments:\n\n"
     "--repo-name    The name of the repository (inside workdir).\n"
+    "--project      The project name.\n"
     "--branch       The branch of the repository to monitor.\n";
 
   string last_commit;
 
   void parse_arguments(array(string) args) {
     foreach(Getopt.find_all_options(args, ({
+      ({ "project", Getopt.HAS_ARG, "--project" }),
       ({ "branch",  Getopt.HAS_ARG, "--branch" }),}) ),array opt)
       {
 	switch(opt[0])
 	{
+	  case "project":
+	    project = opt[1];
+	    break;
 	  case "branch":
 	    branch = opt[1];
 	    break;
