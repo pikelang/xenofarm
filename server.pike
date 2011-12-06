@@ -19,6 +19,7 @@ string web_dir;		// --web-dir
 string repository;	// --repository
 string cvs_module;	// --cvs-module
 string svn_module;	// --svn-module
+string repo_name;	// --repo-name
 string branch;		// --branch
 string tag_format;	// --tag
 string work_dir;	// --work-dir
@@ -385,6 +386,7 @@ class GitClient {
   inherit RepositoryClient;
   constant arguments =
     "\nGit specific arguments:\n\n"
+    "--repo-name    The name of the repository (inside workdir).\n"
     "--branch       The branch of the repository to monitor.\n";
 
   string last_commit;
@@ -403,7 +405,7 @@ class GitClient {
   }
 
   string module() {
-    return branch;
+    return repo_name || branch;
   }
 
   string name() {
@@ -1100,6 +1102,7 @@ int main(int num, array(string) args)
     ({ "help",        Getopt.NO_ARG,  "--help"         }),
     ({ "latency",     Getopt.HAS_ARG, "--latency"      }),
     ({ "module",      Getopt.HAS_ARG, "--cvs-module"   }),
+    ({ "reponame",    Getopt.HAS_ARG, "--repo-name" }),
     ({ "once",        Getopt.NO_ARG,  "--once"         }),
     ({ "nonblocking", Getopt.NO_ARG,  "--non-blocking" }),
     ({ "poll",        Getopt.HAS_ARG, "--poll"         }),
@@ -1143,6 +1146,10 @@ int main(int num, array(string) args)
 
       case "module":
 	cvs_module = opt[1];
+	break;
+
+      case "reponame":
+	repo_name = opt[1];
 	break;
 
       case "once":
