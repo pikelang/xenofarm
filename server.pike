@@ -1090,6 +1090,7 @@ int main(int num, array(string) args)
   write(prog_id);
   int (0..1) force_build;
   int (0..1) once_only = 0;
+  bool nonblocking = false;
 
   foreach(Getopt.find_all_options(args, ({
     ({ "client_type", Getopt.HAS_ARG, "--client-type"  }),
@@ -1100,6 +1101,7 @@ int main(int num, array(string) args)
     ({ "latency",     Getopt.HAS_ARG, "--latency"      }),
     ({ "module",      Getopt.HAS_ARG, "--cvs-module"   }),
     ({ "once",        Getopt.NO_ARG,  "--once"         }),
+    ({ "nonblocking", Getopt.NO_ARG,  "--non-blocking" }),
     ({ "poll",        Getopt.HAS_ARG, "--poll"         }),
     ({ "repository",  Getopt.HAS_ARG, "--repository"   }),
     ({ "tag",         Getopt.HAS_ARG, "--tag"          }),
@@ -1145,6 +1147,10 @@ int main(int num, array(string) args)
 
       case "once":
 	once_only = 1;
+	break;
+
+      case "nonblocking":
+	nonblocking = true;
 	break;
 
       case "poll":
@@ -1258,7 +1264,7 @@ int main(int num, array(string) args)
       if(latest_checkin &&
 	 (latest_build ? latest_build->build_needed(latest_checkin) : 1))
       {
-	sleep_for = latest_checkin->pending_latency();
+	sleep_for = nonblocking ? 0 : latest_checkin->pending_latency();
 	if(sleep_for == 0)
 	{
 	  make_build(latest_checkin);
@@ -1278,8 +1284,19 @@ int main(int num, array(string) args)
 	sit_quietly = 1; // until something happens in the repository
 	sleep_for = checkin_poll; // poll frequency
 	set_status("Idle; waiting for new commits.");
+	if( nonblocking )
+	  {
+	    write("COMMIT_NEED\n");
+	    return 0;
+	  }
       }
     }
+
+    if( nonblocking )
+      {
+	write("SLEEP_NEED: %d s.\n", sleep_for);
+	return 0;
+      }
 
     if (once_only)
 	return 0;
@@ -1317,6 +1334,9 @@ Possible arguments:
 --min-distance The enforced minimum distance between to builds.
                Defaults to 7200 seconds (two hours).
 --once         Run just once.
+--non-blocking Never sleep.  Implies --once, but may exit earlier.
+               Prints SLEEP_NEED or COMMIT_NEED on the last line when
+               appropriate.
 --poll         How often the the repository client is queried for new check ins.
                Defaults to every 60 seconds.
 --tag          Tag the builds.
