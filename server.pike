@@ -16,6 +16,7 @@ int checkin_latency = 60*5;
 
 string project;         // --project
 string web_dir;		// --web-dir
+string web_format;	// --web-format
 string repository;	// --repository
 string cvs_module;	// --cvs-module
 string svn_module;	// --svn-module
@@ -971,14 +972,45 @@ void make_build(CommitId timestamp)
   }
   debug("The source distribution %s assembled.\n", build_name);
 
-  string fn = (build_name/"/")[-1];
-
-  if(!.io.mv(build_name, web_dir+fn)) {
-    write("Unable to move %s to %s.\n", build_name, web_dir+fn);
-    return;
+  string filename;
+  if(web_dir) {
+    filename = web_dir+(build_name/"/")[-1];
   }
+  if(web_format) {
+    filename = expand_web_format();
+    if( filename[-1] == '/' )
+      filename += (build_name/"/")[-1];
+  }
+  Stdio.mkdirhier(dirname(filename));
+  if( !.io.mv(build_name, filename) )
+    write("Unable to move %s to %s: %s\n", build_name, filename,
+	  strerror(errno()));
+  else
+    build_stored(filename);
 }
 
+// This function is called when a source build has been created and
+// stored in the file system.  Derived servers may use it to record
+// the filename.
+void build_stored(string filename)
+{
+}
+
+string expand_web_format()
+{
+  return replace(web_format,
+		 ([ "%P": project,
+		    "%B": branch ]) + extra_web_formats());
+}
+
+// Derived server scripts can override this to support more format
+// codes in the --web-format pattern.  The return value should be a
+// mapping from format code (such as "%x") to the string that should
+// be replaced.
+mapping(string:string) extra_web_formats()
+{
+  return ([ ]);
+}
 
 //
 // Main program code
@@ -1000,17 +1032,17 @@ void check_settings() {
     // FIXME: Check write privileges.
   }
 
-  if(!web_dir) {
-    write("No web dir found.\n");
+  if(!web_dir && !web_format) {
+    write("No web dir or web format found.\n");
     exit(1);
   }
-  if(web_dir[-1]!='/')
+  if(web_dir && web_dir[-1]!='/')
     web_dir += "/";
-  if(!file_stat(web_dir)) {
+  if(web_dir && !file_stat(web_dir)) {
     write("%s does not exist.\n", web_dir);
     exit(1);
   }
-  if(!file_stat(web_dir)->isdir) {
+  if(web_dir && !file_stat(web_dir)->isdir) {
     write("%s is no directory.\n", web_dir);
     exit(1);
   }
@@ -1040,7 +1072,10 @@ void check_settings() {
     write("Module     : %s\n", client->module());
     write("Repository : %s\n", repository||"(implicit)");
     write("Work dir   : %s\n", work_dir);
-    write("Web dir    : %s\n", web_dir);
+    if( web_dir )
+      write("Web dir    : %s\n", web_dir);
+    if( web_format )
+      write("Web format : %s\n", web_format);
     write("\n");
   }
 }
@@ -1115,6 +1150,7 @@ int main(int num, array(string) args)
     ({ "tag",         Getopt.HAS_ARG, "--tag"          }),
     ({ "verbose",     Getopt.NO_ARG,  "--verbose"      }),
     ({ "webdir",      Getopt.HAS_ARG, "--web-dir"      }),
+    ({ "webformat",   Getopt.HAS_ARG, "--web-format"   }),
     ({ "workdir",     Getopt.HAS_ARG, "--work-dir"     }),
     ({ "transformer", Getopt.HAS_ARG, "--transformer" }),
     ({ "updateopts",  Getopt.HAS_ARG, "--update-opts" }),
@@ -1183,6 +1219,10 @@ int main(int num, array(string) args)
 
       case "webdir":
 	web_dir = opt[1];
+	break;
+
+      case "webformat":
+	web_format = opt[1];
 	break;
 
       case "workdir":
