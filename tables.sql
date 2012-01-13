@@ -9,14 +9,15 @@
 CREATE TABLE build (
   id      INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   project VARCHAR(255) NOT NULL,
+  remote  VARCHAR(255) NOT NULL,
   branch  VARCHAR(255) NOT NULL,
   time    INT UNSIGNED NOT NULL,
   commit_id CHAR(40) NULL, -- Large enough for the SHA-1 of Git.
 
   export  ENUM('FAIL','WARN','PASS') NOT NULL DEFAULT 'FAIL',
-  INDEX(project, branch, time),
-  INDEX(project, branch, commit_id),
-  INDEX(project, branch, id)
+  INDEX(project, remote, branch, time),
+  INDEX(project, remote, branch, commit_id),
+  INDEX(project, remote, branch, id)
 );
 
 
@@ -68,8 +69,9 @@ CREATE TABLE task_result (
 
 CREATE TABLE server_status (
   project     VARCHAR(255) NOT NULL,
+  remote      VARCHAR(255) NOT NULL,
   branch      VARCHAR(255) NOT NULL,
   updated     TIMESTAMP NOT NULL,
   message     VARCHAR(255) NOT NULL,
-  PRIMARY KEY (project, branch)
+  PRIMARY KEY (project, remote, branch)
 );

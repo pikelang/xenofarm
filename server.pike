@@ -21,6 +21,7 @@ string repository;	// --repository
 string cvs_module;	// --cvs-module
 string svn_module;	// --svn-module
 string repo_name;	// --repo-name
+string remote;		// --remote
 string branch;		// --branch
 string tag_format;	// --tag
 string work_dir;	// --work-dir
@@ -87,17 +88,19 @@ class TimeStampCommitId
 
   int create_build_id()
   {
-    persistent_query("INSERT INTO build (time, export, project, branch) "
-                    "VALUES (%d, 'PASS', %s, %s)",
-                    unix_time(), project, branch);
+    persistent_query("INSERT INTO build\n"
+		     "SET time = %d, export = 'PASS',\n"
+		     "project = %s, remote = %s, branch = %s",
+		     unix_time(), project, remote, branch);
     int buildid;
     mixed err = catch {
        buildid = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
       };
     if(err) {
-      catch(xfdb->query("DELETE FROM build "
-                       "WHERE project=%s AND branch=%s AND time=%d",
-                       project, branch, unix_time()));
+      catch(xfdb->query("DELETE FROM build\n"
+			"WHERE project=%s AND remote=%s AND branch=%s\n"
+			"  AND time=%d",
+			project, remote, branch, unix_time()));
       return 0;
     }
     return buildid;
@@ -164,17 +167,17 @@ class Sha1CommitId
 
     persistent_query("INSERT INTO build\n"
 		     "SET time = %d, export='PASS', commit_id = %s,\n"
-		     "    project = %s, branch = %s",
-		     unix_time(), commit_id, project, branch);
+		     "    project = %s, remote = %s, branch = %s",
+		     unix_time(), commit_id, project, remote, branch);
     int buildid;
     mixed err = catch {
 	buildid = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
       };
     if(err) {
       catch(xfdb->query("DELETE FROM build\n"
-			"WHERE project=%s AND branch=%s\n"
+			"WHERE project=%s AND remote=%s AND branch=%s\n"
 			"      AND time=%d AND commit_id=%s",
-			project, branch, unix_time(), commit_id));
+			project, remote, branch, unix_time(), commit_id));
       return 0;
     }
     return buildid;
@@ -389,6 +392,7 @@ class GitClient {
     "\nGit specific arguments:\n\n"
     "--repo-name    The name of the repository (inside workdir).\n"
     "--project      The project name.\n"
+    "--remote       The remote where the branch is found.\n"
     "--branch       The branch of the repository to monitor.\n";
 
   string last_commit;
@@ -396,12 +400,16 @@ class GitClient {
   void parse_arguments(array(string) args) {
     foreach(Getopt.find_all_options(args, ({
       ({ "project", Getopt.HAS_ARG, "--project" }),
+      ({ "remote",  Getopt.HAS_ARG, "--remote" }),
       ({ "branch",  Getopt.HAS_ARG, "--branch" }),}) ),array opt)
       {
 	switch(opt[0])
 	{
 	  case "project":
 	    project = opt[1];
+	    break;
+	  case "remote":
+	    remote = opt[1];
 	    break;
 	  case "branch":
 	    branch = opt[1];
@@ -893,9 +901,10 @@ CommitId get_latest_build()
   array res = persistent_query("SELECT time AS latest_build,\n"
 			       "  export, commit_id\n"
 			       "FROM build\n"
-			       "WHERE project = %s AND branch = %s\n"
+			       "WHERE project = %s AND\n"
+			       " remote = %s AND branch = %s\n"
 			       "ORDER BY time DESC LIMIT 1",
-			       project, branch);
+			       project, remote, branch);
   if(!res || !sizeof(res))
     return 0;
   latest_state = res[0]->export;
@@ -1000,6 +1009,7 @@ string expand_web_format()
 {
   return replace(web_format,
 		 ([ "%P": project,
+		    "%R": remote,
 		    "%B": branch ]) + extra_web_formats());
 }
 
@@ -1105,19 +1115,21 @@ void set_status(string intent, void|int when)
   if( when )
     intent = sprintf(intent, Calendar.Second(time() + when)->format_time());
 
-  array res = persistent_query("SELECT count(*) AS count"
-			       " FROM server_status"
-			       " WHERE project = %s AND branch = %s",
-			       project, branch);
+  array res = persistent_query("SELECT count(*) AS count\n"
+			       "FROM server_status\n"
+			       "WHERE project = %s AND remote = %s\n"
+			       "AND branch = %s",
+			       project, remote, branch);
   if( (int)res[0]->count > 0 )
     xfdb->query("UPDATE server_status"
 		" SET updated = NOW(), message = %s"
-		" WHERE project = %s AND branch = %s",
-		intent, project, branch);
+		" WHERE project = %s AND remote = %s AND branch = %s",
+		intent, project, remote, branch);
   else
-    xfdb->query("INSERT INTO server_status (project, branch, updated, message)"
-		" VALUES (%s, %s, NOW(), %s)",
-		project, branch, intent);
+    xfdb->query("INSERT INTO server_status\n"
+		" (project, remote, branch, updated, message)\n"
+		" VALUES (%s, %s, %s, NOW(), %s)",
+		project, remote, branch, intent);
 }
 
 
