@@ -1,0 +1,15 @@
+Xenofarm project Nettle
+=======================
+
+Nettle is a low-level cryptographic library. More information can be
+found at http://www.lysator.liu.se/~nisse/nettle.
+
+Dependencies
+============
+
+To be able to build and test the public key cryptography features of
+Nettle, you first need to install
+
+  GMP,         http://gmplib.org/
+
+
