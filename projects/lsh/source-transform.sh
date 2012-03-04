@@ -1,9 +1,10 @@
 #! /bin/sh
 
-PATH=/i/automake/1.7.2/bin:/i/autoconf/2.57/bin:/usr/local/bin:/usr/bin:/bin:/usr/ccs/bin
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/ccs/bin
 export PATH
 
 liboop=/pkg/liboop/src/liboop-1.0.tar.gz
+libgmp=/pkg/gmp/src/gmp-5.0.1.tar.gz
 
 # Don't know why gcc doesn't search /usr/local/lib by default. Using
 # LD_LIBRARY_PATH seems easier than passing flags to configure.
@@ -36,6 +37,7 @@ cp workdir/misc/xenofarm.sh dist/create-response.sh
 chmod +x dist/create-response.sh
 
 cp $liboop dist
+cp $libgmp dist
 
 tar cf ./$result.tar dist
 gzip ./$result.tar
