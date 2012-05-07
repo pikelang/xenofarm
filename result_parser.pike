@@ -455,8 +455,9 @@ mapping low_process_package() {
     write("Failed to parse machine id.\n");
     return result;
   }
-  debug("Build: %O Host: %O Platform: %O\n",
-	result->build, result->nodename, result->platform);
+  debug("Build: %O Host: %O Platform: %O Testname: %O\n",
+	result->build, result->nodename, result->platform,
+	result->testname);
 
   if(!result->status) {
     parse_log(main_log_file, result);
