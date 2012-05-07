@@ -440,13 +440,13 @@ mapping low_process_package() {
   mapping result = ([]);
 
   parse_build_id(build_id_file, result);
-  if( !configure_project(result->build) ) {
-    write("Failed to set up project.\n");
+  if(!result->build) {
+    write("Failed to parse build id.\n");
     return result;
   }
 
-  if(!result->build) {
-    write("Failed to parse build id.\n");
+  if( !configure_project(result->build) ) {
+    write("Failed to set up project.\n");
     return result;
   }
 
