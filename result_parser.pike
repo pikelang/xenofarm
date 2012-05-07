@@ -541,9 +541,9 @@ void process_package(string fn) {
     string dest = compute_dest_dir(result);
 
     if(Stdio.is_dir(dest)) {
-      debug("Result dir %O already exists.\n", dest);
-      if(!Stdio.recursive_rm(dest))
-	write("Unable to remove previous result directory.\n");
+      debug("Result dir %O already exists. Keeping %O.\n", dest, fn);
+      processed_results[fn]=1;
+      return;
     }
     Stdio.mkdirhier(dest);
 
