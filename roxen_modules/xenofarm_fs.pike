@@ -40,7 +40,7 @@ string info()
     return "No downloads or uploads so far.";
   string table = "<table border='1' cellspacing='0' cellpadding='2'>\n"
     "<tr><th>Remote address</th><th>Downloads</th><th>Uploads</th></tr>\n";
-  foreach(sort(indices(downloaded) + indices(uploaded)), string ip)
+  foreach(sort(indices(downloaded + uploaded)), string ip)
     table += sprintf("<tr><td>%s</td><td>%d</td><td>%d</td></tr>\n",
 		     ip, downloaded[ip], uploaded[ip]);
   return table + "</table>\n";
