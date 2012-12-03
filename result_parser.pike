@@ -519,7 +519,7 @@ void process_package(string fn) {
       if(!Stdio.recursive_rm(dest))
 	write("Unable to remove previous result directory.\n");
     }
-    mkdir(dest);
+    Stdio.mkdirhier(dest);
 
     int fail;
     foreach(get_dir("."), string f) {
