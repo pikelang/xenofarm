@@ -966,7 +966,7 @@ void make_build(CommitId timestamp)
 
   string fn = (build_name/"/")[-1];
 
-  if(Process.create_process( ({ "mv", build_name, web_dir+fn }) )->wait()) {
+  if(!.io.mv(build_name, web_dir+fn)) {
     write("Unable to move %s to %s.\n", build_name, web_dir+fn);
     return;
   }

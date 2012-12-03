@@ -523,9 +523,11 @@ void process_package(string fn) {
 
     int fail;
     foreach(get_dir("."), string f) {
-      if (!mv(f, dest+"/"+f) &&
-          Process.create_process( ({"mv", f, dest+"/"+f}), ([]) )->wait() )
+      if( !.io.mv(f, dest+"/"+f) ) {
+	write("Failed to move %O to %O: %s\n", f, dest+"/"+f,
+	      strerror(errno()));
 	fail = 1;
+      }
     }
     if(fail)
       write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
