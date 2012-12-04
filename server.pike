@@ -1104,8 +1104,10 @@ RepositoryClient get_client()
     return SVNClient();
   case "custom":
     return CustomClient();
-  default:
+  case 0: 			// Default if unset
     return CVSClient();
+  default:
+    error("Unrecognized client type %O.\n", client_type);
   }
 }
 
