@@ -647,7 +647,7 @@ setup_put
 
 #Make sure wget and gzip exists
 wget --help > /dev/null 2>&1 || missing_req wget 10
-gzip --help > /dev/null 2>&1 || missing_req wget 11
+gzip --help > /dev/null 2>&1 || missing_req gzip 11
 
 #Build Each project and each test in that project sequentially
 basedir="`pwd`"
