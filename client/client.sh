@@ -299,17 +299,17 @@ prepare_project() {
     fulldir="$fulldir/$node"
     if [ ! -d "$fulldir/." ]; then
         pmkdir "$fulldir"
-    fi  
+    fi
 
-    cd "$fulldir" &&
-     NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
-     msg " Downloading $project snapshot..."
-     #FIXME: Check for old broken wgets.
-     wget --header="Referer: $node" --dot-style=binary -N "$geturl" \
-        > "wget.log" 2>&1 &&
-     if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
+    cd "$fulldir" || exit 4
+    NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
+    msg " Downloading $project snapshot..."
+    #FIXME: Check for old broken wgets.
+    wget --header="Referer: $node" --dot-style=binary -N "$geturl" \
+        > "wget.log" 2>&1 || wget_exit
+    if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         msg " NOTE: No newer snapshot for $project available."
-     else
+    else
         # The snapshot will have a time stamp synced to the server. To
         # compensate for drifting clocks (not time zones, that is
         # handled by wget) on the clients we make a local stamp
@@ -317,7 +317,7 @@ prepare_project() {
         # snapshot it doesn't matter if a new snapshot is released while 
         # the first one is downloaded. (Yes, this long text is necessary.)
         touch localtime_lastdl
-     fi || wget_exit
+    fi
 
     cd "$basedir"
 }
