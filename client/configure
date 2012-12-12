@@ -562,7 +562,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 PACKAGE_URL=
 
-ac_unique_file="client.sh"
+ac_unique_file="retouch.c"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>

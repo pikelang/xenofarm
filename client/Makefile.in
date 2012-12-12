@@ -11,10 +11,13 @@ LIBS=@LIBS@ $(EXTRALIBS)
 CC=@CC@
 CFLAGS=@CFLAGS@ @DEFS@
 
-all:
+all: retouch
+
+retouch: retouch.o
+	$(CC) $(CFLAGS) -o retouch retouch.o $(LIBS)
 
 clean:
-	rm -f put put.o
+	rm -f put put.o retouch retouch.o
 
 spotless: clean
 	-test -f .cvsignore && rm -rf `cat .cvsignore`
@@ -25,7 +28,7 @@ pike-dist:
 	mkdir disttmp && \
 	mkdir disttmp/xenoclient && \
 	mkdir disttmp/xenoclient/config && \
-	cp README client.sh configure Makefile.in start \
+	cp README client.sh retouch.c configure Makefile.in start \
 		disttmp/xenoclient/ && \
 	cp ../projects/pike/pike7.4.cfg disttmp/xenoclient/config/ && \
 	cp ../projects/pike/pike_stable.cfg disttmp/xenoclient/config/ && \

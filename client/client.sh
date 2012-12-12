@@ -29,7 +29,7 @@
 #  0: Exited without errors or was stopped by a signal
 #  1: Unsupported argument
 #  2: Client already running
-#
+#  3: Failed to compile retouch
 #  4: Failed to create result package
 #  5: dont_run file found
 #  7: Remote compilation failure
@@ -264,7 +264,7 @@ setup_pidfile() {
     echo $$ > $pidfile
 }
 
-#Make sure we don't compile the put command on more than one node at the time
+#Make sure we don't compile the retouch command on more than one node at the time
 #NOTE: This can deadlock if the client is killed without giving it a
 #      chance to clean up during the put compilation.
 spinlock() {
@@ -316,6 +316,16 @@ have_newer_snapshot() {
     return 0
 }
 
+# Change the modification time of $1 so it becomes one second newer.
+make_newer() {
+    if $stat_touch
+    then
+        touch -d @`expr \`stat -c %Y "$1"\` + 1` "$1"
+    else
+        $retouchname "$1"
+    fi
+}
+
 #Called to prepare the project build environment. Not reapeated for each id.
 prepare_project() {
     msg " First test in this project. Preparing build environment."
@@ -328,6 +338,10 @@ prepare_project() {
     msg " Downloading $project snapshot..."
     curl -# -e "$node" -L -R -z snapshot.tar.gz -o dl/snapshot.tar.gz "$geturl" \
         > "fetch.log" 2>&1 || fetch_exit
+    if $curl_broken_z && [ -f dl/snapshot.tar.gz ]
+    then
+        make_newer dl/snapshot.tar.gz
+    fi
     if ! have_newer_snapshot; then
         msg " NOTE: No newer snapshot for $project available."
     else
@@ -396,6 +410,11 @@ make_machineid() {
        echo "command: $command" >> machineid.txt &&
        echo "clientversion: `$basedir/client.sh --version`" \
                                 >> machineid.txt &&
+       if $curl_broken_z && ! $stat_touch
+       then
+           echo "retouchversion: `$basedir/$retouchname --version`" \
+                                >> machineid.txt
+       fi &&
        cat "$basedir/$config_dir/contact.txt" >> machineid.txt
 }
 
@@ -588,20 +607,20 @@ get_nodeconfig() {
     fi
 }
 
-setup_put() {
-    echo $putname
-    if [ ! -x $putname ] ; then
+setup_retouch() {
+    echo $retouchname
+    if [ ! -x $retouchname ] ; then
         spinlock
         rm -f config.cache
         ./configure
         make clean
-        make put
-        if [ ! -x put ] ; then
-            msg "FATAL: Failed to compile put." >&2
+        make retouch
+        if [ ! -x retouch ] ; then
+            msg "FATAL: Failed to compile retouch." >&2
             clean_exit 3
         else
             mkdir bin 2>/dev/null
-            mv put $putname
+            mv retouch $retouchname
         fi
         releaselock
     fi
@@ -664,13 +683,13 @@ setup_pidfile
 #Make sure the remote nodes are up in a multi machine compilation setup
 check_multimachinecompilation
 
-#If we are running a sprshd build the put command should be on the local node
+#If we are running a sprshd build the retouch command should be on the local node
 if [ X$REMOTE_METHOD = "Xsprsh" ] ; then
     #FIXME: See if this uname location is reasonably portable
     #FIXME: Now that the nodename finder otherwhere is so clever this can fail.
-    putname=bin/put-`/bin/uname -n`
+    retouchname=bin/retouch-`/bin/uname -n`
 else
-    putname=bin/put-$node
+    retouchname=bin/retouch-$node
 fi
 
 
@@ -679,6 +698,52 @@ gzip --help > /dev/null 2>&1 || missing_req gzip 11
 # Older versions of curl (7.15.5) exit with exit status 2 when given
 # --help or --version, so use this convoluted test instead.
 curl --version 2>/dev/null | grep libcurl >/dev/null 2>&1 || missing_req curl 13
+
+# The -z option of curl is broken in version 7.21 and earlier.
+# Instead of downloading a file only if it is strictly newer than the
+# local timestamp, it will download the file also if the timestamps
+# are equal. We have two strategies to work around this issue:
+#
+# 1. If GNU touch and GNU stat are available, we can use them to
+#    increase the timestamp of snapshot.tar.gz one second.
+# 2. If we can compile retouch.c, that binary can increase the
+#    timestamp of snapshot.tar.gz one second.
+curl_version=`curl --version | awk '{print $2;exit}'`
+curl_major=`echo $curl_version|awk -F. '{print $1}'`
+curl_minor=`echo $curl_version|awk -F. '{print $2}'`
+curl_broken_z=false
+if [ $curl_major -lt 7 ]
+then
+    curl_broken_z=true
+fi
+if [ $curl_major -eq 7 ] && [ $curl_minor -lt 22 ]
+then
+    curl_broken_z=true
+fi
+if $curl_broken_z
+then
+    rm -f old.test new.test
+    touch old.test
+    sleep 1
+    touch new.test
+    ts=`stat -c %Y old.test 2>/dev/null`
+    if [ "x$ts" != "x" ]
+    then
+        touch -d @`expr $ts + 3` old.test 2>/dev/null
+    fi
+    if is_newer old.test new.test
+    then
+        echo "curl -z is broken; using stat and touch"
+        stat_touch=true
+    else
+        stat_touch=false
+
+        #Make sure there is a retouch command available for this node
+        setup_retouch
+        echo "curl -z is broken; using retouch"
+    fi
+    rm -f old.test new.test
+fi
 
 #Build Each project and each test in that project sequentially
 basedir="`pwd`"
