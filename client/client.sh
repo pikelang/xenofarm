@@ -148,8 +148,8 @@ missing_req() {
     clean_exit $2
 }
 
-wget_exit() {
-    cat "wget.log" >&2
+fetch_exit() {
+    cat "fetch.log" >&2
     exit 23
 }
 
@@ -308,7 +308,7 @@ prepare_project() {
     msg " Downloading $project snapshot..."
     #FIXME: Check for old broken wgets.
     wget --header="Referer: $node" --dot-style=binary -N "$geturl" \
-        > "wget.log" 2>&1 || wget_exit
+        > "fetch.log" 2>&1 || fetch_exit
     if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         msg " NOTE: No newer snapshot for $project available."
     else
