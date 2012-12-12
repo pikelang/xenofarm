@@ -11,11 +11,6 @@
 # Requirements:
 #  gzip
 #  curl
-#  wget              Must handle -N and set the timestamp correctly.
-#                    Must handle --header.
-#                    Versions 1.6 and prior of wget are know to mangle 
-#                    the timestamps and will cause occasional missed 
-#                    builds. Versions 1.8.2 and newer are known to work.
 #
 # Requirements that are normally fulfilled by the UNIX system:
 # `ls -t`           should list files sorted by modification time
@@ -40,7 +35,6 @@
 #  7: Remote compilation failure
 #
 #  9: Admin email not configured
-# 10: wget not found
 # 11: gzip not found
 # 12: Configuration directory not found
 # 13: curl not found
@@ -306,17 +300,16 @@ prepare_project() {
     cd "$fulldir" || exit 4
     NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
     msg " Downloading $project snapshot..."
-    #FIXME: Check for old broken wgets.
-    wget --header="Referer: $node" --dot-style=binary -N "$geturl" \
+    curl -# -e "$node" -L -R -z snapshot.tar.gz -o snapshot.tar.gz "$geturl" \
         > "fetch.log" 2>&1 || fetch_exit
     if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
         msg " NOTE: No newer snapshot for $project available."
     else
         # The snapshot will have a time stamp synced to the server. To
         # compensate for drifting clocks (not time zones, that is
-        # handled by wget) on the clients we make a local stamp
+        # handled by curl) on the clients we make a local stamp
         # file. As this file is not consulted when downloading new
-        # snapshot it doesn't matter if a new snapshot is released while 
+        # snapshot it doesn't matter if a new snapshot is released while
         # the first one is downloaded. (Yes, this long text is necessary.)
         touch localtime_lastdl
     fi
@@ -645,8 +638,7 @@ else
 fi
 
 
-#Make sure wget, curl and gzip exists
-wget --help > /dev/null 2>&1 || missing_req wget 10
+#Make sure curl and gzip exists
 gzip --help > /dev/null 2>&1 || missing_req gzip 11
 curl --help > /dev/null 2>&1 || missing_req curl 13
 
