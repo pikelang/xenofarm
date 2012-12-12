@@ -546,7 +546,13 @@ void process_package(string fn) {
     string dest = compute_dest_dir(result);
 
     if(Stdio.is_dir(dest)) {
-      debug("Result dir %O already exists. Keeping %O.\n", dest, fn);
+      clean_working_dir();
+      string dup = dirname(fn) + "/" + replace(basename(fn), "res", "dup");
+      if( !mv(fn, dup) ) {
+        werror("mv(%s, %s) failed: %s\n", fn, dup, strerror(errno()));
+        dup = fn;
+      }
+      debug("Result dir %O already exists. Keeping %O.\n", dest, dup);
       processed_results[fn]=1;
       return;
     }
