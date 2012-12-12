@@ -640,7 +640,9 @@ fi
 
 #Make sure curl and gzip exists
 gzip --help > /dev/null 2>&1 || missing_req gzip 11
-curl --help > /dev/null 2>&1 || missing_req curl 13
+# Older versions of curl (7.15.5) exit with exit status 2 when given
+# --help or --version, so use this convoluted test instead.
+curl --version 2>/dev/null | grep libcurl >/dev/null 2>&1 || missing_req curl 13
 
 #Build Each project and each test in that project sequentially
 basedir="`pwd`"
