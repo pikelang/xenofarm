@@ -10,6 +10,7 @@
 #
 # Requirements:
 #  gzip
+#  curl
 #  wget              Must handle -N and set the timestamp correctly.
 #                    Must handle --header.
 #                    Versions 1.6 and prior of wget are know to mangle 
@@ -33,7 +34,7 @@
 #  0: Exited without errors or was stopped by a signal
 #  1: Unsupported argument
 #  2: Client already running
-#  3: Failed to compile put
+#
 #  4: Failed to create result package
 #  5: dont_run file found
 #  7: Remote compilation failure
@@ -42,6 +43,7 @@
 # 10: wget not found
 # 11: gzip not found
 # 12: Configuration directory not found
+# 13: curl not found
 #
 # 14-30: Reserved for internal usage.
 
@@ -344,8 +346,9 @@ put_resume() {
         tmp=""
         if [ -f $x/xenofarm_result.tar.gz ] ; then
             msg "Resending $x/xenofarm_result.tar.gz."
-            $basedir/$putname "$puturl" \
-                < "$x/xenofarm_result.tar.gz" || tmp="fail"
+            curl -T "$x/xenofarm_result.tar.gz" \
+		--connect-timeout 60 "$puturl" \
+                || tmp="fail"
             if [ X$tmp != Xfail ] ; then
                 rm $x/xenofarm_result.tar.gz
                 rmdir $x
@@ -367,8 +370,6 @@ make_machineid() {
        echo "testname: $test"   >> machineid.txt &&
        echo "command: $command" >> machineid.txt &&
        echo "clientversion: `$basedir/client.sh --version`" \
-                                >> machineid.txt &&
-       echo "putversion: `$basedir/$putname --version`" \
                                 >> machineid.txt &&
        cat "$basedir/$config_dir/contact.txt" >> machineid.txt
 }
@@ -497,8 +498,9 @@ run_test() {
                 fi
                 mv "../../current_$test" "../../last_$test";
                 msg "  Sending results for \"$project\": \"$test\"."
-                $basedir/$putname "$puturl" \
-                    < "$resultdir/xenofarm_result.tar.gz" || put_exit
+                curl -T "$resultdir/xenofarm_result.tar.gz" \
+                    --connect-timeout 60 "$puturl" || put_exit
+                echo
                 cd "$fulldir/buildtmp"
             else
                 msg " NOTE: Build delay for \"$project\" not passed. Skipping."
@@ -642,12 +644,11 @@ else
     putname=bin/put-$node
 fi
 
-#Make sure there is a put command available for this node
-setup_put
 
-#Make sure wget and gzip exists
+#Make sure wget, curl and gzip exists
 wget --help > /dev/null 2>&1 || missing_req wget 10
 gzip --help > /dev/null 2>&1 || missing_req gzip 11
+curl --help > /dev/null 2>&1 || missing_req curl 13
 
 #Build Each project and each test in that project sequentially
 basedir="`pwd`"

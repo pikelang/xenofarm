@@ -11,10 +11,7 @@ LIBS=@LIBS@ $(EXTRALIBS)
 CC=@CC@
 CFLAGS=@CFLAGS@ @DEFS@
 
-all: put
-
-put: put.o
-	$(CC) $(CFLAGS) -o put put.o $(LIBS) 
+all:
 
 clean:
 	rm -f put put.o
@@ -28,7 +25,7 @@ pike-dist:
 	mkdir disttmp && \
 	mkdir disttmp/xenoclient && \
 	mkdir disttmp/xenoclient/config && \
-	cp README client.sh put.c configure Makefile.in start \
+	cp README client.sh configure Makefile.in start \
 		disttmp/xenoclient/ && \
 	cp ../projects/pike/pike7.4.cfg disttmp/xenoclient/config/ && \
 	cp ../projects/pike/pike_stable.cfg disttmp/xenoclient/config/ && \
