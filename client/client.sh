@@ -289,20 +289,46 @@ releaselock() {
     gotlock="false"
 }
 
+# Return 0 if a new snapshot has been downloaded.
+have_newer_snapshot() {
+    # No downloaded candidate => no.  This is the most common branch,
+    # as curl shouldn't download anything unless what is on the server
+    # is newer than the old snapshot.
+    [ -f dl/snapshot.tar.gz ] || return 1
+
+    # No old download, but a new candidate => yes.  This happens on
+    # the first run of a project.
+    [ -f snapshot.tar.gz ] || return 0
+
+    OLD="`ls -l snapshot.tar.gz 2>/dev/null`"
+    NEW="`cd dl&&ls -l snapshot.tar.gz 2>/dev/null`"
+
+    # Timestamp and/or size differ => yes.
+    [ "$OLD" == "$NEW" ] || return 0
+
+    # Same size, same timestamp (using minute resolution), and
+    # same content => no.
+    cmp snapshot.tar.gz dl/snapshot.tar.gz >/dev/null || return 1
+
+    # Apparently, the content differs, so we have a new download even
+    # though the size and minute-resolution timestamp are the same.
+    # This is unlikely, but can happen...
+    return 0
+}
+
 #Called to prepare the project build environment. Not reapeated for each id.
 prepare_project() {
     msg " First test in this project. Preparing build environment."
     fulldir="$fulldir/$node"
-    if [ ! -d "$fulldir/." ]; then
-        pmkdir "$fulldir"
+    if [ ! -d "$fulldir/dl" ]; then
+        pmkdir "$fulldir/dl"
     fi
 
     cd "$fulldir" || exit 4
-    NEWCHECK="`ls -l snapshot.tar.gz 2>/dev/null`";
     msg " Downloading $project snapshot..."
-    curl -# -e "$node" -L -R -z snapshot.tar.gz -o snapshot.tar.gz "$geturl" \
+    curl -# -e "$node" -L -R -z snapshot.tar.gz -o dl/snapshot.tar.gz "$geturl" \
         > "fetch.log" 2>&1 || fetch_exit
-    if [ X"`ls -l snapshot.tar.gz`" = X"$NEWCHECK" ]; then
+    if ! have_newer_snapshot; then
         msg " NOTE: No newer snapshot for $project available."
     else
         # The snapshot will have a time stamp synced to the server. To
@@ -312,6 +338,12 @@ prepare_project() {
         # snapshot it doesn't matter if a new snapshot is released while
         # the first one is downloaded. (Yes, this long text is necessary.)
         touch localtime_lastdl
+
+        # Now that we have flagged that we have a new download to
+        # compile, move the new file to its destination.  We have to
+        # do it in this order to ensure we don't forget to compile
+        # this if we are interrupted.
+        mv -f dl/snapshot.tar.gz snapshot.tar.gz
     fi
 
     cd "$basedir"
@@ -518,6 +550,7 @@ run_test() {
         # 23: Failed to fetch project snapshot.
         # 24: Failed to send result.
         # 25: Failed to create result package.
+        # 26: Failed to rename snapshot2.tar.gz to snapshot.tar.gz
         #Be more verbose in some common cases:
         case $last in
         '20')
@@ -531,6 +564,9 @@ run_test() {
             ;;
         '24')
             msg "FATAL: Failed to send result package to $puturl!" >&2
+            ;;
+        '26')
+            msg "FATAL: Failed to rename downloaded \"$project\" snapshot!" >&2
             ;;
         esac
     fi
