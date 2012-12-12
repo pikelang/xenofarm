@@ -478,20 +478,24 @@ string compute_dest_dir(mapping result)
   return web_dir + result->build+"_"+result->system;
 }
 
+void clean_working_dir()
+{
+  if(sizeof(get_dir("."))) {
+    Process.system("rm *");
+    if(sizeof(get_dir("."))) {
+      write("Working dir not empty\n");
+      exit(1);
+    }
+  }
+}
+
 //
 // Main functions
 //
 
 void process_package(string fn) {
 
-  // Clear working dir
-  if(sizeof(get_dir("."))) {
-    Process.system("rm *");
-    if(sizeof(get_dir("."))) {
-      write("Working dir not empty\n");
-      return;
-    }
-  }
+  clean_working_dir();
 
   Stdio.File f=Stdio.File("tmp", "wtc");
   if(Process.create_process( ({ "gunzip", "-c", fn }),
