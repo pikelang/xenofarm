@@ -554,8 +554,15 @@ void process_package(string fn) {
 
   rm("tmp");
 
-  if(!store_files(fn, result))
+  if(!store_files(fn, result)) {
     processed_results[fn]=1;
+    return;
+  }
+
+  if(!rm(fn) ) {
+    write("Unable to remove %O\n", fn);
+    processed_results[fn]=1;
+  }
 }
 
 bool store_files(string fn, mapping result)
@@ -594,11 +601,6 @@ bool store_files(string fn, mapping result)
 
   if(fail) {
     write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
-    return false;
-  }
-
-  if(!rm(fn) ) {
-    write("Unable to remove %O\n", fn);
     return false;
   }
 
