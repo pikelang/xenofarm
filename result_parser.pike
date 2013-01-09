@@ -415,7 +415,6 @@ void find_system(mapping res)
 // res->tesname must have a value.
 void store_result(mapping res)
 {
-  find_system(res);
   if(!res->tasks) return;
   TaskOrderGenie g = TaskOrderGenie();
   foreach(res->tasks, [string task, string status, int time, int warnings]) {
@@ -474,6 +473,8 @@ mapping low_process_package() {
     else
       count_compilation_warnings(result);
   }
+
+  find_system(result);
 
   if(!dry_run)
     store_result(result);
