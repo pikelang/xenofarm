@@ -560,8 +560,14 @@ void process_package(string fn) {
 
 bool store_files(string fn, mapping result)
 {
-  if(!result->build || !result->system)
+  if(!result->build) {
+    werror("No build id found.\n");
     return false;
+  }
+  if(!result->system) {
+    werror("No system info found.\n");
+    return false;
+  }
 
   string dest = compute_dest_dir(result);
 
