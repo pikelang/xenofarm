@@ -580,11 +580,17 @@ void store_files(string fn, mapping result)
 	fail = 1;
       }
     }
-    if(fail)
+    if(fail) {
       write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
+      processed_results[fn]=1;
+      return;
+    }
 
-    if(!fail && !rm(fn) )
+    if(!rm(fn) ) {
       write("Unable to remove %O\n", fn);
+      processed_results[fn]=1;
+      return;
+    }
     else
       processed_results[fn]=1;
   }
