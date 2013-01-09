@@ -554,10 +554,11 @@ void process_package(string fn) {
 
   rm("tmp");
 
-  store_files(fn, result);
+  if(!store_files(fn, result))
+    processed_results[fn]=1;
 }
 
-void store_files(string fn, mapping result)
+bool store_files(string fn, mapping result)
 {
   if(result->build && result->system) {
     string dest = compute_dest_dir(result);
@@ -570,8 +571,7 @@ void store_files(string fn, mapping result)
         dup = fn;
       }
       debug("Result dir %O already exists. Keeping %O.\n", dest, dup);
-      processed_results[fn]=1;
-      return;
+      return false;
     }
     Stdio.mkdirhier(dest);
 
@@ -583,20 +583,21 @@ void store_files(string fn, mapping result)
 	fail = 1;
       }
     }
+
     if(fail) {
       write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
-      processed_results[fn]=1;
-      return;
+      return false;
     }
 
     if(!rm(fn) ) {
       write("Unable to remove %O\n", fn);
-      processed_results[fn]=1;
-      return;
+      return false;
     }
+
+    return true;
   }
   else
-    processed_results[fn]=1;
+    return false;
 }
 
 void check_settings(void|int(0..1) no_result_dir) {
