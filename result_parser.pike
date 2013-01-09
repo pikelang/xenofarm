@@ -385,10 +385,8 @@ int get_task_id(array(string)|string tasks, TaskOrderGenie gen) {
   return (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
 }
 
-// res->nodename must have a value.
-// res->tasks must have a value (at least an empty array).
-// res->tesname must have a value.
-void store_result(mapping res) {
+void find_system(mapping res)
+{
   if(!res->nodename)
     return;
   string testname = res->testname;
@@ -410,7 +408,14 @@ void store_result(mapping res) {
 		res->version||"", res->machine||"", testname);
     res->system = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
+}
 
+// res->nodename must have a value.
+// res->tasks must have a value (at least an empty array).
+// res->tesname must have a value.
+void store_result(mapping res)
+{
+  find_system(res);
   if(!res->tasks) return;
   TaskOrderGenie g = TaskOrderGenie();
   foreach(res->tasks, [string task, string status, int time, int warnings]) {
