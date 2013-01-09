@@ -489,6 +489,48 @@ void clean_working_dir()
   }
 }
 
+bool unpack_package(string fn)
+{
+  Stdio.File f=Stdio.File("tmp", "wtc");
+  if(Process.create_process( ({ "gunzip", "-c", fn }),
+			     ([ "stdout" : f ]) )->wait()) {
+    write("Unable to decompress %O to %O.\n", fn, getcwd());
+    processed_results[fn]=1;
+    return false;
+  }
+  f->close();
+
+  Stdio.File fo = Stdio.File();
+  object pipe = fo->pipe(Stdio.PROP_IPC);
+  if(!pipe) return false;
+  Process.create_process( ({ "tar", "tf", "tmp" }), ([ "stdout":pipe ]) );
+  pipe->close();
+  string content = fo->read();
+  fo->close();
+  if(!content) return false;
+
+  if(has_value(content, "/")) {
+    write("Refusing to process %O since %s contains a slash.\n", fn,
+	  String.implode_nicely(filter(content/"\n", has_value, "/")) );
+    processed_results[fn]=1;
+    return false;
+  }
+
+  Process.create_process( ({ "tar", "xf", "tmp" }), ([]) )->wait();
+  if(!sizeof(get_dir("."))) {
+    write("Unable to unpack %O to %O\n", fn, getcwd());
+    processed_results[fn]=1;
+    return false;
+  }
+
+  foreach(get_dir("."), string pkgfile) {
+    chmod(pkgfile, file_stat(pkgfile)[0] | 0444);
+  }
+
+  return true;
+}
+
+
 //
 // Main functions
 //
@@ -497,41 +539,8 @@ void process_package(string fn) {
 
   clean_working_dir();
 
-  Stdio.File f=Stdio.File("tmp", "wtc");
-  if(Process.create_process( ({ "gunzip", "-c", fn }),
-			     ([ "stdout" : f ]) )->wait()) {
-    write("Unable to decompress %O to %O.\n", fn, getcwd());
-    processed_results[fn]=1;
+  if( !unpack_package(fn) )
     return;
-  }
-  f->close();
-
-  Stdio.File fo = Stdio.File();
-  object pipe = fo->pipe(Stdio.PROP_IPC);
-  if(!pipe) return;
-  Process.create_process( ({ "tar", "tf", "tmp" }), ([ "stdout":pipe ]) );
-  pipe->close();
-  string content = fo->read();
-  fo->close();
-  if(!content) return;
-
-  if(has_value(content, "/")) {
-    write("Refusing to process %O since %s contains a slash.\n", fn,
-	  String.implode_nicely(filter(content/"\n", has_value, "/")) );
-    processed_results[fn]=1;
-    return;
-  }
-
-  Process.create_process( ({ "tar", "xf", "tmp" }), ([]) )->wait();
-  if(!sizeof(get_dir("."))) {
-    write("Unable to unpack %O to %O\n", fn, getcwd());
-    processed_results[fn]=1;
-    return;
-  }
-
-  foreach(get_dir("."), string pkgfile) {
-    chmod(pkgfile, file_stat(pkgfile)[0] | 0444);
-  }
 
   mapping result = low_process_package();
   if(dry_run) {
