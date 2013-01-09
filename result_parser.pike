@@ -551,6 +551,11 @@ void process_package(string fn) {
 
   rm("tmp");
 
+  store_files(fn, result);
+}
+
+void store_files(string fn, mapping result)
+{
   if(result->build && result->system) {
     string dest = compute_dest_dir(result);
 
