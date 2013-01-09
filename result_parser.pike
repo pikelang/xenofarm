@@ -560,44 +560,43 @@ void process_package(string fn) {
 
 bool store_files(string fn, mapping result)
 {
-  if(result->build && result->system) {
-    string dest = compute_dest_dir(result);
-
-    if(Stdio.is_dir(dest)) {
-      clean_working_dir();
-      string dup = dirname(fn) + "/" + replace(basename(fn), "res", "dup");
-      if( !mv(fn, dup) ) {
-        werror("mv(%s, %s) failed: %s\n", fn, dup, strerror(errno()));
-        dup = fn;
-      }
-      debug("Result dir %O already exists. Keeping %O.\n", dest, dup);
-      return false;
-    }
-    Stdio.mkdirhier(dest);
-
-    int fail;
-    foreach(get_dir("."), string f) {
-      if( !.io.mv(f, dest+"/"+f) ) {
-	write("Failed to move %O to %O: %s\n", f, dest+"/"+f,
-	      strerror(errno()));
-	fail = 1;
-      }
-    }
-
-    if(fail) {
-      write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
-      return false;
-    }
-
-    if(!rm(fn) ) {
-      write("Unable to remove %O\n", fn);
-      return false;
-    }
-
-    return true;
-  }
-  else
+  if(!result->build || !result->system)
     return false;
+
+  string dest = compute_dest_dir(result);
+
+  if(Stdio.is_dir(dest)) {
+    clean_working_dir();
+    string dup = dirname(fn) + "/" + replace(basename(fn), "res", "dup");
+    if( !mv(fn, dup) ) {
+      werror("mv(%s, %s) failed: %s\n", fn, dup, strerror(errno()));
+      dup = fn;
+    }
+    debug("Result dir %O already exists. Keeping %O.\n", dest, dup);
+    return false;
+  }
+  Stdio.mkdirhier(dest);
+
+  int fail;
+  foreach(get_dir("."), string f) {
+    if( !.io.mv(f, dest+"/"+f) ) {
+      write("Failed to move %O to %O: %s\n", f, dest+"/"+f,
+	    strerror(errno()));
+      fail = 1;
+    }
+  }
+
+  if(fail) {
+    write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
+    return false;
+  }
+
+  if(!rm(fn) ) {
+    write("Unable to remove %O\n", fn);
+    return false;
+  }
+
+  return true;
 }
 
 void check_settings(void|int(0..1) no_result_dir) {
