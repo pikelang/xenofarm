@@ -23,6 +23,9 @@ int(0..1) verbose;
 int(0..1) dry_run;
 int(0..1) keep_going = 1;
 
+// Result packages that we have already tried to process, but could
+// not, due to some error.  Those files will be skipped in the
+// future (until the result parser is restarted).
 multiset(string) processed_results = (<>);
 array(string) ignored_warnings = ({});
 
@@ -591,8 +594,6 @@ void store_files(string fn, mapping result)
       processed_results[fn]=1;
       return;
     }
-    else
-      processed_results[fn]=1;
   }
   else
     processed_results[fn]=1;
