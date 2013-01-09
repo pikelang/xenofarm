@@ -538,31 +538,35 @@ bool unpack_package(string fn)
 // Main functions
 //
 
-void process_package(string fn) {
+// Return true on sucess, but not in dry-run mode.
+bool process_package(string fn) {
 
   clean_working_dir();
 
   if( !unpack_package(fn) )
-    return;
+    return false;
 
   mapping result = low_process_package();
   if(dry_run) {
     processed_results[fn]=1;
     werror("%O\n", result);
-    return;
+    return false;
   }
 
   rm("tmp");
 
   if(!store_files(fn, result)) {
     processed_results[fn]=1;
-    return;
+    return false;
   }
 
   if(!rm(fn) ) {
     write("Unable to remove %O\n", fn);
     processed_results[fn]=1;
+    return false;
   }
+
+  return true;
 }
 
 bool store_files(string fn, mapping result)
