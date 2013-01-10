@@ -443,7 +443,7 @@ bool configure_project(int buildid)
   return true;
 }
 
-mapping low_process_package() {
+mapping parse_package() {
   mapping result = ([]);
 
   parse_build_id(build_id_file, result);
@@ -476,8 +476,6 @@ mapping low_process_package() {
 
   find_system(result);
 
-  if(!dry_run)
-    store_result(result);
   return result;
 }
 
@@ -552,7 +550,7 @@ bool process_package(string fn) {
   if( !unpack_package(fn) )
     return false;
 
-  mapping result = low_process_package();
+  mapping result = parse_package();
   if(dry_run) {
     processed_results[fn]=1;
     werror("%O\n", result);
@@ -571,6 +569,8 @@ bool process_package(string fn) {
     processed_results[fn]=1;
     return false;
   }
+
+  store_result(result);
 
   return true;
 }
