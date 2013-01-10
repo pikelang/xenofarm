@@ -7,6 +7,8 @@
 Sql.Sql xfdb;
 int result_poll = 60;
 string project;
+string remote;
+string branch;
 string result_dir;
 string work_dir;
 string web_dir;
@@ -440,6 +442,19 @@ void store_result(mapping res)
 // this.
 bool configure_project(int buildid)
 {
+  if(multi_project) {
+    array(mapping) rows = xfdb->query(
+      "SELECT project, remote, branch\n"
+      "FROM build\n"
+      "WHERE id = %d", buildid);
+    if( sizeof(rows) < 1 )
+      return false;
+    mapping row = rows[0];
+    project = row->project;
+    remote = row->remote;
+    branch = row->branch;
+  }
+
   return true;
 }
 
