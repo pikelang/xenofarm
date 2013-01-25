@@ -433,20 +433,29 @@ class GitClient {
 
   string rev_parse(string ref)
   {
+    return git_stdout("rev-parse", ref);
+  }
+
+  // Run a git command.  Exit if it fails (after having written the
+  // output from the command to stdout).  Return the stdout output of
+  // the git command, with any trailing whitespace removed.
+  string git_stdout(string...args)
+  {
     Stdio.File stdout = Stdio.File();
     object stat =
-      Process.create_process(({ "git", "rev-parse", ref }),
+      Process.create_process(({ "git" }) + args,
 			     ([ "cwd": module(),
-				"stdout" : stdout.pipe(),
-				"stderr" : Stdio.File("/dev/null", "cwt") ]));
+				"stdout" : stdout.pipe() ]));
+
+    string res = stdout.read();
     if(stat->wait())
     {
-      write("Failed to parse Git ref %O in %O.\n",
-	    ref, combine_path(getcwd(), module()));
+      write("Failed to run \"git %s\" in %O.\n",
+	    args * " ", combine_path(getcwd(), module()));
       exit(1);
     }
 
-    return String.trim_all_whites(stdout.read());
+    return String.trim_all_whites(res);
   }
 
   Sha1CommitId get_latest_checkin()
