@@ -428,17 +428,21 @@ class GitClient {
 
   string current_commit_id()
   {
-    Stdio.File stdout = Stdio.File();
+    return rev_parse("HEAD");
+  }
 
+  string rev_parse(string ref)
+  {
+    Stdio.File stdout = Stdio.File();
     object stat =
-      Process.create_process(({ "git", "rev-parse", "HEAD" }),
+      Process.create_process(({ "git", "rev-parse", ref }),
 			     ([ "cwd": module(),
 				"stdout" : stdout.pipe(),
 				"stderr" : Stdio.File("/dev/null", "cwt") ]));
     if(stat->wait())
     {
-      write("Failed to stat Git branch %O in %O.\n",
-	    branch||"HEAD", combine_path(getcwd(), module()));
+      write("Failed to parse Git ref %O in %O.\n",
+	    ref, combine_path(getcwd(), module()));
       exit(1);
     }
 
