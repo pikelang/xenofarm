@@ -448,7 +448,7 @@ class GitClient {
   Sha1CommitId get_latest_checkin()
   {
     check_work_dir();
-    update_to_current_source();
+    get_current_source();
     string commit = first_wanted_commit();
     if(!commit)
       return 0;
@@ -533,7 +533,7 @@ class GitClient {
       }
   }
 
-  array(string) update_to_current_source()
+  void get_current_source()
   {
     // If the latest update_source() put us on a detached head, move
     // back to the branch we came from.
@@ -563,25 +563,6 @@ class GitClient {
 	last_commit = after;
 	debug("HEAD is currently at %s\n", last_commit);
       }
-
-    array(string) log_lines = ({ });
-
-    if( after != before )
-    {
-      object log =
-          Process.create_process(
-              ({ "git", "log", before + ".." + after }),
-              ([ "cwd": module(),
-		 "stdout": Stdio.File("tmp/log.log", "cwt")]));
-      if(log->wait())
-      {
-        write("Failed to get Git log in %O for project %O.\n",
-              combine_path(getcwd(), module()), project);
-        exit(1);
-      }
-      log_lines = Stdio.read_file("tmp/log.log") / "\n";
-    }
-    return log_lines;
   }
 
   void checkout(string commit_id)
