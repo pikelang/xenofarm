@@ -458,6 +458,11 @@ class GitClient {
     return String.trim_all_whites(res);
   }
 
+  void run_git(string...args)
+  {
+    git_stdout(@args);
+  }
+
   Sha1CommitId get_latest_checkin()
   {
     check_work_dir();
@@ -546,6 +551,17 @@ class GitClient {
       }
   }
 
+  string remote_for_branch(string branch_ref)
+  {
+    string branch;
+    if( sscanf(branch_ref, "refs/heads/%s", branch) != 1)
+      {
+	write("Failed to parse %s as a branch head.\n", branch_ref);
+	exit(1);
+      }
+    return git_stdout("config", sprintf("branch.%s.remote", branch));
+  }
+
   void get_current_source()
   {
     // If the latest update_source() put us on a detached head, move
@@ -553,21 +569,30 @@ class GitClient {
     if( !working_on_a_branch() )
       checkout("@{-1}");
 
-    string before = current_commit_id();
+    // In most cases, we could to "git pull" instead of running "git
+    // fetch" and "git reset --hard".  But this works if the branch
+    // has been rebased (or if somebody has done "git commit --amend"
+    // or something similar).  It also makes it possible to do "git
+    // bisect" and push HEAD to a special bisect branch (that will
+    // jump all over the place) so that "git bisect" can be used with
+    // the autobuilder.
 
-    debug("Running git pull.\n");
-    set_status("Running git pull.");
-    object update =
-      Process.create_process(({ "git", "pull", "-q" }),
-			     ([ "cwd": module(),
-				"stdout" : Stdio.File("tmp/update.log", "cwt"),
-				"stderr" : Stdio.File("/dev/null", "cwt") ]));
-    if(update->wait())
-    {
-      write("Failed to update Git in %O for project %O.\n",
-	    combine_path(getcwd(), module()), project);
+    string my_branch = git_stdout("symbolic-ref", "HEAD");
+    if(!my_branch) {
+      write("Failed to find current branch\n");
       exit(1);
     }
+
+    debug("Running git fetch.\n");
+    set_status("Running git fetch.");
+    run_git("fetch", "-p", remote_for_branch(my_branch));
+
+    debug("Updating local git tree.\n");
+    set_status("Updating local git tree.");
+
+    string upstream = git_stdout("for-each-ref", "--format=%(upstream)",
+				 my_branch);
+    run_git("reset", "--hard", upstream);
 
     string after = current_commit_id();
 
