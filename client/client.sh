@@ -336,7 +336,7 @@ prepare_project() {
 
     cd "$fulldir" || exit 4
     msg " Downloading $project snapshot..."
-    curl -# -e "$node" -L -R -z snapshot.tar.gz -o dl/snapshot.tar.gz "$geturl" \
+    curl --fail -# -e "$node" -L -R -z snapshot.tar.gz -o dl/snapshot.tar.gz "$geturl" \
         > "fetch.log" 2>&1 || fetch_exit
     if $curl_broken_z && [ -f dl/snapshot.tar.gz ]
     then
@@ -385,7 +385,7 @@ put_resume() {
         tmp=""
         if [ -f $x/xenofarm_result.tar.gz ] ; then
             msg "Resending $x/xenofarm_result.tar.gz."
-            curl -T "$x/xenofarm_result.tar.gz" \
+            curl --fail -T "$x/xenofarm_result.tar.gz" \
 		--connect-timeout 60 "$puturl" \
                 || tmp="fail"
             if [ X$tmp != Xfail ] ; then
@@ -542,7 +542,7 @@ run_test() {
                 fi
                 mv "../../current_$test" "../../last_$test";
                 msg "  Sending results for \"$project\": \"$test\"."
-                curl -T "$resultdir/xenofarm_result.tar.gz" \
+                curl --fail -T "$resultdir/xenofarm_result.tar.gz" \
                     --connect-timeout 60 "$puturl" || put_exit
                 echo
                 cd "$fulldir/buildtmp"
