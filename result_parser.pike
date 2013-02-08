@@ -605,11 +605,11 @@ void recover(string fn, string prefix, string logmsg)
 bool store_files(string fn, mapping result)
 {
   if(!result->build) {
-    werror("No build id found.\n");
+    recover(fn, "nobuild", "No build id found.");
     return false;
   }
   if(!result->system) {
-    werror("No system info found.\n");
+    recover(fn, "nosys", "No system info found.");
     return false;
   }
 
@@ -631,6 +631,8 @@ bool store_files(string fn, mapping result)
   }
 
   if(fail) {
+    // Do not try to recover from this error. It could be helpful to
+    // see which files remain.
     write("Unable to move file(s) to %O. Keeping %O.\n", dest, fn);
     return false;
   }
