@@ -590,6 +590,18 @@ bool process_package(string fn) {
   return true;
 }
 
+void recover(string fn, string prefix, string logmsg)
+{
+  clean_working_dir();
+  string kept = dirname(fn) + "/" + replace(basename(fn), "res", prefix);
+  if( !mv(fn, kept) ) {
+    werror("mv(%s, %s) failed: %s\n", fn, kept, strerror(errno()));
+    kept = fn;
+  }
+  debug("%s Keeping %O.\n", logmsg, kept);
+}
+
+
 bool store_files(string fn, mapping result)
 {
   if(!result->build) {
@@ -604,13 +616,7 @@ bool store_files(string fn, mapping result)
   string dest = compute_dest_dir(result);
 
   if(Stdio.is_dir(dest)) {
-    clean_working_dir();
-    string dup = dirname(fn) + "/" + replace(basename(fn), "res", "dup");
-    if( !mv(fn, dup) ) {
-      werror("mv(%s, %s) failed: %s\n", fn, dup, strerror(errno()));
-      dup = fn;
-    }
-    debug("Result dir %O already exists. Keeping %O.\n", dest, dup);
+    recover(fn, "dup", sprintf("Result dir %O already exists.", dest));
     return false;
   }
   Stdio.mkdirhier(dest);
