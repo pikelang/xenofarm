@@ -41,6 +41,16 @@
 #
 # 14-30: Reserved for internal usage.
 
+# curl 7.15.5 does not have --keepalive support, so use --speed-time
+# and --max-time instead.  Set them to really high values so that they
+# don't interfere with normal use.  Also use --connect-timeout to be
+# on the safe side.
+#
+# Use --fail to fail on server errors, so that we can retry
+# later.  This is especially important when we put results to the
+# server.
+CURLOPTS="--fail --speed-time 300 --max-time 3600 --connect-timeout 60 -#"
+
 msg() {
   echo `date '+%b %e %H:%M:%S'` "$@"
 }
@@ -336,7 +346,7 @@ prepare_project() {
 
     cd "$fulldir" || exit 4
     msg " Downloading $project snapshot..."
-    curl --fail -# -e "$node" -L -R -z snapshot.tar.gz -o dl/snapshot.tar.gz "$geturl" \
+    curl $CURLOPTS -e "$node" -L -R -z snapshot.tar.gz -o dl/snapshot.tar.gz "$geturl" \
         > "fetch.log" 2>&1 || fetch_exit
     if $curl_broken_z && [ -f dl/snapshot.tar.gz ]
     then
@@ -385,8 +395,7 @@ put_resume() {
         tmp=""
         if [ -f $x/xenofarm_result.tar.gz ] ; then
             msg "Resending $x/xenofarm_result.tar.gz."
-            curl --fail -T "$x/xenofarm_result.tar.gz" \
-		--connect-timeout 60 "$puturl" \
+            curl $CURLOPTS -T "$x/xenofarm_result.tar.gz" "$puturl" \
                 || tmp="fail"
             if [ X$tmp != Xfail ] ; then
                 rm $x/xenofarm_result.tar.gz
@@ -542,8 +551,8 @@ run_test() {
                 fi
                 mv "../../current_$test" "../../last_$test";
                 msg "  Sending results for \"$project\": \"$test\"."
-                curl --fail -T "$resultdir/xenofarm_result.tar.gz" \
-                    --connect-timeout 60 "$puturl" || put_exit
+                curl $CURLOPTS -T "$resultdir/xenofarm_result.tar.gz" \
+                    "$puturl" || put_exit
                 echo
                 cd "$fulldir/buildtmp"
             else
