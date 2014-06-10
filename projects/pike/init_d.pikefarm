@@ -1,7 +1,5 @@
 #!/bin/sh
 # init.d script for Pikefarm.
-#
-# $Id: init_d.pikefarm,v 1.9 2010/07/11 14:22:37 zino Exp $
 
 pikefarmhome=/pike/home/xenofarm/xenofarm_cvs/projects/pike
 

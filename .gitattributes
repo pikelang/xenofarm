@@ -3,37 +3,3 @@
 *.gif binary
 *.psd binary
 *.xcf binary
-
-# Handling of foreign (ie CVS) identifiers.
-#
-[attr]foreign_ident -ident block_commit=Remove-foreign_ident-attribute-before-commit.
-# Files containing CVS ids follow.
-# Remove the corresponding line before committing
-# changes to these files.
-/Makefile foreign_ident
-/client/Makefile.in foreign_ident
-/client/client.sh foreign_ident
-/client/pike_client.pike foreign_ident
-/client/put.c foreign_ident
-/gc.pike foreign_ident
-/gc_latest_by_system.pike foreign_ident
-/projects/pike/gc.pike foreign_ident
-/projects/pike/init_d.pikefarm foreign_ident
-/projects/pike/result_parser.pike foreign_ident
-/projects/pike/result_parser_7.4.pike foreign_ident
-/projects/pike/result_parser_7.6.pike foreign_ident
-/projects/pike/result_parser_7.7.pike foreign_ident
-/projects/pike/result_parser_7.8.pike foreign_ident
-/projects/pike/server.pike foreign_ident
-/projects/pike/server_7.4.pike foreign_ident
-/projects/pike/server_7.6.pike foreign_ident
-/projects/pike/server_7.7.pike foreign_ident
-/projects/pike/server_7.8.pike foreign_ident
-/projects/pike/start.sh foreign_ident
-/projects/snes9x/result_parser.pike foreign_ident
-/projects/snes9x/server.pike foreign_ident
-/result_parser.pike foreign_ident
-/roxen_modules/xenofarm_fs.pike foreign_ident
-/roxen_modules/xenofarm_ui.pike foreign_ident
-/server.pike foreign_ident
-/tables.sql foreign_ident

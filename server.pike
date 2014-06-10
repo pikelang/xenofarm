@@ -3,7 +3,6 @@
 // Xenofarm server
 // By Martin Nilsson
 // Made useable on its own by Per Cederqvist
-// $Id: server.pike,v 1.56 2009/03/07 13:12:38 grubba Exp $
 
 Sql.Sql xfdb;
 
@@ -1400,8 +1399,7 @@ int main(int num, array(string) args)
   set_status("Server stopped.");
 }
 
-constant prog_id = "Xenofarm generic server\n"
-"$Id: server.pike,v 1.56 2009/03/07 13:12:38 grubba Exp $\n";
+constant prog_id = "Xenofarm generic server\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Where the arguments db, cvs-module, web-dir and work-dir are

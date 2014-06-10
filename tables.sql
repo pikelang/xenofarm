@@ -1,7 +1,6 @@
 #
 # Database tables for Xenofarm.
 # Implemented to work with MySQL
-# $Id: tables.sql,v 1.9 2007/11/14 09:09:58 norrby Exp $
 #
 
 # The generic build table.

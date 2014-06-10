@@ -1,7 +1,6 @@
 
 // Xenofarm Pike result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.26 2010/07/11 14:22:37 zino Exp $
 
 inherit "../../result_parser.pike";
 

@@ -2,7 +2,6 @@
 
 // Xenofarm result parser
 // By Martin Nilsson
-// $Id: result_parser.pike,v 1.44 2010/07/11 13:40:06 zino Exp $
 
 Sql.Sql xfdb;
 int result_poll = 60;
@@ -806,8 +805,7 @@ int main(int num, array(string) args) {
 
 }
 
-constant prog_id = "Xenofarm generic result parser\n"
-"$Id: result_parser.pike,v 1.44 2010/07/11 13:40:06 zino Exp $\n";
+constant prog_id = "Xenofarm generic result parser\n";
 constant prog_doc = #"
 result_parser.pike <arguments> [<result files>]
 --db         The database URL, e.g. mysql://localhost/xenofarm.

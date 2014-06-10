@@ -2,7 +2,6 @@
 
 // Xenofarm Snes9X result parser
 // By Peter Bortas, derived from Martin Nilsson's Pike project parser
-// $Id: result_parser.pike,v 1.1 2003/07/03 02:13:59 zino Exp $
 
 inherit "../../result_parser.pike";
 

@@ -2,7 +2,6 @@
 
 // Xenofarm server for the Pike project
 // By Martin Nilsson
-// $Id: server.pike,v 1.33 2003/07/11 15:59:27 mani Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -148,8 +147,7 @@ string make_build_low(TimeStampCommitId t) {
   return client->last_name;
 }
 
-constant prog_id = "Xenofarm Pike server\n"
-"$Id: server.pike,v 1.33 2003/07/11 15:59:27 mani Exp $\n";
+constant prog_id = "Xenofarm Pike server\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Possible arguments:

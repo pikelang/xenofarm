@@ -2,7 +2,6 @@
 
 // Xenofarm server for the Pike 7.6 project
 // By Martin Nilsson
-// $Id: server_7.6.pike,v 1.1 2004/04/26 00:40:57 mani Exp $
 
 inherit "server.pike";
 
@@ -13,5 +12,4 @@ constant latest_pike_checkin =
 Sql.Sql xfdb = Sql.Sql("mysql://rw@:/pike/sw/roxen"
 		       "/configurations/_mysql/socket/pikefarm_7_6");
 
-constant prog_id = "Xenofarm Pike 7.6 server\n"
-"$Id: server_7.6.pike,v 1.1 2004/04/26 00:40:57 mani Exp $\n";
+constant prog_id = "Xenofarm Pike 7.6 server\n";

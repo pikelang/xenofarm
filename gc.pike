@@ -1,7 +1,6 @@
 
 // Xenofarm Garbage Collect
 // By Martin Nilsson
-// $Id: gc.pike,v 1.8 2004/05/03 16:00:54 mani Exp $
 
 string out_dir;
 string result_dir;

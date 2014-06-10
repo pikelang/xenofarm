@@ -4,7 +4,6 @@
 # pike xenofarm server starter
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: start.sh,v 1.3 2002/09/14 21:03:38 zino Exp $
 # Licence: <Nilsson will insert Copyright of his choise here>
 ##############################################
 # Error codes:

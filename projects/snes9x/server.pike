@@ -2,7 +2,6 @@
 
 // Xenofarm server for the Snes project
 // By Martin Nilsson
-// $Id: server.pike,v 1.1 2003/07/03 02:13:59 zino Exp $
 
 // The Xenofarm server program is not really intended to be run
 // verbatim, since almost all projects have their own little funny
@@ -166,8 +165,7 @@ string make_build_low_low(int latest_checkin)
   return name;
 }
 
-constant prog_id = "Xenofarm Snes server\n"
-"$Id: server.pike,v 1.1 2003/07/03 02:13:59 zino Exp $\n";
+constant prog_id = "Xenofarm Snes server\n";
 constant prog_doc = #"
 server.pike <arguments> <project>
 Possible arguments:

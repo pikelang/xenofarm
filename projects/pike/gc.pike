@@ -1,6 +1,5 @@
 //
 // Garbage collector for the Pike projects
-// $Id: gc.pike,v 1.10 2010/07/11 14:22:37 zino Exp $
 //
 
 constant my_out_dir = "/pike/data/pikefarm/out/";

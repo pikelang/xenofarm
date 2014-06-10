@@ -4,7 +4,6 @@
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# $Id: client.sh,v 1.86 2009/07/19 13:13:56 zino Exp $
 # Distribution version: 1.3
 # License: GPL
 #
@@ -79,7 +78,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo \$Id: client.sh,v 1.86 2009/07/19 13:13:56 zino Exp $
+	echo 1.3
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)

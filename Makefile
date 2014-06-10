@@ -1,7 +1,3 @@
-#
-# $Id: Makefile,v 1.8 2003/05/20 11:20:20 mani Exp $
-#
-
 USER=mani
 SERVER=nazgul.lysator.liu.se
 .PHONY : publish preview website clean

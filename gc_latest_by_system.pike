@@ -1,7 +1,6 @@
 // Xenofarm Garbage Collect variant to clean results dir by keeping
 // the latest results for each system.
 // By Quest
-// $Id: gc_latest_by_system.pike,v 1.2 2002/11/20 20:25:34 quest Exp $
 
 inherit "gc.pike";
 
