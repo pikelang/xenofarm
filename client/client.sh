@@ -1,10 +1,11 @@
 #!/bin/sh
 
+VERSION=1.3
+
 ##############################################
 # Xenofarm client
 #
 # Written by Peter Bortas, Copyright 2002
-# Distribution version: 1.3
 # License: GPL
 #
 # Requirements:
@@ -78,7 +79,7 @@ EOF
   #emacs sh-mode kludge: '
   ;;
   '-v'|'--version')
-	echo 1.3
+	echo $VERSION
 	exit 0
   ;;
   '-c='*|'--config-dir='*|'--configdir='*)

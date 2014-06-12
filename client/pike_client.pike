@@ -3,6 +3,8 @@
 // A Pike implementation of client.sh, intended for Windows use.
 // Synchronized with client.sh 1.73.
 
+constant VERSION = "1.3";
+
 #define DEBUG
 #ifdef DEBUG
 #define WERR(X...) werror(X)
@@ -588,7 +590,7 @@ void make_machineid(string test, string cmd) {
   f->write("nodename: "+system->node+"\n");
   f->write("testname: "+test+"\n");
   f->write("command: "+cmd+"\n");
-  f->write("clientversion: pike_client.pike 1.3\n");
+  f->write("clientversion: pike_client.pike " + VERSION + "\n");
   // We don't use put, so we don't add putversion to machineid.
   f->write("contact: "+system->email+"\n");
 }
@@ -646,7 +648,7 @@ int main(int num, array(string) args) {
 	break;
 
       case "version":
-	exit(0, "pike_client.pike 1.3\n"
+	exit(0, "pike_client.pike " + VERSION + "\n"
 	     "Mimics client.sh revision 1.72\n");
 	break;
 
