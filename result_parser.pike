@@ -185,11 +185,11 @@ void parse_log(string fn, mapping res)
 	return;
       }
       continue;
-    } if (push_next) {
+    } else if (push_next) {
       begin->push(line);
       push_next = 0;
       continue;
-    } if (pending_pop) {
+    } else if (pending_pop) {
       int warnings;
       sscanf(pending_pop, "%s %d", pending_pop, warnings);
 
