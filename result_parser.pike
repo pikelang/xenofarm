@@ -113,7 +113,7 @@ void parse_build_id(string fn, mapping res) {
 //! is "default".
 void parse_machine_id(string fn, mapping res)
 {
-  object(Stdio.File) f = Stdio.File();
+  Stdio.File f = Stdio.File();
   if (!f->open(fn, "r")) return;
 
   foreach(f->line_iterator(1);;string pair) {
@@ -167,7 +167,7 @@ void parse_log(string fn, mapping res)
   res->status = "FAIL";
   res->tasks=({});
 
-  object(Stdio.File) f = Stdio.File();
+  Stdio.File f = Stdio.File();
 
   if (!f->open(fn, "r")) return;
 
@@ -284,7 +284,7 @@ void count_compilation_warnings(mapping result)
 //! ignored_warnings.
 int count_warnings(string fn)
 {
-  object(Stdio.File) f = Stdio.File();
+  Stdio.File f = Stdio.File();
 
   if (!f->open(fn, "r")) return 0;
 

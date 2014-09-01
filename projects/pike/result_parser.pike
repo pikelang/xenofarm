@@ -102,7 +102,7 @@ void parse_log(string fn, mapping res)
 
     if(task[0]=="post_build/verify") {
       // We don't consider verify passed if there was a leak.
-      object(Stdio.File) f = Stdio.File();
+      Stdio.File f = Stdio.File();
       if (f->open("verifylog.txt", "r")) {
 	foreach(f->line_iterator();; string line) {
           if(has_value(line, "==LEAK==")) {
@@ -121,10 +121,10 @@ int count_warnings(string fn) {
 
   // Highlight warnings.
   if(file_stat("compilelog.txt")) {
-    object(Stdio.File) f = Stdio.File();
+    Stdio.File f = Stdio.File();
     if (!f->open("compilelog.txt", "r")) return 0;
 
-    object(Stdio.File) out = Stdio.File();
+    Stdio.File out = Stdio.File();
     if (!out->open("makelog.html", "twc")) {
       f->close();
       return ::count_warnings(fn);
