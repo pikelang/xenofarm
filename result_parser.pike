@@ -394,7 +394,7 @@ void find_system(mapping res)
   if(testname=="default") testname="";
 
   array qres = persistent_query("SELECT id FROM system WHERE name=%s && "
-				"sysname=%s && release=%s && version=%s "
+				"sysname=%s && `release`=%s && version=%s "
 				"&& machine=%s && testname=%s",
 				res->nodename, res->sysname||"",
 				res->release||"", res->version||"",
@@ -403,7 +403,7 @@ void find_system(mapping res)
   if(sizeof(qres))
     res->system = (int)qres[0]->id;
   else {
-    xfdb->query("INSERT INTO system (name, sysname, release, version, "
+    xfdb->query("INSERT INTO system (name, sysname, `release`, version, "
 		"machine, testname) VALUES (%s,%s,%s,%s,%s,%s)",
 		res->nodename, res->sysname||"", res->release||"",
 		res->version||"", res->machine||"", testname);
