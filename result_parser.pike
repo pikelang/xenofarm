@@ -295,8 +295,9 @@ int count_warnings(string fn)
     line = lower_case(line);
     if( has_value(line, "warning")||has_value(line, "(w)") ) {
       foreach(ignored_warnings, string ignore)
-        if(glob(ignore,line)) continue newline;
-        warnings++;
+        if(glob(ignore,line))
+          continue newline;
+      warnings++;
     }
   }
   f->close();
