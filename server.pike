@@ -155,7 +155,7 @@ class Sha1CommitId
       }
     // This should never happen.
     debug("Commits all mixed up; no latency (%s != %s).\n",
-	  commit_id, last_sha1_seen);
+	  commit_id, last_sha1_seen || "");
     return 0;
   }
 
