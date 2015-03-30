@@ -22,9 +22,10 @@ void create() {
   }
 #define FIX(X) X += this_object()->pike_version + "/";
   FIX(web_dir);
-  FIX(work_dir);
+  // FIX(work_dir);
   FIX(result_dir);
   project += this_object()->pike_version;
+  branch = this_object()->pike_version;
 }
 
 RepositoryClient get_client()
@@ -33,7 +34,7 @@ RepositoryClient get_client()
   return client;
 }
 
-string project = "pike";
+string project = "Pike";
 #ifdef NILSSON
 string web_dir = "/home/nilsson/xenofarm/projects/pike/out/";
 string work_dir = "/home/nilsson/xenofarm/projects/pike/out_work/";
@@ -66,89 +67,79 @@ string make_export_name(int latest_checkin)
 		 o->format_ymd_short(), o->format_tod_short());
 }
 
-class PikeRepositoryClient {
-  inherit RepositoryClient;
+class PikeRepositoryClient
+{
+  inherit GitClient;
 
   void parse_arguments(array(string) args) { }
   string module() { return pike_version; }
   string name() { return "PikeRepository"; }
 
-  TimeStampCommitId get_latest_checkin() {
-    string timestamp;
-    array err = catch {
-      timestamp = Protocols.HTTP.get_url_data(latest_pike_checkin);
-    };
-
-    if(err) {
-      write(describe_backtrace(err));
-      return 0;
-    }
-
-    err = catch {
-      int ts = Calendar.ISO_UTC.dwim_time(timestamp)->unix_time();
-      return TimeStampCommitId(ts);
-    };
-
-    if(err)
-      write(describe_backtrace(err));
-    return 0;
-  }
-
   string last_name;
-  void update_source(TimeStampCommitId latest_checkin) {
-    cd(work_dir);
-    Stdio.recursive_rm("Pike");
 
-    Calendar.TimeRange at = Calendar.ISO_UTC.Second(latest_checkin->unix_time());
-    object checkout =
-      Process.create_process(({ "cvs", "-Q", "-d", repository, "co", "-D",
-				at->set_timezone("localtime")->format_time(),
-				"Pike/" + pike_version }));
-    if(checkout->wait())
-      return 0; // something went wrong
+  void update_source(Sha1CommitId latest_checkin)
+  {
+    ::update_source(latest_checkin);
+
+    // Stdio.recursive_rm("Pike");
 
     string name = make_export_name(latest_checkin->unix_time());
-    cd("Pike/"+pike_version);
-    if(Process.system("make xenofarm_export "
+
+    mapping res = Process.run(({ "make", "xenofarm_export",
+#if 0
 #ifndef NILSSON
-		      "CONFIGUREARGS=\"--with-site-prefixes=/pike/sw/\" "
+				 "CONFIGUREARGS=--with-site-prefixes=/pike/sw",
 #endif
-		      "EXPORTARGS=\"--timestamp=" + latest_checkin->unix_time() + "\"") ||
-       !file_stat(name) ) {
-      if(!file_stat(name))
-	write("Could not find %O from %O.\n", name, getcwd());
+#endif
+				 "EXPORTARGS=--timestamp=" + latest_checkin->unix_time(),
+			      }), ([
+				"cwd": work_dir + "/" + pike_version,
+			      ]));
+
+    string full_name = work_dir + "/" + pike_version + "/" + name;
+
+    if (res->exitcode || !file_stat(full_name)) {
+      if(!file_stat(full_name))
+	write("Could not find %O from %O.\n", full_name, getcwd());
       persistent_query("INSERT INTO build (time, project, branch, export) "
 		       "VALUES (%d, %s, %s, 'FAIL')",
 		       latest_checkin->unix_time(), project, branch);
-      return 0;
+      return;
     }
 
     persistent_query("INSERT INTO build (time, project, branch, export) "
 		     "VALUES (%d, %s, %s, 'PASS')",
 		     latest_checkin->unix_time(), project, branch);
 
-    last_name = name;
+    werror("CWD: %O\n"
+	   "full_name: %O\n"
+	   "name: %O\n",
+	   getcwd(), full_name, name);
+
+    last_name = full_name;
   }
 }
 
 
-string make_build_low(TimeStampCommitId t) {
-  array res = persistent_query("SELECT id FROM build "
-			       "WHERE time=%d AND project=%s AND branch=%s",
-			       t->unix_time(), project, branch);
-  if(!sizeof(res)) {
-    debug("Id not found with time as key. Something is broken.\n");
-    return client->last_name;
-  }
+string make_build_low(Sha1CommitId t)
+{
+  int buildid = t->create_build_id();
 
-  debug("Build id is %O\n", res[0]->id);
-  string target_dir = result_dir + res[0]->id;
+  debug("Build id is %O\n", buildid);
+  string target_dir = result_dir + buildid;
   mkdir(target_dir);
-  if(!mv(work_dir+"Pike/"+pike_version+"/export_result.txt",
-	 target_dir+"/export_result.txt"))
-    debug("Failed to move %O to %O.\n",
-	  work_dir+"Pike/"+pike_version+"/export_result.txt",
-	  target_dir+"/export_result.txt");
+  if(!mv(work_dir+pike_version+"/export_result.txt",
+	 target_dir+"/export_result.txt")) {
+    string export_res =
+      Stdio.read_bytes(work_dir+pike_version+"/export_result.txt");
+    if (!export_res ||
+	(Stdio.write_file(target_dir+"/export_result.txt", export_res) !=
+	 sizeof(export_res))) {
+      debug("Failed to move/copy %O to %O.\n",
+	    work_dir+pike_version+"/export_result.txt",
+	    target_dir+"/export_result.txt");
+    }
+  }
   return client->last_name;
 }
 
