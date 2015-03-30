@@ -25,7 +25,12 @@ void create() {
   FIX(work_dir);
   FIX(result_dir);
   project += this_object()->pike_version;
-  client = PikeRepositoryClient();
+}
+
+RepositoryClient get_client()
+{
+  RepositoryClient client = PikeRepositoryClient();
+  return client;
 }
 
 string project = "pike";
