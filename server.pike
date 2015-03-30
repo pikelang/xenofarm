@@ -13,17 +13,17 @@ int fail_build_divisor = 2*6;
 int checkin_poll = 60;
 int checkin_latency = 60*5;
 
-string project;         // --project
-string web_dir;		// --web-dir
-string web_format;	// --web-format
-string repository;	// --repository
-string cvs_module;	// --cvs-module
-string svn_module;	// --svn-module
-string repo_name;	// --repo-name
-string remote;		// --remote
-string branch;		// --branch
-string tag_format;	// --tag
-string work_dir;	// --work-dir
+string project;         	// --project
+string web_dir;			// --web-dir
+string web_format;		// --web-format
+string repository;		// --repository
+string cvs_module;		// --cvs-module
+string svn_module;		// --svn-module
+string repo_name;		// --repo-name
+string remote = "origin";	// --remote
+string branch;			// --branch
+string tag_format;		// --tag
+string work_dir;		// --work-dir
 string source_transformer;
 array(string) update_opts = ({});
 
