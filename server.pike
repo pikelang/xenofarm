@@ -469,7 +469,16 @@ class GitClient {
     string commit = first_wanted_commit();
     if(!commit)
       return 0;
-    return Sha1CommitId(commit, 0);
+
+    int ctime;
+    string raw = git_stdout("cat-file", "commit", commit);
+    foreach(raw/"\n", string line) {
+      if (!has_prefix(line, "committer ")) continue;
+      ctime = (int)((line/" ")[-2]);
+      break;
+    }
+
+    return Sha1CommitId(commit, ctime);
   }
 
   // Run "git log" and return the first commit that contains
