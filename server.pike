@@ -219,7 +219,7 @@ class RepositoryClient {
 class FakeTimeClient {
   inherit RepositoryClient;
 
-  static int latest_checkin;
+  protected int latest_checkin;
 
   // The get_latest_checkin function should return the (UTC) unixtime of
   // the latest check in. This version actually returns the time we last

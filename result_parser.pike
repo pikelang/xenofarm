@@ -307,7 +307,7 @@ int count_warnings(string fn)
 //! Calculates the sorting order of a new task.
 class TaskOrderGenie {
 
-  static mapping state = ([]);
+  protected mapping state = ([]);
 
   //! Every already done @[task] is fed into this method to update the
   //! genie state.
