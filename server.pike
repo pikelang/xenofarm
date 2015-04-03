@@ -21,7 +21,7 @@ string cvs_module;		// --cvs-module
 string svn_module;		// --svn-module
 string repo_name;		// --repo-name
 string remote = "origin";	// --remote
-string branch;			// --branch
+array(string) branches = ({});	// --branch
 string tag_format;		// --tag
 string work_dir;		// --work-dir
 string source_transformer;
@@ -32,6 +32,11 @@ int(0..1) verbose;
 array(string) ignored_globs = ({ });
 
 int(0..1) keep_going = 1;
+
+// This is a global loop variable used to avoid
+// having to pass the current branch through in
+// the argument lists everywhere.
+string branch;
 
 class CommitId
 {
@@ -415,7 +420,7 @@ class GitClient {
 	    remote = opt[1];
 	    break;
 	  case "branch":
-	    branch = opt[1];
+	    branches += ({ opt[1] });
 	    break;
 	}
       }
@@ -1300,96 +1305,127 @@ int main(int num, array(string) args)
   signal(signum("TERM"), got_termination_request);
   signal(signum("INT"), got_termination_request);
 
+  if (!sizeof(branches)) {
+    // NB: Default and compat with old modules
+    //     that set the global branch variable.
+    branches = ({ branch || "HEAD" });
+  } else if (nonblocking && (sizeof(branches) > 1)) {
+    write("Nonblocking mode is not supported with multiple branches.\n");
+    exit(1);
+  }
+
   if(force_build)
   {
-    set_status("Making a forced build.");
-    make_build(client->get_latest_checkin());
-    set_status("Exiting.");
+    foreach(branches, branch) {
+      set_status("Making a forced build.", 0);
+      make_build(client->get_latest_checkin());
+      set_status("Exiting.", 0);
+    }
     exit(0);
   }
 
-  set_status("Starting up...");
-  CommitId latest_build = get_latest_build();
-  if(latest_build)
-    debug("Latest build was %s ago.\n",
-          fmt_time(time()-latest_build->unix_time()));
-  else
-    debug("No previous builds found.\n");
+  mapping(string: CommitId) latest_builds = ([]);
+  mapping(string:int(0..1)) quiet_mode = ([]);
 
-  int sleep_for;
-  int(0..1) sit_quietly;
+  foreach(branches, branch) {
+    set_status("Starting up...");
+    CommitId latest_build = get_latest_build();
+    if(latest_build)
+      debug("Latest build of branch %s was %s ago.\n",
+	    branch,
+	    fmt_time(time()-latest_build->unix_time()));
+    else
+      debug("No previous builds of branch %s found.\n", branch);
+    latest_builds[branch] = latest_build;
+  }
+
   while(keep_going)
   {
-    do {
-      if(latest_build) {
-	int delta = time() - latest_build->unix_time();
-	int min_distance = min_build_distance;
+    int sleep_for = checkin_poll; // poll frequency
+    int all_quiet = 1;
+    foreach(branches, branch) {
+      debug("Examining branch %s...\n", branch);
 
-	if (latest_build->export_state == "FAIL")
-	  min_distance /= fail_build_divisor;
+      int branch_sleep_for = sleep_for;
+      do {
+	CommitId latest_build = latest_builds[branch];
 
-	if(delta < min_distance) // Enforce minimum time between builds
+	if (latest_build) {
+	  int delta = time() - latest_build->unix_time();
+	  int min_distance = min_build_distance;
+
+	  if (latest_build->export_state == "FAIL")
+	    min_distance /= fail_build_divisor;
+
+	  if(delta < min_distance) // Enforce minimum time between builds
+	  {
+	    branch_sleep_for = min_distance - delta;
+	    debug("Enforcing minimum build distance. Quarantine left: %s.\n",
+		  fmt_time(branch_sleep_for));
+	    quiet_mode[branch] = 0;
+	    set_status("Waiting until %s to enforce build distance.",
+		       branch_sleep_for);
+	    continue;
+	  }
+	}
+	else
 	{
-	  sleep_for = min_distance - delta;
-	  debug("Enforcing minimum build distance. Quarantine left: %s.\n",
-		fmt_time(sleep_for));
-	  sit_quietly = 0;
-	  set_status("Waiting until %s to enforce build distance.", sleep_for);
-	  continue;
+	  debug("First build. No quarantine.\n");
 	}
-      }
-      else
-      {
-	debug("First build. No quarantine.\n");
-      }
 
-      CommitId latest_checkin = client->get_latest_checkin();
-      if(!latest_checkin && !keep_going) {
-	sleep_for = 0;
-	break;
-      }
+	CommitId latest_checkin = client->get_latest_checkin();
+	if(!latest_checkin && !keep_going) {
+	  sleep_for = 0;
+	  break;
+	}
 
-      if(!sit_quietly) {
-	if(!latest_checkin)
-	  debug("No checkin available\n");
-	else if(latest_checkin->unix_time_available()) {
-	  debug("Latest check in was %s ago.\n",
-		fmt_time(time() - latest_checkin->unix_time()));
-	} else {
-	  debug("Latest commit was %s.\n", latest_checkin->commit_id);
+	if(!quiet_mode[branch]) {
+	  if(!latest_checkin)
+	    debug("No checkin available\n");
+	  else if(latest_checkin->unix_time_available()) {
+	    debug("Latest check in was %s ago.\n",
+		  fmt_time(time() - latest_checkin->unix_time()));
+	  } else {
+	    debug("Latest commit was %s.\n", latest_checkin->commit_id);
+	  }
+	  quiet_mode[branch] = 1;
 	}
-	sit_quietly = 1;
-      }
-      if(latest_checkin &&
-	 (latest_build ? latest_build->build_needed(latest_checkin) : 1))
-      {
-	sleep_for = nonblocking ? 0 : latest_checkin->pending_latency();
-	if(sleep_for == 0)
+	if(latest_checkin &&
+	   (latest_build ? latest_build->build_needed(latest_checkin) : 1))
 	{
-	  make_build(latest_checkin);
-	  latest_build = get_latest_build();
+	  branch_sleep_for =
+	    nonblocking ? 0 : latest_checkin->pending_latency();
+	  if(!branch_sleep_for)
+	  {
+	    make_build(latest_checkin);
+	    latest_build = get_latest_build();
+	  }
+	  else // Enforce minimum time of inactivity after a commit
+	  {
+	    set_status("Will create new build at %s unless new commits found.",
+		       branch_sleep_for);
+	    debug("A new build is scheduled to run in %s.\n",
+		  fmt_time(branch_sleep_for));
+	  }
+	  quiet_mode[branch] = 0;
 	}
-	else // Enforce minimum time of inactivity after a commit
+	else // Polling for the first post-build-quarantine commit
 	{
-	  set_status("Will create new build at %s unless new commits found.",
-		     sleep_for);
-	  debug("A new build is scheduled to run in %s.\n",
-		fmt_time(sleep_for));
-	}
-	sit_quietly = 0;
-      }
-      else // Polling for the first post-build-quarantine commit
-      {
-	sit_quietly = 1; // until something happens in the repository
-	sleep_for = checkin_poll; // poll frequency
-	set_status("Idle; waiting for new commits.");
-	if( nonblocking )
+	  quiet_mode[branch] = 1; // until something happens in the repository
+	  set_status("Idle; waiting for new commits.");
+	  if( nonblocking )
 	  {
 	    write("COMMIT_NEED\n");
 	    return 0;
 	  }
-      }
-    } while(0);
+	}
+      } while(0);
+
+      all_quiet &= quiet_mode[branch];
+
+      if (!keep_going) break;
+      if (branch_sleep_for < sleep_for) sleep_for = branch_sleep_for;
+    }
 
     if( nonblocking )
       {
@@ -1400,7 +1436,7 @@ int main(int num, array(string) args)
     if (once_only)
 	return 0;
 
-    if(!sit_quietly)
+    if(!all_quiet)
       debug("Sleeping for %d seconds...\n", sleep_for);
     sleep(sleep_for, 1);
 
@@ -1411,7 +1447,9 @@ int main(int num, array(string) args)
     sleep(0);
   }
 
-  set_status("Server stopped.");
+  foreach(branches, branch) {
+    set_status("Server stopped.");
+  }
 }
 
 constant prog_id = "Xenofarm generic server\n";
