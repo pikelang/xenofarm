@@ -1385,6 +1385,7 @@ int main(int num, array(string) args)
 	  {
 	    make_build(latest_checkin);
 	    latest_build = get_latest_build();
+	    latest_builds[branch] = latest_build;
 	  }
 	  else // Enforce minimum time of inactivity after a commit
 	  {
