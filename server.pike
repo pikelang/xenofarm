@@ -28,7 +28,6 @@ string source_transformer;
 array(string) update_opts = ({});
 
 int(0..1) verbose;
-string latest_state="FAIL";
 
 array(string) ignored_globs = ({ });
 
@@ -56,10 +55,12 @@ class TimeStampCommitId
   inherit CommitId;
 
   int timestamp;
+  string export_state;
 
-  void create(int timestamp)
+  void create(int timestamp, string export_state)
   {
     this->timestamp = timestamp;
+    this->export_state = export_state;
   }
 
   int unix_time()
@@ -114,12 +115,15 @@ class Sha1CommitId
 
   string commit_id;
   int build_time;
+  string export_state;
 
   void create(string commit_id,
-	      int build_time)
+	      int build_time,
+	      string export_state)
   {
     this->commit_id = commit_id;
     this->build_time = build_time;
+    this->export_state = export_state;
     if(!build_time && last_sha1_seen != commit_id)
       {
 	last_sha1_seen = commit_id;
@@ -232,7 +236,7 @@ class FakeTimeClient {
     latest_checkin = (int)Stdio.read_file(checkin_state_file);
     latest_checkin = time_of_change(log, checkin_state_file,
 				    latest_checkin, now);
-    return TimeStampCommitId(latest_checkin);
+    return TimeStampCommitId(latest_checkin, "UNKNOWN");
   }
 
   int time_of_change(array(string) log,
@@ -478,7 +482,7 @@ class GitClient {
       break;
     }
 
-    return Sha1CommitId(commit, ctime);
+    return Sha1CommitId(commit, ctime, "UNKNOWN");
   }
 
   // Run "git log" and return the first commit that contains
@@ -934,12 +938,12 @@ CommitId get_latest_build()
 			       project, remote, branch);
   if(!res || !sizeof(res))
     return 0;
-  latest_state = res[0]->export;
+  string latest_state = res[0]->export;
   int ts = (int)(res[0]->latest_build);
   if( res[0]->commit_id )
-    return Sha1CommitId(res[0]->commit_id, ts);
+    return Sha1CommitId(res[0]->commit_id, ts, latest_state);
   else
-    return TimeStampCommitId(ts);
+    return TimeStampCommitId(ts, latest_state);
 }
 
 // Return true on success, false on error.
@@ -1316,29 +1320,29 @@ int main(int num, array(string) args)
   int(0..1) sit_quietly;
   while(keep_going)
   {
-    int delta;
-    if(latest_build)
-      delta = time() - latest_build->unix_time();
-    else
+    do {
+      if(latest_build) {
+	int delta = time() - latest_build->unix_time();
+	int min_distance = min_build_distance;
+
+	if (latest_build->export_state == "FAIL")
+	  min_distance /= fail_build_divisor;
+
+	if(delta < min_distance) // Enforce minimum time between builds
+	{
+	  sleep_for = min_distance - delta;
+	  debug("Enforcing minimum build distance. Quarantine left: %s.\n",
+		fmt_time(sleep_for));
+	  sit_quietly = 0;
+	  set_status("Waiting until %s to enforce build distance.", sleep_for);
+	  continue;
+	}
+      }
+      else
       {
 	debug("First build. No quarantine.\n");
-	delta = min_build_distance;
       }
 
-    int min_distance = min_build_distance;
-
-    if (latest_state == "FAIL") min_distance /= fail_build_divisor;
-
-    if(delta < min_distance) // Enforce minimum time between builds
-    {
-      sleep_for = min_distance - delta;
-      debug("Enforcing minimum build distance. Quarantine left: %s.\n",
-	    fmt_time(sleep_for));
-      sit_quietly = 0;
-      set_status("Waiting until %s to enforce build distance.", sleep_for);
-    }
-    else // After the next commit + inactivity cycle it's time for a new build
-    {
       CommitId latest_checkin = client->get_latest_checkin();
       if(!latest_checkin && !keep_going)
 	break;
@@ -1383,7 +1387,7 @@ int main(int num, array(string) args)
 	    return 0;
 	  }
       }
-    }
+    } while(0);
 
     if( nonblocking )
       {
