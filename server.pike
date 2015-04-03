@@ -1344,8 +1344,10 @@ int main(int num, array(string) args)
       }
 
       CommitId latest_checkin = client->get_latest_checkin();
-      if(!latest_checkin && !keep_going)
+      if(!latest_checkin && !keep_going) {
+	sleep_for = 0;
 	break;
+      }
 
       if(!sit_quietly) {
 	if(!latest_checkin)
