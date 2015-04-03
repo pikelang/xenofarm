@@ -112,8 +112,6 @@ class TimeStampCommitId
   }
 }
 
-string last_sha1_seen = 0;
-int last_sha1_first_seen = 0;
 class Sha1CommitId
 {
   inherit CommitId;
@@ -129,11 +127,6 @@ class Sha1CommitId
     this->commit_id = commit_id;
     this->build_time = build_time;
     this->export_state = export_state;
-    if(!build_time && last_sha1_seen != commit_id)
-      {
-	last_sha1_seen = commit_id;
-	last_sha1_first_seen = time();
-      }
   }
 
   int unix_time()
@@ -155,17 +148,10 @@ class Sha1CommitId
 
   int pending_latency()
   {
-    if(last_sha1_seen == commit_id)
-      {
-	int rv = last_sha1_first_seen + checkin_latency - time();
-	if(rv < 0)
-	  rv = 0;
-	return rv;
-      }
-    // This should never happen.
-    debug("Commits all mixed up; no latency (%s != %s).\n",
-	  commit_id, last_sha1_seen || "");
-    return 0;
+    int rv = build_time + checkin_latency - time();
+    if(rv < 0)
+      rv = 0;
+    return rv;
   }
 
   int create_build_id()
