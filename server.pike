@@ -1044,6 +1044,14 @@ mapping(string:string) extra_web_formats()
   return ([ ]);
 }
 
+// Derived server scripts can override this to eg support different
+// min distances for different branches, or for different times of
+// the day.
+int get_min_build_distance()
+{
+  return min_build_distance;
+}
+
 //
 // Main program code
 //
@@ -1338,7 +1346,7 @@ int main(int num, array(string) args)
 
 	if (latest_build) {
 	  int delta = time() - latest_build->unix_time();
-	  int min_distance = min_build_distance;
+	  int min_distance = get_min_build_distance();
 
 	  if (latest_build->export_state == "FAIL")
 	    min_distance /= fail_build_divisor;
