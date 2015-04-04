@@ -39,6 +39,15 @@ string cvs_module = "(ignored)"; // Not used.
 
 constant latest_pike_checkin = "";
 
+// Reduce the minimum build distance for some of the branches.
+int get_min_build_distance()
+{
+  int i = search(branches, branch);
+  if (!i) return min_build_distance/4;		// Primary branch.
+  if (i == 1) return min_build_distance/2;	// Secondary branch.
+  return min_build_distance;			// Other branches.
+}
+
 // Overload and disable the base clients
 class CVSClient {
   constant arguments = "";
