@@ -25,15 +25,15 @@ array(string) branches = ({ "8.1", "8.0", "7.8", "7.6", "7.4", });
 Sql.Sql xfdb = Sql.Sql("mysql://pikefarm@/pikefarm");
 
 #ifdef NILSSON
-string web_dir = "/home/nilsson/xenofarm/projects/pike/out/";
+string web_format = "/home/nilsson/xenofarm/projects/pike/out/%B/";
 string work_dir = "/home/nilsson/xenofarm/projects/pike/out_work/";
 string result_dir = "/home/nilsson/html/xenofarm/";
 string repository = ":ext:nilsson@pike.ida.liu.se:/pike/data/cvsroot";
 #else
-string web_dir = "/pike/data/pikefarm/out/";
-string work_dir = "/pike/data/pikefarm/out_work/";
-string result_dir = "/pike/data/pikefarm/results/";
-string repository = "/pike/data/cvsroot";
+string web_format = "/space/www/pikefarm/packages/%B/";
+string work_dir = "/space/www/pikefarm/out_work/";
+string result_dir = "/space/www/pikefarm/results/";
+string repository = "/gitdir";
 #endif
 string cvs_module = "(ignored)"; // Not used.
 
