@@ -78,7 +78,8 @@ class PikeRepositoryClient
 
   string last_name;
 
-  int(0..1) transform_source(string module, string name, string buildid)
+  int(0..1) transform_source(string module, string name, string buildid,
+			     CommitId latest_checkin)
   {
     mapping res = Process.run(({ "make", "xenofarm_export",
 #if 0
@@ -110,20 +111,20 @@ class PikeRepositoryClient
   }
 }
 
-int(0..1) transform_source(string module, string name, string buildid)
+int(0..1) transform_source(string module, string name, string buildid,
+			   CommitId latest_commit)
 {
-  if (!client->transform_source(module, name, buildid)) return 0;
+  if (!client->transform_source(module, name, buildid, latest_commit)) return 0;
   return ::transform_source(module, name, buildid);
 }
 
 string make_build_low(Sha1CommitId t)
 {
   int buildid = t->create_build_id();
-
   debug("Build id is %O\n", buildid);
 
-  string name = latest_checkin->dist_name();
-  if (!transform_source(client->module(), name, (string)buildid)) {
+  string name = t->dist_name();
+  if (!transform_source(client->module(), name, (string)buildid, t)) {
     persistent_query("UPDATE build SET export='FAIL' WHERE id=%d", buildid);
     return 0;
   }
