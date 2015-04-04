@@ -1294,11 +1294,6 @@ int main(int num, array(string) args)
     project = args[1];
   }
 
-  check_settings();
-
-  signal(signum("TERM"), got_termination_request);
-  signal(signum("INT"), got_termination_request);
-
   if (!sizeof(branches)) {
     // NB: Default and compat with old modules
     //     that set the global branch variable.
@@ -1307,6 +1302,14 @@ int main(int num, array(string) args)
     write("Nonblocking mode is not supported with multiple branches.\n");
     exit(1);
   }
+
+  // Needed to keep some client modules happy.
+  branch = branches[0];
+
+  check_settings();
+
+  signal(signum("TERM"), got_termination_request);
+  signal(signum("INT"), got_termination_request);
 
   if(force_build)
   {
