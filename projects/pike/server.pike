@@ -13,21 +13,6 @@ inherit "../../server.pike";
 // Set default values to variables, so that we don't have to remember
 // to give them when starting the program unless we really want to.
 
-string pike_version;
-
-void create() {
-  if(!this_object()->pike_version) {
-    werror("This program is not intended to be run.\n");
-    exit(1);
-  }
-#define FIX(X) X += this_object()->pike_version + "/";
-  FIX(web_dir);
-  // FIX(work_dir);
-  FIX(result_dir);
-  project += this_object()->pike_version;
-  branch = this_object()->pike_version;
-}
-
 RepositoryClient get_client()
 {
   RepositoryClient client = PikeRepositoryClient();
@@ -35,6 +20,10 @@ RepositoryClient get_client()
 }
 
 string project = "Pike";
+array(string) branches = ({ "8.1", "8.0", "7.8", "7.6", "7.4", });
+
+Sql.Sql xfdb = Sql.Sql("mysql://pikefarm@/pikefarm");
+
 #ifdef NILSSON
 string web_dir = "/home/nilsson/xenofarm/projects/pike/out/";
 string work_dir = "/home/nilsson/xenofarm/projects/pike/out_work/";
@@ -63,7 +52,7 @@ class StarTeam {
 string make_export_name(int latest_checkin)
 {
   Calendar.TimeRange o = Calendar.ISO_UTC.Second(latest_checkin);
-  return sprintf("Pike%s-%s-%s.tar.gz", pike_version,
+  return sprintf("Pike%s-%s-%s.tar.gz", branch,
 		 o->format_ymd_short(), o->format_tod_short());
 }
 
@@ -72,7 +61,7 @@ class PikeRepositoryClient
   inherit GitClient;
 
   void parse_arguments(array(string) args) { }
-  string module() { return pike_version; }
+  string module() { return branch; }
   string name() { return "PikeRepository"; }
 
   string last_name;
@@ -93,10 +82,10 @@ class PikeRepositoryClient
 #endif
 				 "EXPORTARGS=--timestamp=" + latest_checkin->unix_time(),
 			      }), ([
-				"cwd": work_dir + "/" + pike_version,
+				"cwd": work_dir + "/" + branch,
 			      ]));
 
-    string full_name = work_dir + "/" + pike_version + "/" + name;
+    string full_name = work_dir + "/" + branch + "/" + name;
 
     if (res->exitcode || !file_stat(full_name)) {
       if(!file_stat(full_name))
@@ -126,17 +115,17 @@ string make_build_low(Sha1CommitId t)
   int buildid = t->create_build_id();
 
   debug("Build id is %O\n", buildid);
-  string target_dir = result_dir + buildid;
+  string target_dir = result_dir + branch + "/" + buildid;
   mkdir(target_dir);
-  if(!mv(work_dir+pike_version+"/export_result.txt",
+  if(!mv(work_dir+branch+"/export_result.txt",
 	 target_dir+"/export_result.txt")) {
     string export_res =
-      Stdio.read_bytes(work_dir+pike_version+"/export_result.txt");
+      Stdio.read_bytes(work_dir+branch+"/export_result.txt");
     if (!export_res ||
 	(Stdio.write_file(target_dir+"/export_result.txt", export_res) !=
 	 sizeof(export_res))) {
       debug("Failed to move/copy %O to %O.\n",
-	    work_dir+pike_version+"/export_result.txt",
+	    work_dir+branch+"/export_result.txt",
 	    target_dir+"/export_result.txt");
     }
   }
