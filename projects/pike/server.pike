@@ -58,11 +58,14 @@ class StarTeam {
   void create() { error("Not allowed repository method for Pike.\n"); }
 }
 
-string make_export_name(int latest_checkin)
+class Sha1CommitId
 {
-  Calendar.TimeRange o = Calendar.ISO_UTC.Second(latest_checkin);
-  return sprintf("Pike%s-%s-%s.tar.gz", branch,
-		 o->format_ymd_short(), o->format_tod_short());
+  inherit ::this_program;
+
+  string dist_name()
+  {
+    return "Pike" + branch + "-" + ::dist_name();
+  }
 }
 
 class PikeRepositoryClient
@@ -75,14 +78,8 @@ class PikeRepositoryClient
 
   string last_name;
 
-  void update_source(Sha1CommitId latest_checkin)
+  int(0..1) transform_source(string module, string name, string buildid)
   {
-    ::update_source(latest_checkin);
-
-    // Stdio.recursive_rm("Pike");
-
-    string name = make_export_name(latest_checkin->unix_time());
-
     mapping res = Process.run(({ "make", "xenofarm_export",
 #if 0
 #ifndef NILSSON
@@ -94,20 +91,13 @@ class PikeRepositoryClient
 				"cwd": work_dir + "/" + branch,
 			      ]));
 
-    string full_name = work_dir + "/" + branch + "/" + name;
+    string full_name = work_dir + "/" + branch + "/" + name + ".tar.gz";
 
     if (res->exitcode || !file_stat(full_name)) {
       if(!file_stat(full_name))
 	write("Could not find %O from %O.\n", full_name, getcwd());
-      persistent_query("INSERT INTO build (time, project, branch, export) "
-		       "VALUES (%d, %s, %s, 'FAIL')",
-		       latest_checkin->unix_time(), project, branch);
-      return;
+      return 0;
     }
-
-    persistent_query("INSERT INTO build (time, project, branch, export) "
-		     "VALUES (%d, %s, %s, 'PASS')",
-		     latest_checkin->unix_time(), project, branch);
 
     werror("CWD: %O\n"
 	   "full_name: %O\n"
@@ -115,15 +105,29 @@ class PikeRepositoryClient
 	   getcwd(), full_name, name);
 
     last_name = full_name;
+
+    return 1;
   }
 }
 
+int(0..1) transform_source(string module, string name, string buildid)
+{
+  if (!client->transform_source(module, name, buildid)) return 0;
+  return ::transform_source(module, name, buildid);
+}
 
 string make_build_low(Sha1CommitId t)
 {
   int buildid = t->create_build_id();
 
   debug("Build id is %O\n", buildid);
+
+  string name = latest_checkin->dist_name();
+  if (!transform_source(client->module(), name, (string)buildid)) {
+    persistent_query("UPDATE build SET export='FAIL' WHERE id=%d", buildid);
+    return 0;
+  }
+
   string target_dir = result_dir + branch + "/" + buildid;
   mkdir(target_dir);
   if(!mv(work_dir+branch+"/export_result.txt",
