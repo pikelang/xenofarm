@@ -64,7 +64,10 @@ class Sha1CommitId
 
   string dist_name()
   {
-    return "Pike" + branch + "-" + ::dist_name();
+    object at = Calendar.ISO_UTC.Second("unix", unix_time());
+    return sprintf("%s%s-%s-%s", project, branch,
+                  at->format_ymd_short(),
+                  at->format_tod_short());
   }
 }
 
