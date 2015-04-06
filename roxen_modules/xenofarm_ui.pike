@@ -93,10 +93,11 @@ string status()
 	  ret += " (" + p->remote + ")";
 	}
 	ret += "</td><td>" +
-      (t>0 ? "in " + t + " s" : "next page reload") + "</td><td>" +
-	fmt_timespan(time()-p->new_build) + " ago</td><td>" +
-	fmt_timespan(time()-p->last_changed) + " ago</td>" +
-	sprintf("<td>%O</td>", p) + "</tr>\n";
+	  (t>0 ? "in " + t + " s" : "next page reload") + "</td><td>" +
+	  fmt_timespan(time()-p->new_build) + " ago</td><td>" +
+	  fmt_timespan(time()-p->last_changed) + " ago</td>" +
+	  sprintf("<td>%O</td>", p) + "</tr>\n";
+      }
     }
 
     ret += "</table>\n";
