@@ -4,20 +4,16 @@
 
 inherit "../../result_parser.pike";
 
-string result_dir = "/pike/data/pikefarm/in/";
-string work_dir = "/pike/data/pikefarm/in_work/";
-string web_dir = "/pike/data/pikefarm/results/";
+constant prog_id = "Xenofarm Pike result parser\n";
+
+string result_dir = "/space/www/pikefarm/in/";
+string work_dir = "/space/www/pikefarm/in_work/";
+string web_format = "/space/www/pikefarm/results/%B/";
+bool multi_project = true;
+
+Sql.Sql xfdb = Sql.Sql("mysql://pikefarm@/pikefarm");
 
 void create() {
-  if(!this_object()->pike_version) {
-    werror("This program is not intended to be run.\n");
-    exit(1);
-  }
-#define FIX(X) X += this_object()->pike_version + "/";
-  FIX(web_dir);
-  FIX(work_dir);
-  FIX(result_dir);
-
   foreach(ignored_warnings, string w)
     if(lower_case(w)!=w)
       werror("Warning %O not lower cased.\n");
