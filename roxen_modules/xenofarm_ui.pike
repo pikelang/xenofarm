@@ -414,9 +414,9 @@ static class Project(string db, string project, string remote, string branch)
     else
       return next_update - now;
 
-    int latest_build;
+    int latest_build_id;
     if(sizeof(builds))
-      latest_build = builds[0]->build_datetime;
+      latest_build_id = builds[0]->id;
 
     // Get all tasks
     array new = xfdb->query("SELECT id,name,parent,sort_order FROM task "
@@ -453,8 +453,12 @@ static class Project(string db, string project, string remote, string branch)
     }
 
     // Add new builds
-    new = xfdb->query("SELECT id,time,export FROM build WHERE time > %d"
-		      " ORDER BY time DESC LIMIT %d", latest_build,
+    new = xfdb->query("SELECT id,time,export"
+		      " FROM build WHERE id > %d"
+		      " AND project = %s AND branch = %s AND remote = %s"
+		      " ORDER BY time DESC LIMIT %d",
+		      latest_build_id,
+		      project, branch, remote,
 		      query("results"));
 
     if(sizeof(new)) {
