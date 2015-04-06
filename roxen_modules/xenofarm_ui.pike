@@ -28,6 +28,9 @@ void create()
 			   "when no db attribute has been given, "
 			   "for all build and result data."));
 
+  defvar("default_project", "", "Default project", TYPE_STRING,
+	 "The default project to retrieve information for.");
+
   defvar("results", 10, "Number of results", TYPE_INT,
 	 "The maximum number of results stored in the internal cache." );
 
@@ -360,7 +363,7 @@ class Task (string name, int id, int sort_order) {
   }
 }
 
-static class Project
+static class Project(string db, string project, string remote, string branch)
 {
   //! latest build first, length limited by module variable "results"
   array(Build) builds = ({});
@@ -492,12 +495,45 @@ static class Project
 
 // Really static, but we might want to access this variable
 // from the Hilfe protocol.
-mapping(string:Project) projects = ([]);
+mapping(string:array(Project)) projects = ([]);
 
-static Project get_project(string db) {
-  return projects[db] || ( projects[db]=Project() );
+static Project low_get_project(string db,
+			       string project, string remote, string branch)
+{
+  array(Project) projs = projects[db];
+  if (projs) {
+    foreach(projs, Project p) {
+      if ((p->project == project) && (p->branch == branch) &&
+	  (p->remote == remote)) {
+	// Found.
+	return p;
+      }
+    }
+    projs += ({ Project(db, project, remote, branch) });
+  } else {
+    projs = ({ Project(db, project, remote, branch) });
+  }
+  projects[db] = projs;
+  return projs[-1];
 }
 
+static Project get_project(RequestID id, mapping(string:string)|void args)
+{
+  Project p = id->misc->xenofarm_project;
+  if (p) {
+    foreach(({ "db", "project", "remote", "branch" }), string field) {
+      if (args[field] && (args[field] != p[field])) {
+	p = UNDEFINED;
+	break;
+      }
+    }
+    if (p) return p;
+  }
+  return low_get_project(args->db || id->misc->xenofarm_db || default_db,
+			 args->project || query("default_project"),
+			 args->remote || "origin",
+			 args->branch || "HEAD");
+}
 
 //
 // Tags
@@ -514,9 +550,10 @@ class TagXF_Update {
 
     array do_enter(RequestID id)
     {
-      string db = args->db || default_db;
+      Project p = get_project(id, args);
+      string db = p->db;
       id->misc->xenofarm_db = db;
-      Project p = get_project(db);
+      id->misc->xenofarm_project = p;
 
       Sql.Sql xfdb;
       array error = catch(xfdb = DBManager.get(db, my_configuration(), 1));
@@ -531,6 +568,7 @@ class TagXF_Update {
     array do_return(RequestID id) {
       result = content;
       id->misc->xenofarm_db = 0;
+      id->misc->xenofarm_project = 0;
       xflock--;
     }
   }
@@ -544,7 +582,7 @@ class TagEmitXF_Machine {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
-    Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
+    Project p = get_project(id, m);
 
     if(int id = (int)m_delete(m, "id")) {
       ClientConfig c = p->clients[id];
@@ -603,8 +641,8 @@ class TagEmitXF_Build {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
-    string db = m->db || id->misc->xenofarm_db || default_db;
-    array res = get_project(db)->builds->get_build_entities();
+    Project p = get_project(id, m);
+    array res = p->builds->get_build_entities();
     for(int i=1; i<sizeof(res); i++)
       res[i-1]["last-time"] = res[i]->time;
 
@@ -634,7 +672,7 @@ class TagEmitXF_Result {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
-    Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
+    Project p = get_project(id, m);
     array res;
 
     if(m->build) {
@@ -687,7 +725,7 @@ class TagXF_Details {
     array do_enter(RequestID id)
     {
       NOCACHE();
-      Project p = get_project(args->db || id->misc->xenofarm_db || default_db);
+      Project p = get_project(id, args);
 
       int build, client;
       if(args->id) {
@@ -716,7 +754,7 @@ class TagEmitXF_Task {
   array(mapping) get_dataset(mapping m, RequestID id)
   {
     NOCACHE();
-    Project p = get_project(m->db || id->misc->xenofarm_db || default_db);
+    Project p = get_project(id, m);
 
     int build, client;
 
