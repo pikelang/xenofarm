@@ -79,12 +79,20 @@ string status()
 
   if(sizeof(projects)) {
     ret += "<table border='1'>\n"
-      "<tr><th>Database</th><th>Next update</th>"
+      "<tr><th>Database</th><th>Project</th><th>Next update</th>"
       "<th>New build</th><th>Last changed</th><th>info</th></tr>\n";
     foreach(indices(projects), string db) {
-      Project p = projects[db];
-      int t = p->next_update - time();
-      ret += "<tr><td>" + db + "</td><td>" +
+      array(Project) projs = projects[db];
+      foreach(projs, Project p) {
+	int t = p->next_update - time();
+	ret += "<tr><td>" + db + "</td><td>" + p->project;
+	if (p->branch != "HEAD") {
+	  ret += " " + p->branch;
+	}
+	if (p->remote != "origin") {
+	  ret += " (" + p->remote + ")";
+	}
+	ret += "</td><td>" +
       (t>0 ? "in " + t + " s" : "next page reload") + "</td><td>" +
 	fmt_timespan(time()-p->new_build) + " ago</td><td>" +
 	fmt_timespan(time()-p->last_changed) + " ago</td>" +
