@@ -11,6 +11,7 @@ string branch;
 string result_dir;
 string work_dir;
 string web_dir;
+string web_format;
 bool multi_project = false;
 
 string build_id_file = "buildid.txt";
@@ -430,6 +431,23 @@ void store_result(mapping res)
   }
 }
 
+// Derived server scripts can override this to support more format
+// codes in the --web-format pattern.  The return value should be a
+// mapping from format code (such as "%x") to the string that should
+// be replaced.
+mapping(string:string) extra_web_formats()
+{
+  return ([ ]);
+}
+
+string expand_web_format()
+{
+  return replace(web_format,
+		 ([ "%P": project,
+		    "%R": remote,
+		    "%B": branch ]) + extra_web_formats());
+}
+
 // When result_parser.pike is set up to handle results from more than
 // one project (or branch), this function is called when a result
 // package has been unpacked.  It should identify the project (and
@@ -453,6 +471,10 @@ bool configure_project(int buildid)
     project = row->project;
     remote = row->remote;
     branch = row->branch;
+  }
+
+  if (web_format) {
+    web_dir = expand_web_format();
   }
 
   return true;
@@ -760,6 +782,10 @@ int main(int num, array(string) args) {
 	web_dir = opt[1];
 	break;
 
+      case "webformat":
+	web_format = opt[1];
+	break;
+
       case "workdir":
 	work_dir = opt[1];
 	break;
@@ -820,5 +846,6 @@ result_parser.pike <arguments> [<result files>]
 --verbose    Send messages about everything that happens to stdout.
 --web-dir    Where the contents of the result files should be
              copied to.
+--web-format Alternative to --web-dir with formatting options.
 --work-dir   Where temporary files should be put.
 ";
