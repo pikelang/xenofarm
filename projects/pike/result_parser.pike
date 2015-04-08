@@ -11,7 +11,8 @@ string work_dir = "/space/www/pikefarm/in_work/";
 string web_format = "/space/www/pikefarm/results/%B/";
 bool multi_project = true;
 
-Sql.Sql xfdb = Sql.Sql("mysql://pikefarm@/pikefarm");
+string sqlurl = "mysql://pikefarm@/pikefarm";
+Sql.Sql xfdb = Sql.Sql(sqlurl);
 
 void create() {
   foreach(ignored_warnings, string w)
@@ -68,9 +69,11 @@ void parse_build_id(string fn, mapping res) {
   if( sscanf(file, "%*stime:%d", build_time)!=2 )
     return;
 
+  Sql.Sql db = get_db();
+
   array err = catch {
-    res->build = (int)xfdb->query("SELECT id FROM build WHERE time=%d",
-				  build_time)[0]->id;
+    res->build = (int)db->query("SELECT id FROM build WHERE time=%d",
+				build_time)[0]->id;
   };
 
   if(err) {
