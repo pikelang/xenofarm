@@ -3,6 +3,8 @@
 // Xenofarm result parser
 // By Martin Nilsson
 
+string sqlurl;
+
 Sql.Sql xfdb;
 int result_poll = 60;
 string project;
@@ -48,15 +50,24 @@ void debug(string msg, mixed ... args) {
     write("[" + Calendar.ISO.now()->format_tod() + "] "+msg, @args);
 }
 
+Sql.Sql get_db()
+{
+  if (!sqlurl || (xfdb && (xfdb->ping() >= 0))) {
+    return xfdb;
+  }
+  return xfdb = Sql.Sql(sqlurl);
+}
+
 array persistent_query( string q, mixed ... args ) {
   int(0..) try;
   mixed err;
   array res;
   do {
     try++;
+    Sql.Sql db = get_db();
     err = catch {
-      res = xfdb->query(q, @args);
-    };
+	res = db->query(q, @args);
+      };
     if(err) {
       switch(try) {
       case 1:
@@ -65,9 +76,9 @@ array persistent_query( string q, mixed ... args ) {
 					    if (intp(x))
 					      return x;
 					    else if (stringp(x))
-					      return "'" + xfdb->quote(x) + "'";
+					      return "'" + db->quote(x) + "'";
 					    else
-					      return "'" + xfdb->quote(sprintf("%O", x)) + "'";
+					      return "'" + db->quote(sprintf("%O", x)) + "'";
 					  }) ));
 	if(arrayp(err) && sizeof(err) && stringp(err[0]))
 	  debug("(%s)\n", err[0..sizeof(err)-2] * ":");
@@ -343,9 +354,11 @@ class TaskOrderGenie {
     if(state[task[-1]])
       error("Task is already stored.\n%O\n%O\n", state, task);
 
-    array res = xfdb->query("SELECT name,sort_order FROM task\n"
-			    "WHERE project = %s AND parent=%d",
-			    project, parent);
+    Sql.Sql db = get_db();
+
+    array res = db->query("SELECT name,sort_order FROM task\n"
+			  "WHERE project = %s AND parent=%d",
+			  project, parent);
 
     if(!sizeof(res))
       return 1;
@@ -355,9 +368,9 @@ class TaskOrderGenie {
 
     res = filter(res, lambda(mapping in) { return state[in->name]; });
     int order = max( 0, @(array(int))res->sort_order );
-    xfdb->query("UPDATE task SET sort_order=sort_order+1\n"
-		"WHERE project = %s AND parent=%d AND sort_order>%d",
-		project, parent, order);
+    db->query("UPDATE task SET sort_order=sort_order+1\n"
+	      "WHERE project = %s AND parent=%d AND sort_order>%d",
+	      project, parent, order);
     return order+1;
   }
 }
@@ -375,17 +388,19 @@ int get_task_id(array(string)|string tasks, TaskOrderGenie gen) {
     parent = get_task_id( tasks[..sizeof(tasks)-2], gen );
   string task = tasks[-1];
 
-  array res = xfdb->query("SELECT id FROM task\n"
-			  "WHERE project = %s AND name=%s AND parent=%d",
-			  project, task, parent);
+  Sql.Sql db = get_db();
+
+  array res = db->query("SELECT id FROM task\n"
+			"WHERE project = %s AND name=%s AND parent=%d",
+			project, task, parent);
 
   if(sizeof(res)) return (int)res[0]->id;
 
-  xfdb->query("INSERT INTO task\n"
-	      "SET sort_order = %d, project = %s, parent = %d, name = %s",
-	      gen->get_order(tasks, parent), project, parent, task);
+  db->query("INSERT INTO task\n"
+	    "SET sort_order = %d, project = %s, parent = %d, name = %s",
+	    gen->get_order(tasks, parent), project, parent, task);
 
-  return (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+  return (int)db->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
 }
 
 void find_system(mapping res)
@@ -405,11 +420,13 @@ void find_system(mapping res)
   if(sizeof(qres))
     res->system = (int)qres[0]->id;
   else {
-    xfdb->query("INSERT INTO system (name, sysname, `release`, version, "
-		"machine, testname) VALUES (%s,%s,%s,%s,%s,%s)",
-		res->nodename, res->sysname||"", res->release||"",
-		res->version||"", res->machine||"", testname);
-    res->system = (int)xfdb->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
+    Sql.Sql db = get_db();
+
+    db->query("INSERT INTO system (name, sysname, `release`, version, "
+	      "machine, testname) VALUES (%s,%s,%s,%s,%s,%s)",
+	      res->nodename, res->sysname||"", res->release||"",
+	      res->version||"", res->machine||"", testname);
+    res->system = (int)db->query("SELECT LAST_INSERT_ID() AS id")[0]->id;
   }
 }
 
@@ -420,13 +437,14 @@ void store_result(mapping res)
 {
   if(!res->tasks) return;
   TaskOrderGenie g = TaskOrderGenie();
+  Sql.Sql db = get_db();
   foreach(res->tasks, [string task, string status, int time, int warnings]) {
     int task_id = get_task_id(task, g);
-    xfdb->query("REPLACE INTO task_result "
-		"(build, system, task, status, warnings, time_spent) "
-		"VALUES (%d, %d, %d, %s, %d, %d)",
-		res->build, res->system, task_id,
-		status, warnings, time );
+    db->query("REPLACE INTO task_result "
+	      "(build, system, task, status, warnings, time_spent) "
+	      "VALUES (%d, %d, %d, %s, %d, %d)",
+	      res->build, res->system, task_id,
+	      status, warnings, time );
     g->done(task);
   }
 }
@@ -461,7 +479,8 @@ string expand_web_format()
 bool configure_project(int buildid)
 {
   if(multi_project) {
-    array(mapping) rows = xfdb->query(
+    Sql.Sql db = get_db();
+    array(mapping) rows = db->query(
       "SELECT project, remote, branch\n"
       "FROM build\n"
       "WHERE id = %d", buildid);
@@ -751,7 +770,7 @@ int main(int num, array(string) args) {
       switch(opt[0])
       {
       case "db":
-	xfdb = Sql.Sql( opt[1] );
+	xfdb = Sql.Sql( sqlurl = opt[1] );
 	break;
 
       case "dry":
