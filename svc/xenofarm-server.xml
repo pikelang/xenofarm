@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+
+<service_bundle type='manifest' name='PIKExenofarm:server'>
+
+  <service name='system/xenofarm/server'
+	   type='service'
+	   version='1'>
+
+    <dependency name='filesystem-local'
+		grouping='require_all'
+		restart_on='none'
+		type='service'>
+      <service_fmri value='svc:/system/filesystem/local:default'/>
+    </dependency>
+    <dependency name='mysql'
+		grouping='require_all'
+		restart_on='none'
+		type='service'>
+      <service_fmri value='svc:/application/database/mysql'/>
+    </dependency>
+
+    <exec_method type='method'
+		 name='start'
+		 exec='/lib/svc/method/xenofarm-server.sh'
+		 timeout_seconds='60' />
+    <exec_method type='method'
+		 name='stop'
+		 exec=':kill'
+		 timeout_seconds='60' />
+
+    <instance name='default' enabled='false'>
+      <method_context>
+	<method_credential user='xenofarm' group='xenofarm'/>
+      </method_context>
+
+      <property_group name='xenofarm' type='application'>
+	<stability value='Evolving' />
+	<propval name='url' type='astring'
+		 value='mysql://rw@:/usr/local/roxen/configurations/_mysql/socket/xenofarm' />
+	<propval name='server' type='astring'
+		 value='/home/xenofarm/server.pike' />
+	<propval name='pike' type='astring' value='/usr/bin/pike' />
+      </property_group>
+    </instance>
+
+    <instance name='result_parser' enabled='false'>
+      <method_context>
+	<method_credential user='xenofarm' group='xenofarm'/>
+      </method_context>
+
+      <property_group name='xenofarm' type='application'>
+	<stability value='Evolving' />
+	<propval name='url' type='astring'
+		 value='mysql://rw@:/usr/local/roxen/configurations/_mysql/socket/xenofarm' />
+	<propval name='server' type='astring'
+		 value='/home/xenofarm/result_parser.pike' />
+	<propval name='pike' type='astring' value='/usr/bin/pike' />
+      </property_group>
+    </instance>
+
+    <stability value='Evolving' />
+
+    <template>
+      <common_name>
+	<loctext xml:lang='C'>
+	  Xenofarm server
+	</loctext>
+      </common_name>
+    </template>
+  </service>
+</service_bundle>
