@@ -3,14 +3,14 @@ Xenofarm project Pike (Pikefarm)
 Pike is a very portable and highly optimized general purpose, just in
 time compiled programming language that looks like C, C# and Java.
 More information about the programming language Pike can be found on
-its web pages at http://pike.ida.liu.se/
+its web pages at http://pike.lysator.liu.se/
 
 The Xenofarm project Pike takes about 20 minutes to perform the
-standard test on an average modern computer (1.5Ghz, 512MB), but some
+standard test on an average modern computer (2Ghz, 2GB), but some
 of the special tests, like dmalloc or valgrind, can take considerably
 more time (and memory). Normally the Pikefarm server creates new packages
 no more often than every second hour. The build results can be seen at
-http://pike.ida.liu.se/development/pikefarm/
+http://pike.lysator.liu.se/development/pikefarm/
 
 The configuration file pike.cfg contains several different test
 targets. Comment out the tests you don't want to run, "decomment" the
