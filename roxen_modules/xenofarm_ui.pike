@@ -189,9 +189,10 @@ static class Build
     }
 
     array res = xfdb->query("SELECT system,task,status,warnings,time_spent "
-			    "FROM task_result WHERE build = "+id);
+			    "FROM task_result WHERE build = %d", id);
     int changed;
     int build_task = project->build_task;
+    int cov_build_task = project->cov_build_task;
     array(int) new_systems = ({});
     foreach(res, mapping x)
     {
@@ -213,6 +214,9 @@ static class Build
       array data = values(tasks);
 
       if(build_task) {
+	if (zero_type(status)) {
+	  status = tasks[cov_build_task];
+	}
 	if(!status)
 	  results[system] = "FAIL";
 	else if(status[0]=="PASS") {
@@ -386,6 +390,7 @@ static class Project(string db, string project, string remote, string branch)
   //! task no:Task
   mapping(int:Task) tasks = ([]);
   int build_task;
+  int cov_build_task;
   array(int) ordered_leaf_tasks = ({});
 
   int new_build; // the last time we found a new build in the database
@@ -435,6 +440,7 @@ static class Project(string db, string project, string remote, string branch)
 	  tasks[ parent ]->add_child( t );
 	tasks[ t->id ] = t;
 	if(name=="build") build_task = (int)res->id;
+	if(name=="cov-build") cov_build_task = (int)res->id;
       }
       // Initialize paths
       top->init();
