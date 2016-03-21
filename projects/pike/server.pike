@@ -118,7 +118,7 @@ int(0..1) transform_source(string module, string name, string buildid,
 			   CommitId latest_commit)
 {
   if (!client->transform_source(module, name, buildid, latest_commit)) return 0;
-  return ::transform_source(module, name, buildid);
+  return 1;
 }
 
 string make_build_low(Sha1CommitId t)
