@@ -211,6 +211,14 @@ sizeof() {
     echo $1 | wc -c
 }
 
+has_dot() {
+    if [ X`echo $1|sed 's/\.//'` = X"$1" ]; then
+	false
+    else
+	true
+    fi
+}
+
 #Overcomplex function that tries to get a proper fqdn for the host.
 longest_nodename() {
     #FIXME: This nasty heap of ifs needs to be replaced with something
@@ -219,11 +227,12 @@ longest_nodename() {
     #DNS names
 
     cur_node=`uname -n`
+    fqdn=`hostname --fqdn`
 
     #To dangerous to fiddle with hostname switches if we are root.
     if kill -0 1 2>/dev/null; then
         msg "WARNING: You are running client.sh as root. Don't do that!" >&2
-    else if hostname --fqdn >/dev/null 2>&1; then
+    else if hostname --fqdn >/dev/null 2>&1 && has_dot $fqdn; then
         tmp_node=`hostname --fqdn`
         if [ X$tmp_node != Xlocalhost.localdomain -o X$tmp_node != Xlocalhost ]; then
             cur_node=$tmp_node
@@ -234,18 +243,40 @@ longest_nodename() {
             cur_node=$t_hostname
         fi
         #FIXME: nodename should be normalized to valid chars.
+
+	# If there is a domain entry in resolv.conf use it
         resolv_domain=`grep 'domain ' /etc/resolv.conf | head -1 | awk '{print $2}'`
-        #This won't help for nodes that already have dots in their !domainnames
-        if [ X`echo $cur_node|sed 's/\.//'` = X$cur_node ]; then
-            if [ X`domainname 2>/dev/null` != X -a \
-                 X`domainname 2>/dev/null` != "X(none)" ]; then
+
+	# If the search directive in resolv.conf only has one domain,
+	# evaluate it for inclusion.
+	resolv_search=`grep 'search ' /etc/resolv.conf | awk 'NF==2 {print $NF}'`
+
+	# If "domainname" returns something, use that with top
+	# priority, unless it's lacking dots, in that case use it as a
+	# fallback.
+	domainname=`domainname 2>/dev/null`
+
+        # Still don't have a "." in the nodename, resort to desperate heuristics:
+        if ! has_dot "$cur_node"; then
+            # Does "domainname" return something with a "." in it?
+            if [ X$domainname != X -a \
+                 X$domainname != "X(none)" ] && has_dot $domainname; then
                 cur_node=$cur_node.`domainname`
+            # Does resolv.conf have a domain entry?
             else if [ X$resolv_domain != X ]; then
-                cur_node=$cur_node.$resolv_domain
+                     cur_node=$cur_node.$resolv_domain
+            # Does "dnsdomainname" return something valid?
             else if [ X`dnsdomainname 2>/dev/null` != X -a \
                       X`dnsdomainname 2>/dev/null` != "X(none)" ]; then
-                cur_node=$cur_node.`dnsdomainname`
-            fi; fi; fi
+                     cur_node=$cur_node.`dnsdomainname`
+	    # Does resolv.conf have a valid search entry with only one domain
+            else if has_dot $resolv_search; then
+                     cur_node=$cur_node.$resolv_search
+            # Does "domainname" return something, nevermind if it's lacking dots?
+            else if [ X$domainname != X -a \
+                 X$domainname != "X(none)" ]; then
+                cur_node=$cur_node.`domainname`
+            fi; fi; fi; fi; fi
         fi
     fi; fi
 
