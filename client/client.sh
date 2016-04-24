@@ -707,9 +707,9 @@ if [ "x$limits" = "xno" ]; then :; else
   # NOTE: Limitations are per spawned process. You can still get plenty hurt.
   # TODO: Total time watchdog?
   # TODO: Remote compilation limits?
-  ulimit -d 215040 2>/dev/null || # data segment   < 210 MiB
+  ulimit -d 2097152 2>/dev/null || # data segment   < 2048 MiB
       msg "NOTE: Failed to limit data segment. Might already be lower."
-  ulimit -v 215040 2>/dev/null || # virtual memory < 210 MiB
+  ulimit -v 2097152 2>/dev/null || # virtual memory < 2048 MiB
       msg "NOTE: Failed to limit virtual mem. Might already be lower."
   ulimit -t 14400  2>/dev/null || # CPU            < 4h
       msg "NOTE: Failed to limit CPU time. Might already be lower."
