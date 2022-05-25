@@ -120,7 +120,7 @@ void low_count_compilation_warnings(array x)
 {
   ::low_count_compilation_warnings(x);
 
-  if ((x[0] == "verify") && (x[1] == "FAIL")) {
+  if ((x[0] == "post_build/verify") && (x[1] == "FAIL")) {
     string verify_log = Stdio.read_bytes("verifylog.txt");
     if (verify_log) {
       array(string) a = verify_log/"\nFailed tests: ";
