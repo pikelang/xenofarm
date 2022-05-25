@@ -106,7 +106,10 @@ array persistent_query( string q, mixed ... args ) {
 void parse_build_id(string fn, mapping res) {
   //TODO: pelix had a local hack to limit this to 65k
   string file = Stdio.read_file(fn);
-  if(!file || !sizeof(file)) return;
+  if(!file || !sizeof(file)) {
+    werror("Failed to read buildid.\n");
+    return;
+  }
   file = String.trim_all_whites( (file/"\n")[0] );
   if(!file) return;
   res->build = (int)file;
@@ -620,6 +623,8 @@ bool process_package(string fn) {
 
   rm("tmp");
 
+  store_result(result);
+
   if(!store_files(fn, result)) {
     processed_results[fn]=1;
     return false;
@@ -630,8 +635,6 @@ bool process_package(string fn) {
     processed_results[fn]=1;
     return false;
   }
-
-  store_result(result);
 
   return true;
 }
