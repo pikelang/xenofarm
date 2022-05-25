@@ -116,6 +116,39 @@ void parse_log(string fn, mapping res)
   }
 }
 
+void low_count_compilation_warnings(array x)
+{
+  ::low_count_compilation_warnings(x);
+
+  if ((x[0] == "verify") && (x[1] == "FAIL")) {
+    string verify_log = Stdio.read_bytes("verifylog.txt");
+    if (verify_log) {
+      array(string) a = verify_log/"\nFailed tests: ";
+      if (sizeof(a) > 1) {
+	// Verify completed and reported a total.
+	x[3] = (int)a[1];
+      } else {
+	// Verify did not complete. Accumulate the subresults
+	// (if any) to make an approximate result.
+	a = verify_log/"\nSubresult: ";
+	if (sizeof(a) > 1) {
+	  foreach(a[1..], string r) {
+	    r = (r/"\n")[0];
+	    foreach(r/",", string f) {
+	      if (has_suffix(f, " failed")) {
+		x[3] += (int)f;
+	      }
+	    }
+	  }
+	} else {
+	  // Total failure.
+	  x[3] = -1;
+	}
+      }
+    }
+  }
+}
+
 int count_warnings(string fn) {
 
   // Highlight warnings.

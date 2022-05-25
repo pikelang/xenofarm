@@ -282,11 +282,16 @@ void parse_log(string fn, mapping res)
       res->status = badness ? "WARN" : "PASS";
 }
 
+void low_count_compilation_warnings(array x)
+{
+  if(x[0]==compilation_step_name)
+    x[3] = count_warnings(compilation_log_file);
+}
+
 void count_compilation_warnings(mapping result)
 {
   foreach(result->tasks, array x) {
-    if(x[0]==compilation_step_name)
-      x[3] = count_warnings(compilation_log_file);
+    low_count_compilation_warnings(x);
   }
 }
 
