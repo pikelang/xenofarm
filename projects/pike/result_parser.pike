@@ -11,7 +11,7 @@ string work_dir = "/space/www/pikefarm/in_work/";
 string web_format = "/space/www/pikefarm/results/%B/";
 bool multi_project = true;
 
-string sqlurl = "mysql://pikefarm@/pikefarm";
+string sqlurl = "mysql://pikefarm@:/tmp/mariadb101.sock/pikefarm";
 Sql.Sql xfdb = Sql.Sql(sqlurl);
 
 void create() {

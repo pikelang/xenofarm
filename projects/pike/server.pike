@@ -22,7 +22,7 @@ RepositoryClient get_client()
 string project = "Pike";
 array(string) branches = ({ "master", "8.0", "8.1", "7.8", "7.6", "7.4", });
 
-Sql.Sql xfdb = Sql.Sql("mysql://pikefarm@/pikefarm");
+Sql.Sql xfdb = Sql.Sql("mysql://pikefarm@:/tmp/mariadb101.sock/pikefarm");
 
 #ifdef NILSSON
 string web_format = "/home/nilsson/xenofarm/projects/pike/out/%B/";

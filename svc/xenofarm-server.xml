@@ -14,10 +14,11 @@
       <service_fmri value='svc:/system/filesystem/local:default'/>
     </dependency>
     <dependency name='mysql'
-		grouping='require_all'
+		grouping='require_any'
 		restart_on='none'
 		type='service'>
       <service_fmri value='svc:/application/database/mysql'/>
+      <service_fmri value='svc:/application/database/mariadb'/>
     </dependency>
 
     <exec_method type='method'
