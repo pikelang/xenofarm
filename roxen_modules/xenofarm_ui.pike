@@ -277,16 +277,52 @@ static class Build
     return ret;
   }
 
+  string pretty_time(int t)
+  {
+    if (!t) return "0 seconds";
+
+    int sec = t%60;
+    int min = (t/60)%60;
+    int hour = t/3600;
+
+    string h = "";
+    if (hour) h = sprintf("%d hour%s", hour, (hour == 1)?"":"s");
+    string m = "";
+    if (min) m = sprintf("%d minute%s", min, (min == 1)?"":"s");
+    string s = "";
+    if (sec) s = sprintf("%d second%s", sec, (sec == 1)?"":"s");
+    if (hour && !min) return h;
+    if (hour) return h + " and " + m;
+    if (min && !sec) return m;
+    if (min) return m + " and " + s;
+    return s;
+  }
+
   mapping(string:int|string) get_task_entities(int client, int task) {
-    mapping(string:int|string) ret = ([ "status" : "NONE",
+    Task tobj = project->tasks[task];
+    string name = (string)task;
+    string pname = "Task #" + name;
+    if (tobj && tobj->name != "") {
+      name = tobj->name;
+      pname = String.capitalize(replace(tobj->name, "_", " "));
+    }
+    mapping(string:int|string) ret = ([ "task_id": task,
+					"name": name,
+					"pname": pname,
+					"status" : "NONE",
 					"time_spent" : 0,
+					"pretty_time_spent" : pretty_time(0),
 					"warnings" : 0 ]);
     array|mapping t = task_results[client];
     if(!t) return ret;
     t = t[task];
     if(!t) return ret;
-    return ([ "status" : t[0],
+    return ([ "task_id": task,
+	      "name": name,
+	      "pname": pname,
+	      "status" : t[0],
 	      "time_spent": t[1],
+	      "pretty_time_spent": pretty_tim(t[1]),
 	      "warnings": t[2],
     ]);
   }
@@ -786,20 +822,21 @@ class TagEmitXF_Task {
       client = (int)m->client;
     }
     if(build && client) {
-      array(int) list;
+      array(int|Task) list;
       if(m->tasks=="leafs")
 	list = p->ordered_leaf_tasks;
       else if(m->tasks)
 	list = (array(int))(m->tasks/"\n");
       else {
-	list = indices(p->tasks);
+	list = values(p->tasks);
 	sort(list->sort_order, list);
 	list = list->id;
       }
       Build b = p->get_build(build);
       array ret = ({});
-      foreach( list, int task)
+      foreach( list, int task) {
 	ret += ({ b->get_task_entities(client, task) });
+      }
       return ret;
     }
 
