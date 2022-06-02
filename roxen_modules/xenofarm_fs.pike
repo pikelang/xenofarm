@@ -33,16 +33,42 @@ void create() {
 	  "The directory where uploaded results will be stored." );
 }
 
+protected string truncate(string path, int max_len)
+{
+  if (sizeof(path) <= max_len) return path;
+  array(string) segments = path/"/";
+  int res_len = sizeof(path);
+  for (int i = 2; (res_len > max_len) && i < (sizeof(segments)-2); i++) {
+    res_len -= sizeof(segments[i]) + 1;
+    if (i == 2) {
+      segments[i] = "...";
+    } else {
+      segments[i] = 0;
+    }
+  }
+  return (segments - ({ 0 })) * "/";
+}
+
+string query_name()
+{
+  return sprintf("%s from %s",
+		 truncate(query("mountpoint"), 20),
+		 truncate(query("distpath"), 20));
+}
+
 string info()
 {
+  string descr = sprintf("<p><tt>%s</tt> mounted from <tt>%s</tt>.</p>\n",
+			 Roxen.html_encode_string(query("mountpoint")),
+			 Roxen.html_encode_string(query("distpath")));
   if(!sizeof(downloaded) && !sizeof(uploaded))
-    return "No downloads or uploads so far.";
+    return descr + "<p>No downloads or uploads so far.</p>\n";
   string table = "<table border='1' cellspacing='0' cellpadding='2'>\n"
     "<tr><th>Remote address</th><th>Downloads</th><th>Uploads</th></tr>\n";
   foreach(sort(indices(downloaded + uploaded)), string ip)
     table += sprintf("<tr><td>%s</td><td>%d</td><td>%d</td></tr>\n",
 		     ip, downloaded[ip], uploaded[ip]);
-  return table + "</table>\n";
+  return descr + table + "</table>\n";
 }
 
 // User variables
