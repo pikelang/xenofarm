@@ -281,13 +281,16 @@ static class Build
     Task tobj = project->tasks[task];
     string name = (string)task;
     string pname = "Task #" + name;
+    array(string) path = ({});
     if (tobj && tobj->name != "") {
       name = tobj->name;
       pname = String.capitalize(replace(tobj->name, "_", " "));
+      path = tobj->path/"-";
     }
     mapping(string:int|string) ret = ([ "task_id": task,
 					"name": name,
 					"pname": pname,
+					"path": path,
 					"status" : "NONE",
 					"time_spent" : 0,
 					"pretty_time_spent" : fmt_timespan(0),
@@ -299,6 +302,7 @@ static class Build
     return ([ "task_id": task,
 	      "name": name,
 	      "pname": pname,
+	      "path": path,
 	      "status" : t[0],
 	      "time_spent": t[1],
 	      "pretty_time_spent": fmt_timespan(t[1]),
