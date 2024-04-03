@@ -49,7 +49,7 @@ VERSION=1.3
 # Use --fail to fail on server errors, so that we can retry
 # later.  This is especially important when we put results to the
 # server.
-CURLOPTS="--fail --speed-time 300 --max-time 3600 --connect-timeout 60 -#"
+CURLOPTS="--fail --speed-time 300 --max-time 3600 --connect-timeout 60"
 
 msg() {
   echo `date '+%b %e %H:%M:%S'` "$@"
@@ -71,6 +71,7 @@ If you encounter problems, see the .BREADMEB. for requirements and help.
       .B--config-dirB.:            Specify an alternate configuration directory.
       .B--helpB.:                  This information.
       .B--no-limitsB.:             Don't apply any ulimits.
+      .B--silentB.:                Inhibit progress indicators.
       .B--versionB.:               Displays client version.
       .B--nodenameB.:              Display hosts nodename.
 EOF
@@ -97,6 +98,11 @@ EOF
   '--nodename')
         longest_nodename
         exit 0
+  ;;
+  '-s'|'--silent')
+        silent="yes"
+        # Redirect stdout to /dev/null, but keep stderr.
+        exec >/dev/null
   ;;
   *)
 	echo "Unsupported argument: $1" >&2
@@ -294,7 +300,7 @@ setup_pidfile() {
     if [ -r $pidfile ]; then
         pid=`cat $pidfile`
         if `kill -0 $pid > /dev/null 2>&1`; then
-            msg "NOTE: Xenofarm client already running. pid: $pid"
+            msg "FATAL: Xenofarm client already running. pid: $pid" >&2
             exit 2
         else
             msg "NOTE: Removing stale pid-file."
@@ -694,12 +700,26 @@ config_dir="config"
 # Use ulimit by default
 limits=yes
 
+# Be verbose by default
+silent=no
+
 #Get user input
 parse_args $@
 
 if [ -d "$config_dir/." ]; then :; else
     msg "FATAL: Configuration directory \"$config_dir\" does not exist." >&2
     exit 12
+fi
+
+if [ "x$silent" = "xyes" ]; then
+    # NB: The curl progress bar is on stderr, so to disable it,
+    #     it is not sufficient to just redirect stdout. Keep
+    #     any error messages.
+    CURLOPTS="$CURLOPTS -s -S"
+else
+    # Use a progress bar instead of the default progress meter
+    # to avoid lots of junk when output is captured to a file.
+    CURLOPTS="$CURLOPTS -#"
 fi
 
 if [ "x$limits" = "xno" ]; then :; else
@@ -825,7 +845,7 @@ for projectconfig in $config_dir/*.cfg; do
             delay=$arguments    ;;
         environment)
             if [ $configformat = 2 ] ; then
-                msg "environment: not supported in config format v2."
+                msg "environment: not supported in config format v2." >&2
                 exit 16;
             else
                 environment="$environment $arguments"
