@@ -300,7 +300,10 @@ setup_pidfile() {
     if [ -r $pidfile ]; then
         pid=`cat $pidfile`
         if `kill -0 $pid > /dev/null 2>&1`; then
-            msg "FATAL: Xenofarm client already running. pid: $pid" >&2
+            # NB: Message not on stderr, since it is normal when
+            #     run from eg cron that the previous job has not
+            #     finished yet.
+            msg "FATAL: Xenofarm client already running. pid: $pid"
             exit 2
         else
             msg "NOTE: Removing stale pid-file."
