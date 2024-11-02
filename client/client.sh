@@ -372,7 +372,7 @@ make_newer() {
     then
         touch -d @`expr \`stat -c %Y "$1"\` + 1` "$1"
     else
-        $retouchname "$1"
+        $basedir/$retouchname "$1"
     fi
 }
 
