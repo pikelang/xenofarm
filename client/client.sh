@@ -499,6 +499,9 @@ run_test() {
     put_resume
 
     (   cd "$fulldir"
+        [ -d config_cache/. ] || mkdir config_cache
+        CONFIG_CACHE_FILE="$fulldir/config_cache/config_$test.cache"
+        export CONFIG_CACHE_FILE
 	if [ -d buildtmp/. ]; then
 	  if rm -rf buildtmp 2>/dev/null; then :; else
 	    # Possibly locked by .nfs lock files.
@@ -555,6 +558,16 @@ run_test() {
 
                 #If the remote node has disappeared we would send a false fail
                 check_multimachinecompilation
+
+                if [ -f "$CONFIG_CACHE_FILE" ]; then
+                    if grep FAIL xenofarm_result/mainlog.txt \
+                            >/dev/null 2>&1; then
+                        # Build failure of some kind.
+                        # Save the config cache file for later.
+                        msg "Saving config.cache file: $CONFIG_CACHE_FILE.save"
+                        mv -f "$CONFIG_CACHE_FILE" "$CONFIG_CACHE_FILE.save"
+                    fi
+                fi
 
                 if [ -d xenofarm_result ] ; then
                     cp buildid.txt xenofarm_result
