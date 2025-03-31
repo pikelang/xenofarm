@@ -225,6 +225,18 @@ has_dot() {
     fi
 }
 
+filter_nodename() {
+    case $1 in
+    *.local)
+	# Finding .local domain prevents picking up better ones
+	echo `echo $1|sed 's/\(.*\)\.local$/\1/'`
+	;;
+    *)
+	echo $1
+	;;
+    esac
+}
+
 #Overcomplex function that tries to get a proper fqdn for the host.
 longest_nodename() {
     #FIXME: This nasty heap of ifs needs to be replaced with something
@@ -232,8 +244,8 @@ longest_nodename() {
     #render bad names for a lot of machines on locked down boring ISP
     #DNS names
 
-    cur_node=`uname -n`
-    fqdn=`hostname --fqdn`
+    cur_node=$(filter_nodename `uname -n`)
+    fqdn=`hostname --fqdn 2>/dev/null`
 
     #To dangerous to fiddle with hostname switches if we are root.
     if kill -0 1 2>/dev/null; then
@@ -241,12 +253,12 @@ longest_nodename() {
     else if hostname --fqdn >/dev/null 2>&1 && has_dot $fqdn; then
         tmp_node=`hostname --fqdn`
         if [ X$tmp_node != Xlocalhost.localdomain -o X$tmp_node != Xlocalhost ]; then
-            cur_node=$tmp_node
+            cur_node=$(filter_nodename $tmp_node)
         fi
     else
         t_hostname=`hostname`
         if [ `sizeof $cur_node` -lt `sizeof $t_hostname` ]; then
-            cur_node=$t_hostname
+            cur_node=$(filter_nodename $t_hostname)
         fi
         #FIXME: nodename should be normalized to valid chars.
 
@@ -267,21 +279,21 @@ longest_nodename() {
             # Does "domainname" return something with a "." in it?
             if [ X$domainname != X -a \
                  X$domainname != "X(none)" ] && has_dot $domainname; then
-                cur_node=$cur_node.`domainname`
+                cur_node=$(filter_nodename $cur_node.`domainname`)
             # Does resolv.conf have a domain entry?
             else if [ X$resolv_domain != X ]; then
-                     cur_node=$cur_node.$resolv_domain
+                     cur_node=$(filter_nodename $cur_node.$resolv_domain)
             # Does "dnsdomainname" return something valid?
             else if [ X`dnsdomainname 2>/dev/null` != X -a \
                       X`dnsdomainname 2>/dev/null` != "X(none)" ]; then
-                     cur_node=$cur_node.`dnsdomainname`
+                     cur_node=$(filter_nodename $cur_node.`dnsdomainname`)
 	    # Does resolv.conf have a valid search entry with only one domain
             else if has_dot $resolv_search; then
-                     cur_node=$cur_node.$resolv_search
+                     cur_node=$(filter_nodename $cur_node.$resolv_search)
             # Does "domainname" return something, nevermind if it's lacking dots?
             else if [ X$domainname != X -a \
                  X$domainname != "X(none)" ]; then
-                cur_node=$cur_node.`domainname`
+                cur_node=$(filter_nodename $cur_node.`domainname`)
             fi; fi; fi; fi; fi
         fi
     fi; fi
