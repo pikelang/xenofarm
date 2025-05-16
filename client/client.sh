@@ -500,27 +500,30 @@ run_test() {
 
     (   cd "$fulldir"
         [ -d config_cache/. ] || mkdir config_cache
-        CONFIG_CACHE_FILE="$fulldir/config_cache/config_$test.cache"
-        export CONFIG_CACHE_FILE
-	if [ -d buildtmp/. ]; then
-	  if rm -rf buildtmp 2>/dev/null; then :; else
-	    # Possibly locked by .nfs lock files.
-	    test -d nfslocks/. || mkdir nfslocks || mkdir_exit
-	    find buildtmp -type f -name '.nfs*' -exec mv -f \{\} nfslocks/ \;
-	    # Truncate and cleanup the lock files.
-	    for f in nfslocks/.nfs*; do
-	      >$f
-	      rm -f $f 2>&1
-	    done
-	    rm -rf buildtmp || mkdir_exit
-	  fi
-	fi
-        mkdir buildtmp || mkdir_exit
-        cd buildtmp &&
-        if [ \! -f "../last_$test" ] ||
-           is_newer ../localtime_lastdl "../last_$test" ; then
+
+        if [ \! -f "last_$test" ] ||
+               is_newer localtime_lastdl "last_$test" ; then
             get_time
-            echo $hour:$minute > "../current_$test";
+            echo $hour:$minute > "current_$test";
+
+            CONFIG_CACHE_FILE="$fulldir/config_cache/config_$test.cache"
+            export CONFIG_CACHE_FILE
+            if [ -d buildtmp/. ]; then
+                if rm -rf buildtmp 2>/dev/null; then :; else
+                    # Possibly locked by .nfs lock files.
+                    test -d nfslocks/. || mkdir nfslocks || mkdir_exit
+                    find buildtmp -type f -name '.nfs*' \
+                         -exec mv -f \{\} nfslocks/ \;
+                    # Truncate and cleanup the lock files.
+                    for f in nfslocks/.nfs*; do
+                        >$f
+                        rm -f $f 2>&1
+                    done
+                    rm -rf buildtmp || mkdir_exit
+                fi
+            fi
+            mkdir buildtmp || mkdir_exit
+            cd buildtmp || mkdir_exit
             if `check_delay`; then
                 if [ $uncompressed != "true" ] ; then
                     msg " Uncompressing archive..." &&
