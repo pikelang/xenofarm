@@ -51,7 +51,6 @@ array(string) ignored_warnings = ({
 });
 
 constant removed_warnings = ({
-  "*-read_only_relocs warning*",
   "*warning: no debug symbols in executable*",
   "configure: warning: cleaning the environment from autoconf 2.5x pollution",
   "cc: 1501-245 warning: hard ulimit has been reduced to less than "
