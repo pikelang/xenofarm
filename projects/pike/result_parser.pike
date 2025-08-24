@@ -25,7 +25,8 @@ void create() {
 
 // These warnings will not be counted as real warnings.
 array(string) ignored_warnings = ({
-  "-read_only_relocs warning",
+  "*-read_only_relocs warning*",
+  "*warning: no debug symbols in executable*",
   "configure: warning: found bash as /*.",
   "configure: warning: defaulting to --with-poll since the os is *.",
   "checking for irritating if-if-else-else warnings... *",
@@ -50,12 +51,13 @@ array(string) ignored_warnings = ({
 });
 
 constant removed_warnings = ({
+  "*-read_only_relocs warning*",
+  "*warning: no debug symbols in executable*",
   "configure: warning: cleaning the environment from autoconf 2.5x pollution",
   "cc: 1501-245 warning: hard ulimit has been reduced to less than "
     "rlim_infinity.  there may not be enough space to complete the "
     "compilation.",
   "cc1: warning: -fpic ignored (all code is position independent)",
-  "warning: no debug symbols in executable",
 });
 
 void parse_build_id(string fn, mapping res) {
