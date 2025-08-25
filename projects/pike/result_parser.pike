@@ -48,6 +48,7 @@ array(string) ignored_warnings = ({
   "configure: warning: gnome 1.0.x not supported",
   "makefile:*: warning: overriding commands for target `depend'",
   "makefile:*: warning: ignoring old commands for target `depend'",
+  "warnings and notes summary:",
 });
 
 constant removed_warnings = ({
