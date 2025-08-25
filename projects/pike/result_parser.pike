@@ -27,6 +27,7 @@ void create() {
 array(string) ignored_warnings = ({
   "*-read_only_relocs warning*",
   "*warning: no debug symbols in executable*",
+  "*warning: using * in statically linked application*",
   "configure: warning: found bash as /*.",
   "configure: warning: defaulting to --with-poll since the os is *.",
   "checking for irritating if-if-else-else warnings... *",
