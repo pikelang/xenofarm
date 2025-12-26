@@ -152,6 +152,17 @@ void low_count_compilation_warnings(array x)
       }
     }
   }
+
+  if (x[0] == "post_build/doc/extract_autodoc") {
+    string log = Stdio.read_bytes("extract_autodoc.txt");
+    if (log) {
+      int failures;
+      sscanf(log, "Resolution failed for %d symbols.", failures);
+      if (failures) {
+        x[3] += failures;
+      }
+    }
+  }
 }
 
 int count_warnings(string fn) {
