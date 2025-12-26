@@ -3,6 +3,12 @@
 // Xenofarm result parser
 // By Martin Nilsson
 
+#if !constant(zero)
+typedef int(0..0) zero;
+#endif
+
+#pragma no_deprecation_warnings
+
 string sqlurl;
 
 Sql.Sql xfdb;
@@ -36,8 +42,8 @@ array(string) ignored_warnings = ({});
 class Stack {
   inherit ADT.Stack;
 #if _MINOR_<3
-  int _sizeof() { return ptr; }
-  array _values() { return values(arr[..ptr-1]); }
+  protected int _sizeof() { return ptr; }
+  protected array _values() { return values(arr[..ptr-1]); }
 #endif
 }
 
@@ -132,8 +138,8 @@ void parse_machine_id(string fn, mapping res)
   if (!f->open(fn, "r")) return;
 
   foreach(f->line_iterator(1);;string pair) {
-    string key = 0;
-    string value = 0;
+    string|zero key = 0;
+    string|zero value = 0;
     sscanf(pair, "%s: %s", key, value);
     if(key && value)
       res[key] = String.trim_all_whites(value);
