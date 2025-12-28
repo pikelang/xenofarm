@@ -587,10 +587,17 @@ bool unpack_package(string fn)
   if(!content) return false;
 
   if(has_value(content, "/")) {
-    write("Refusing to process %O since %s contains a slash.\n", fn,
-	  String.implode_nicely(filter(content/"\n", has_value, "/")) );
-    processed_results[fn]=1;
-    return false;
+    int bad;
+    foreach(content/"\n", string line) {
+      if (has_prefix(line, "./")) line = line[2..];
+      if (bad = has_value(line, "/")) break;
+    }
+    if (bad) {
+      write("Refusing to process %O since %s contains a slash.\n", fn,
+            String.implode_nicely(filter(content/"\n", has_value, "/")) );
+      processed_results[fn]=1;
+      return false;
+    }
   }
 
   Process.create_process( ({ "tar", "xf", "tmp" }), ([]) )->wait();
