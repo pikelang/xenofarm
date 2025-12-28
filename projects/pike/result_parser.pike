@@ -161,6 +161,9 @@ void low_count_compilation_warnings(array x)
       if (failures) {
         x[3] += failures;
       }
+    } else {
+      werror("Extraction log missing!\n");
+      x[3] += 1;
     }
   }
 }
